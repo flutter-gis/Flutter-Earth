@@ -1,0 +1,84 @@
+Metadata-Version: 2.1
+Name: dead-the-third
+Version: 1.0.0
+Summary: A tool for downloading and processing satellite imagery from Google Earth Engine
+Author: Flutter Earth Project
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+
+# Flutter Earth - Advanced GEE Downloader
+
+A powerful Python application for downloading and processing satellite imagery from Google Earth Engine. This application provides a modern Qt-based GUI interface for selecting areas of interest, managing satellite data downloads, and processing imagery.
+
+## Features
+
+- Modern Qt-based GUI interface
+- Support for multiple satellite data sources (Landsat, Sentinel-2, ERA5)
+- Advanced cloud masking and image processing
+- Vector data support (Shapefiles, GeoJSON)
+- Interactive map selection
+- Multi-threaded downloads
+- Progress tracking and logging
+- Theme customization
+
+## Installation
+
+1. Clone this repository
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+3. Authenticate with Google Earth Engine:
+```bash
+earthengine authenticate
+```
+
+## Usage
+
+1. Run the application:
+```bash
+python flutter_earth_6-19.py
+```
+
+2. Select your area of interest using one of the following methods:
+   - Draw on the interactive map
+   - Import a shapefile
+   - Enter coordinates manually
+
+3. Choose your satellite data source and time range
+
+4. Configure processing options:
+   - Cloud masking
+   - Resolution
+   - Bands to download
+   - Output format
+
+5. Start the download process
+
+## Configuration
+
+The application stores its configuration in a JSON file. You can modify the following settings:
+- Default output directory
+- Tile size and overlap
+- UI theme
+- Processing parameters
+
+## Troubleshooting
+
+1. If you encounter authentication issues:
+   - Ensure you've run `earthengine authenticate`
+   - Check your internet connection
+   - Verify your Google Earth Engine account is active
+
+2. For performance issues:
+   - Reduce the size of your area of interest
+   - Increase tile size
+   - Check available disk space
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details. 

@@ -1,0 +1,30 @@
+{
+    "TILE_SIZE_DEG": 0.02,
+    "OVERLAP_DEG": 0.002,
+    "TARGET_RESOLUTION": 30,
+    "MAX_WORKERS": 4,
+    "MAX_TILE_RETRIES": 2,
+    "MIN_VALID_PIXELS_TILE_VALIDATION": 100,
+    "DOWNLOAD_TIMEOUT": 300,
+    "CLEANUP_TILES": true,
+    "SENSOR_PRIORITY_ORDER": [
+        "LANDSAT_9",
+        "LANDSAT_8",
+        "SENTINEL2",
+        "LANDSAT_7",
+        "LANDSAT_5",
+        "LANDSAT_4",
+        "ERA5_TEMP",
+        "VIIRS",
+        "MODIS"
+    ],
+    "theme": "Fluttershy",
+    "output_dir": "C:\\Users\\J. Newman\\flutter_earth_downloads",
+    "start_date": "2024-12-19",
+    "end_date": "2025-06-19",
+    "overwrite": false,
+    "TILING_METHOD": "degree",
+    "NUM_SUBSECTIONS": 100,
+    "USE_BEST_RESOLUTION": false,
+    "bbox_str": "35.2, 30.5, 35.8, 32.0"
+}
