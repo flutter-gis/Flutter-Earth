@@ -1,0 +1,17 @@
+18:04:23 - INFO - [MainThread] - File logging configured (Mode: w). Output to: D:\dead the third\flutter_earth_downloads\flutter_earth_processing_log.txt
+18:04:23 - INFO - [MainThread] - Initial file logging setup successful. Log file: D:\dead the third\flutter_earth_downloads\flutter_earth_processing_log.txt
+18:04:23 - INFO - [MainThread] - Starting package check...
+18:04:23 - INFO - [MainThread] - Attempting to install: PyQtWebEngine
+18:04:25 - INFO - [MainThread] - Successfully installed PyQtWebEngine.
+18:04:25 - INFO - [MainThread] - Initial logging configured. stdout and stderr redirected to queue.
+18:04:26 - INFO - [MainThread] - Attempting to load config from: D:\dead the third\flutter_earth_config.json
+18:04:26 - INFO - [MainThread] - Loaded and merged config from D:\dead the third\flutter_earth_config.json
+18:04:26 - INFO - [MainThread] - Config file saved/updated at D:\dead the third\flutter_earth_config.json
+18:04:26 - INFO - [MainThread] - DataViewerTab instantiated successfully: <__main__.DataViewerTab object at 0x0000024C420363C0>
+18:04:26 - INFO - [MainThread] - DataViewerTab instantiated successfully: <__main__.DataViewerTab object at 0x0000024C420363C0>
+18:04:26 - INFO - [MainThread] - Saved config to D:\dead the third\flutter_earth_config.json
+18:04:26 - ERROR - [MainThread] - Traceback (most recent call last):
+18:04:26 - ERROR - [MainThread] -   File "D:\dead the third\flutter_earth_6-19.py", line 3498, in <module>
+18:04:26 - ERROR - [MainThread] -     post_processing_sub_tabs.currentChanged.connect(update_main_layout_for_viewer_mode)
+18:04:26 - ERROR - [MainThread] -     ^^^^^^^^^^^^^^^^^^^^^^^^
+18:04:26 - ERROR - [MainThread] - NameError: name 'post_processing_sub_tabs' is not defined
