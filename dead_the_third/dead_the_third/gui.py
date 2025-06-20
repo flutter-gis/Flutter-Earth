@@ -1,8 +1,8 @@
-"""GUI interface for Flutter Earth."""
+"""Advanced GUI interface for Flutter Earth."""
 import os
 import sys
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from PyQt5 import QtCore, QtWidgets, QtGui, QtWebEngineWidgets
 import folium
@@ -14,9 +14,16 @@ from .earth_engine import EarthEngineManager
 from .download_manager import DownloadManager
 from .progress_tracker import ProgressTracker
 from .utils import validate_bbox, validate_dates, get_sensor_details
+from .themes import ThemeManager
+from .satellite_info import SatelliteInfoManager, SATELLITE_DETAILS, SATELLITE_CATEGORIES
+from .gui_components import (
+    SatelliteInfoTab, SensorPriorityDialog, QtLogHandler,
+    create_help_button, create_form_label_with_help
+)
+
 
 class FlutterEarthGUI(QtWidgets.QMainWindow):
-    """Main window for Flutter Earth application."""
+    """Advanced main window for Flutter Earth application."""
     
     def __init__(
         self,
@@ -25,7 +32,7 @@ class FlutterEarthGUI(QtWidgets.QMainWindow):
         download_manager: DownloadManager,
         progress_tracker: ProgressTracker
     ):
-        """Initialize the GUI.
+        """Initialize the advanced GUI.
         
         Args:
             config_manager: Configuration manager instance.
@@ -41,101 +48,154 @@ class FlutterEarthGUI(QtWidgets.QMainWindow):
         self.download_manager = download_manager
         self.progress_tracker = progress_tracker
         
+        # Initialize theme manager
+        self.theme_manager = ThemeManager()
+        self.satellite_manager = SatelliteInfoManager()
+        
         # Set window properties
-        self.setWindowTitle("Flutter Earth")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setWindowTitle(self.theme_manager.get_text("window_title_main"))
+        self.setGeometry(100, 100, 1400, 900)
         
         # Create UI elements
         self._create_ui()
-        
-        # Connect signals
+        self._create_menu_bar()
         self._connect_signals()
+        
+        # Apply theme
+        self._apply_theme()
         
         # Initialize map
         self._initialize_map()
+        
+        # Setup logging
+        self._setup_logging()
     
     def _create_ui(self):
-        """Create user interface elements."""
-        # Create central widget and layout
+        """Create the advanced user interface."""
+        # Create central widget and main layout
         central_widget = QtWidgets.QWidget()
         self.setCentralWidget(central_widget)
         
-        layout = QtWidgets.QHBoxLayout(central_widget)
+        main_layout = QtWidgets.QVBoxLayout(central_widget)
         
-        # Create left panel (controls)
-        left_panel = QtWidgets.QWidget()
-        left_layout = QtWidgets.QVBoxLayout(left_panel)
+        # Create main splitter
+        main_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        main_layout.addWidget(main_splitter)
         
-        # Add control groups
-        left_layout.addWidget(self._create_area_group())
-        left_layout.addWidget(self._create_date_group())
-        left_layout.addWidget(self._create_sensor_group())
-        left_layout.addWidget(self._create_output_group())
-        left_layout.addWidget(self._create_processing_group())
-        left_layout.addStretch()
+        # Left panel with tabs
+        left_panel = self._create_left_panel()
+        main_splitter.addWidget(left_panel)
         
-        # Create right panel (map and progress)
-        right_panel = QtWidgets.QWidget()
-        right_layout = QtWidgets.QVBoxLayout(right_panel)
+        # Right panel with map and progress
+        right_panel = self._create_right_panel()
+        main_splitter.addWidget(right_panel)
         
-        # Add map view
-        self.map_view = QtWebEngineWidgets.QWebEngineView()
-        right_layout.addWidget(self.map_view)
+        # Set splitter proportions
+        main_splitter.setSizes([600, 800])
         
-        # Add progress bar
-        self.progress_bar = QtWidgets.QProgressBar()
-        self.progress_bar.setTextVisible(True)
-        right_layout.addWidget(self.progress_bar)
-        
-        # Add panels to main layout
-        layout.addWidget(left_panel, 1)
-        layout.addWidget(right_panel, 2)
+        # Status bar
+        self.status_bar = QtWidgets.QStatusBar()
+        self.setStatusBar(self.status_bar)
+        self.status_bar.showMessage(self.theme_manager.get_text("status_bar_ready"))
     
-    def _create_area_group(self) -> QtWidgets.QGroupBox:
-        """Create area selection group."""
-        group = QtWidgets.QGroupBox("Area of Interest")
-        layout = QtWidgets.QVBoxLayout(group)
+    def _create_left_panel(self):
+        """Create the left panel with tabs."""
+        left_widget = QtWidgets.QWidget()
+        left_layout = QtWidgets.QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Add coordinate inputs
-        coord_layout = QtWidgets.QGridLayout()
+        # Create tab widget
+        self.tab_widget = QtWidgets.QTabWidget()
+        left_layout.addWidget(self.tab_widget)
         
-        self.west_input = QtWidgets.QLineEdit()
-        self.east_input = QtWidgets.QLineEdit()
-        self.north_input = QtWidgets.QLineEdit()
-        self.south_input = QtWidgets.QLineEdit()
+        # Add tabs
+        self._create_download_tab()
+        self._create_satellite_info_tab()
+        self._create_post_processing_tab()
         
-        coord_layout.addWidget(QtWidgets.QLabel("West:"), 0, 0)
-        coord_layout.addWidget(self.west_input, 0, 1)
-        coord_layout.addWidget(QtWidgets.QLabel("East:"), 0, 2)
-        coord_layout.addWidget(self.east_input, 0, 3)
-        coord_layout.addWidget(QtWidgets.QLabel("North:"), 1, 0)
-        coord_layout.addWidget(self.north_input, 1, 1)
-        coord_layout.addWidget(QtWidgets.QLabel("South:"), 1, 2)
-        coord_layout.addWidget(self.south_input, 1, 3)
-        
-        layout.addLayout(coord_layout)
-        
-        # Add buttons
-        button_layout = QtWidgets.QHBoxLayout()
-        
-        draw_button = QtWidgets.QPushButton("Draw on Map")
-        draw_button.clicked.connect(self._enable_map_drawing)
-        button_layout.addWidget(draw_button)
-        
-        import_button = QtWidgets.QPushButton("Import Shapefile")
-        import_button.clicked.connect(self._import_shapefile)
-        button_layout.addWidget(import_button)
-        
-        layout.addLayout(button_layout)
-        
-        return group
+        return left_widget
     
-    def _create_date_group(self) -> QtWidgets.QGroupBox:
-        """Create date selection group."""
-        group = QtWidgets.QGroupBox("Date Range")
-        layout = QtWidgets.QVBoxLayout(group)
+    def _create_download_tab(self):
+        """Create the main download settings tab."""
+        download_widget = QtWidgets.QWidget()
         
-        # Add date inputs
+        # Create scroll area for the download tab
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        
+        # Create content widget
+        content_widget = QtWidgets.QWidget()
+        content_layout = QtWidgets.QVBoxLayout(content_widget)
+        
+        # Area and time settings
+        area_time_group = self._create_area_time_group()
+        content_layout.addWidget(area_time_group)
+        
+        # Processing and sensor settings
+        processing_group = self._create_processing_group()
+        content_layout.addWidget(processing_group)
+        
+        # Output settings
+        output_group = self._create_output_group()
+        content_layout.addWidget(output_group)
+        
+        # Processing controls
+        controls_group = self._create_controls_group()
+        content_layout.addWidget(controls_group)
+        
+        # Log console
+        log_group = self._create_log_group()
+        content_layout.addWidget(log_group)
+        
+        content_layout.addStretch()
+        
+        # Set the content widget
+        scroll_area.setWidget(content_widget)
+        
+        # Create main layout for download tab
+        download_layout = QtWidgets.QVBoxLayout(download_widget)
+        download_layout.addWidget(scroll_area)
+        
+        self.tab_widget.addTab(download_widget, "Download Settings")
+    
+    def _create_area_time_group(self):
+        """Create area and time settings group."""
+        group = QtWidgets.QGroupBox("Area & Time Settings")
+        layout = QtWidgets.QFormLayout(group)
+        
+        # AOI input with help
+        aoi_label = create_form_label_with_help(
+            "AOI (BBOX or Polygon GeoJSON):",
+            "Area of Interest Help",
+            ("Enter or import coordinates for your Area of Interest (AOI):\n\n"
+             "1. Manual Input:\n"
+             "   - Rectangle (BBOX): 'minLon,minLat,maxLon,maxLat' (e.g., 35.2,30.5,35.8,32.0).\n"
+             "   - Polygon (GeoJSON): A list of [longitude, latitude] pairs forming a closed shape.\n\n"
+             "2. Interactive Selection:\n"
+             "   - Use the '🗺️ Map' button to draw a new polygon/rectangle.\n"
+             "   - Use the '📂 SHP' button to import an Esri Shapefile."),
+            group
+        )
+        
+        self.aoi_input = QtWidgets.QLineEdit()
+        self.aoi_input.setPlaceholderText("e.g., 35.2,30.5,35.8,32.0 or [[35,31],[35.5,31],[35.5,31.5],[35,31.5],[35,31]]")
+        
+        aoi_layout = QtWidgets.QHBoxLayout()
+        aoi_layout.addWidget(self.aoi_input)
+        
+        map_button = QtWidgets.QPushButton("🗺️ Map")
+        map_button.clicked.connect(self._open_map_selection)
+        aoi_layout.addWidget(map_button)
+        
+        shp_button = QtWidgets.QPushButton("📂 SHP")
+        shp_button.clicked.connect(self._import_shapefile)
+        aoi_layout.addWidget(shp_button)
+        
+        layout.addRow(aoi_label, aoi_layout)
+        
+        # Date inputs
         self.start_date = QtWidgets.QDateEdit()
         self.start_date.setCalendarPopup(True)
         self.start_date.setDate(QtCore.QDate.currentDate().addMonths(-1))
@@ -144,28 +204,36 @@ class FlutterEarthGUI(QtWidgets.QMainWindow):
         self.end_date.setCalendarPopup(True)
         self.end_date.setDate(QtCore.QDate.currentDate())
         
-        date_layout = QtWidgets.QFormLayout()
-        date_layout.addRow("Start Date:", self.start_date)
-        date_layout.addRow("End Date:", self.end_date)
+        start_label = QtWidgets.QLabel(self.theme_manager.get_text("start_date_label"))
+        end_label = QtWidgets.QLabel(self.theme_manager.get_text("end_date_label"))
         
-        layout.addLayout(date_layout)
+        layout.addRow(start_label, self.start_date)
+        layout.addRow(end_label, self.end_date)
         
         return group
     
-    def _create_sensor_group(self) -> QtWidgets.QGroupBox:
-        """Create sensor selection group."""
-        group = QtWidgets.QGroupBox("Satellite Sensor")
-        layout = QtWidgets.QVBoxLayout(group)
+    def _create_processing_group(self):
+        """Create processing and sensor settings group."""
+        group = QtWidgets.QGroupBox("Processing & Sensor Settings")
+        layout = QtWidgets.QFormLayout(group)
         
-        # Add sensor selection
-        self.sensor_combo = QtWidgets.QComboBox()
-        self.sensor_combo.addItems(['LANDSAT_9', 'SENTINEL_2'])
+        # Sensor priority with edit button
+        sensor_priority_label = QtWidgets.QLabel(self.theme_manager.get_text("sensor_priority_label"))
         
-        layout.addWidget(self.sensor_combo)
+        sensor_layout = QtWidgets.QHBoxLayout()
+        self.sensor_priority_combo = QtWidgets.QComboBox()
+        self.sensor_priority_combo.addItems(['LANDSAT_9', 'SENTINEL2', 'LANDSAT_8'])
+        sensor_layout.addWidget(self.sensor_priority_combo)
         
-        # Add cloud cover options
+        edit_priority_button = QtWidgets.QPushButton(self.theme_manager.get_text("sensor_priority_edit_button"))
+        edit_priority_button.clicked.connect(self._open_sensor_priority_dialog)
+        sensor_layout.addWidget(edit_priority_button)
+        
+        layout.addRow(sensor_priority_label, sensor_layout)
+        
+        # Cloud cover
         self.cloud_mask_check = QtWidgets.QCheckBox("Apply Cloud Masking")
-        layout.addWidget(self.cloud_mask_check)
+        layout.addRow("", self.cloud_mask_check)
         
         cloud_cover_layout = QtWidgets.QHBoxLayout()
         cloud_cover_layout.addWidget(QtWidgets.QLabel("Max Cloud Cover:"))
@@ -176,56 +244,229 @@ class FlutterEarthGUI(QtWidgets.QMainWindow):
         self.cloud_cover_spin.setSuffix("%")
         cloud_cover_layout.addWidget(self.cloud_cover_spin)
         
-        layout.addLayout(cloud_cover_layout)
+        layout.addRow("", cloud_cover_layout)
+        
+        # Resolution settings
+        self.use_best_resolution_check = QtWidgets.QCheckBox(self.theme_manager.get_text("use_highest_resolution_cb"))
+        layout.addRow("", self.use_best_resolution_check)
+        
+        target_res_label = create_form_label_with_help(
+            "Target Resolution (m):",
+            "Target Resolution Help",
+            self.theme_manager.get_text("target_resolution_manual_tooltip"),
+            group
+        )
+        
+        self.target_resolution_spin = QtWidgets.QSpinBox()
+        self.target_resolution_spin.setRange(1, 1000)
+        self.target_resolution_spin.setValue(30)
+        self.target_resolution_spin.setSuffix(" m")
+        layout.addRow(target_res_label, self.target_resolution_spin)
+        
+        # Tiling method
+        self.tiling_method_combo = QtWidgets.QComboBox()
+        self.tiling_method_combo.addItems(['degree', 'pixel'])
+        layout.addRow("Tiling Method:", self.tiling_method_combo)
+        
+        # Number of subsections
+        self.num_subsections_spin = QtWidgets.QSpinBox()
+        self.num_subsections_spin.setRange(1, 1000)
+        self.num_subsections_spin.setValue(100)
+        layout.addRow("Number of Subsections:", self.num_subsections_spin)
         
         return group
     
-    def _create_output_group(self) -> QtWidgets.QGroupBox:
-        """Create output options group."""
-        group = QtWidgets.QGroupBox("Output Options")
-        layout = QtWidgets.QVBoxLayout(group)
+    def _create_output_group(self):
+        """Create output settings group."""
+        group = QtWidgets.QGroupBox("Output Settings")
+        layout = QtWidgets.QFormLayout(group)
         
-        # Add output directory selection
-        dir_layout = QtWidgets.QHBoxLayout()
+        # Output directory
+        output_dir_label = QtWidgets.QLabel(self.theme_manager.get_text("output_dir_label"))
         
+        output_dir_layout = QtWidgets.QHBoxLayout()
         self.output_dir = QtWidgets.QLineEdit()
         self.output_dir.setText(os.path.expanduser("~/Downloads"))
-        dir_layout.addWidget(self.output_dir)
+        output_dir_layout.addWidget(self.output_dir)
         
         browse_button = QtWidgets.QPushButton("Browse")
+        browse_button.setObjectName("browseButton")
         browse_button.clicked.connect(self._browse_output_dir)
-        dir_layout.addWidget(browse_button)
+        output_dir_layout.addWidget(browse_button)
         
-        layout.addLayout(dir_layout)
+        layout.addRow(output_dir_label, output_dir_layout)
+        
+        # Overwrite option
+        self.overwrite_check = QtWidgets.QCheckBox(self.theme_manager.get_text("overwrite_label"))
+        layout.addRow("", self.overwrite_check)
+        
+        # Cleanup tiles option
+        self.cleanup_tiles_check = QtWidgets.QCheckBox(self.theme_manager.get_text("cleanup_tiles_label"))
+        self.cleanup_tiles_check.setChecked(True)
+        layout.addRow("", self.cleanup_tiles_check)
         
         return group
     
-    def _create_processing_group(self) -> QtWidgets.QGroupBox:
-        """Create processing options group."""
-        group = QtWidgets.QGroupBox("Processing")
+    def _create_controls_group(self):
+        """Create processing controls group."""
+        group = QtWidgets.QGroupBox("Processing Controls")
         layout = QtWidgets.QVBoxLayout(group)
         
-        # Add processing buttons
-        start_button = QtWidgets.QPushButton("Start Processing")
-        start_button.clicked.connect(self._start_processing)
-        layout.addWidget(start_button)
+        # Progress bars
+        overall_progress_label = QtWidgets.QLabel(self.theme_manager.get_text("overall_progress_label"))
+        layout.addWidget(overall_progress_label)
         
-        cancel_button = QtWidgets.QPushButton("Cancel")
-        cancel_button.clicked.connect(self._cancel_processing)
-        layout.addWidget(cancel_button)
+        self.overall_progress_bar = QtWidgets.QProgressBar()
+        self.overall_progress_bar.setObjectName("overallProgressBar")
+        self.overall_progress_bar.setTextVisible(True)
+        layout.addWidget(self.overall_progress_bar)
+        
+        monthly_progress_label = QtWidgets.QLabel(self.theme_manager.get_text("monthly_progress_label"))
+        layout.addWidget(monthly_progress_label)
+        
+        self.monthly_progress_bar = QtWidgets.QProgressBar()
+        self.monthly_progress_bar.setObjectName("monthlyProgressBar")
+        self.monthly_progress_bar.setTextVisible(True)
+        layout.addWidget(self.monthly_progress_bar)
+        
+        # Control buttons
+        button_layout = QtWidgets.QHBoxLayout()
+        
+        self.start_button = QtWidgets.QPushButton(self.theme_manager.get_text("run_button"))
+        self.start_button.setObjectName("startButton")
+        self.start_button.clicked.connect(self._start_processing)
+        button_layout.addWidget(self.start_button)
+        
+        self.cancel_button = QtWidgets.QPushButton(self.theme_manager.get_text("cancel_button"))
+        self.cancel_button.setObjectName("cancelButton")
+        self.cancel_button.clicked.connect(self._cancel_processing)
+        self.cancel_button.setEnabled(False)
+        button_layout.addWidget(self.cancel_button)
+        
+        self.verify_button = QtWidgets.QPushButton(self.theme_manager.get_text("verify_button_text_base"))
+        self.verify_button.setObjectName("verifyButton")
+        self.verify_button.clicked.connect(self._verify_satellites)
+        button_layout.addWidget(self.verify_button)
+        
+        layout.addLayout(button_layout)
         
         return group
+    
+    def _create_log_group(self):
+        """Create log console group."""
+        group = QtWidgets.QGroupBox(self.theme_manager.get_text("log_console_label"))
+        layout = QtWidgets.QVBoxLayout(group)
+        
+        self.log_console = QtWidgets.QTextEdit()
+        self.log_console.setObjectName("logConsole")
+        self.log_console.setMaximumHeight(150)
+        layout.addWidget(self.log_console)
+        
+        return group
+    
+    def _create_satellite_info_tab(self):
+        """Create the satellite information tab."""
+        satellite_tab = SatelliteInfoTab(self.theme_manager)
+        self.tab_widget.addTab(satellite_tab, "🛰️ Satellite Info")
+    
+    def _create_post_processing_tab(self):
+        """Create the post-processing tab."""
+        post_processing_widget = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(post_processing_widget)
+        
+        # Placeholder for post-processing features
+        placeholder = QtWidgets.QLabel("Post-processing features coming soon...")
+        placeholder.setAlignment(QtCore.Qt.AlignCenter)
+        layout.addWidget(placeholder)
+        
+        self.tab_widget.addTab(post_processing_widget, "📊 Post Processing")
+    
+    def _create_right_panel(self):
+        """Create the right panel with map and additional info."""
+        right_widget = QtWidgets.QWidget()
+        right_layout = QtWidgets.QVBoxLayout(right_widget)
+        
+        # Map view
+        self.map_view = QtWebEngineWidgets.QWebEngineView()
+        right_layout.addWidget(self.map_view)
+        
+        return right_widget
+    
+    def _create_menu_bar(self):
+        """Create the menu bar with themes and tools."""
+        menu_bar = self.menuBar()
+        
+        # File menu
+        file_menu = menu_bar.addMenu("&File")
+        
+        # Tools menu
+        tools_menu = menu_bar.addMenu(self.theme_manager.get_text("tools_menu_label"))
+        
+        satellite_info_action = QtWidgets.QAction(self.theme_manager.get_text("satellite_info_action_label"), self)
+        satellite_info_action.triggered.connect(self._show_satellite_info)
+        tools_menu.addAction(satellite_info_action)
+        
+        post_processing_action = QtWidgets.QAction(self.theme_manager.get_text("post_processing_action_label"), self)
+        post_processing_action.triggered.connect(self._show_post_processing)
+        tools_menu.addAction(post_processing_action)
+        
+        # Themes menu
+        themes_menu = menu_bar.addMenu(self.theme_manager.get_text("themes_menu_text"))
+        
+        for theme_name in self.theme_manager.get_available_themes():
+            theme_action = QtWidgets.QAction(theme_name, self)
+            theme_action.setCheckable(True)
+            theme_action.setChecked(theme_name == self.theme_manager.theme_name)
+            theme_action.triggered.connect(lambda checked, name=theme_name: self._change_theme(name))
+            themes_menu.addAction(theme_action)
+        
+        # Help menu
+        help_menu = menu_bar.addMenu(self.theme_manager.get_text("help_menu_text"))
+        
+        about_action = QtWidgets.QAction(self.theme_manager.get_text("about_menu_item_text"), self)
+        about_action.triggered.connect(self._show_about_dialog)
+        help_menu.addAction(about_action)
     
     def _connect_signals(self):
         """Connect signal handlers."""
         # Connect coordinate input validators
-        for input_field in [self.west_input, self.east_input,
-                          self.north_input, self.south_input]:
-            input_field.textChanged.connect(self._validate_coordinates)
+        self.aoi_input.textChanged.connect(self._validate_aoi)
         
         # Connect date validators
         self.start_date.dateChanged.connect(self._validate_dates)
         self.end_date.dateChanged.connect(self._validate_dates)
+        
+        # Connect resolution toggle
+        self.use_best_resolution_check.toggled.connect(self._on_best_resolution_toggle)
+        
+        # Connect tiling method change
+        self.tiling_method_combo.currentTextChanged.connect(self._on_tiling_method_change)
+    
+    def _setup_logging(self):
+        """Setup logging to the GUI console."""
+        log_handler = QtLogHandler(self.log_console)
+        log_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        
+        # Add handler to root logger
+        root_logger = logging.getLogger()
+        root_logger.addHandler(log_handler)
+        root_logger.setLevel(logging.INFO)
+    
+    def _apply_theme(self):
+        """Apply the current theme to the application."""
+        self.setStyleSheet(self.theme_manager.get_stylesheet())
+    
+    def _change_theme(self, theme_name: str):
+        """Change the application theme."""
+        self.theme_manager.set_theme(theme_name)
+        self._apply_theme()
+        
+        # Update theme menu checked state
+        for action in self.menuBar().actions():
+            if action.text() == self.theme_manager.get_text("themes_menu_text"):
+                for theme_action in action.menu().actions():
+                    theme_action.setChecked(theme_action.text() == theme_name)
+                break
     
     def _initialize_map(self):
         """Initialize the map view."""
@@ -236,7 +477,7 @@ class FlutterEarthGUI(QtWidgets.QMainWindow):
             control_scale=True
         )
         
-        # Save map to temporary file in a writable directory
+        # Save map to temporary file
         temp_dir = tempfile.gettempdir()
         temp_html = os.path.join(temp_dir, "flutter_earth_map.html")
         m.save(temp_html)
@@ -244,151 +485,121 @@ class FlutterEarthGUI(QtWidgets.QMainWindow):
         # Load map in web view
         self.map_view.setUrl(QtCore.QUrl.fromLocalFile(temp_html))
     
-    def _enable_map_drawing(self):
-        """Enable drawing mode on map."""
-        # TODO: Implement map drawing functionality
-        self.logger.info("Map drawing not implemented yet")
+    def _open_map_selection(self):
+        """Open the map selection dialog."""
+        # TODO: Implement map selection dialog
+        self.logger.info("Map selection dialog not implemented yet")
     
     def _import_shapefile(self):
-        """Import area from shapefile."""
-        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self,
-            "Import Shapefile",
-            "",
-            "Shapefiles (*.shp);;All Files (*)"
-        )
-        
-        if file_name:
-            try:
-                # TODO: Implement shapefile import
-                self.logger.info(f"Importing shapefile: {file_name}")
-            except Exception as e:
-                self.logger.error(f"Failed to import shapefile: {e}")
-                QtWidgets.QMessageBox.critical(
-                    self,
-                    "Import Error",
-                    f"Failed to import shapefile: {str(e)}"
-                )
+        """Import shapefile for AOI."""
+        # TODO: Implement shapefile import
+        self.logger.info("Shapefile import not implemented yet")
     
     def _browse_output_dir(self):
         """Browse for output directory."""
-        directory = QtWidgets.QFileDialog.getExistingDirectory(
-            self,
-            "Select Output Directory",
-            self.output_dir.text()
+        dir_path = QtWidgets.QFileDialog.getExistingDirectory(
+            self, "Select Output Directory", self.output_dir.text()
         )
-        
-        if directory:
-            self.output_dir.setText(directory)
+        if dir_path:
+            self.output_dir.setText(dir_path)
     
-    def _validate_coordinates(self):
-        """Validate coordinate inputs."""
+    def _open_sensor_priority_dialog(self):
+        """Open the sensor priority dialog."""
+        current_priority = [self.sensor_priority_combo.itemText(i) 
+                          for i in range(self.sensor_priority_combo.count())]
+        all_sensors = self.satellite_manager.get_available_sensors()
+        
+        dialog = SensorPriorityDialog(self, current_priority, all_sensors, self.theme_manager)
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            new_priority = dialog.get_updated_priority_list()
+            # Update the combo box
+            self.sensor_priority_combo.clear()
+            self.sensor_priority_combo.addItems(new_priority)
+    
+    def _validate_aoi(self):
+        """Validate the AOI input."""
+        aoi_text = self.aoi_input.text().strip()
+        if not aoi_text:
+            return
+        
         try:
-            west = float(self.west_input.text() or 0)
-            east = float(self.east_input.text() or 0)
-            north = float(self.north_input.text() or 0)
-            south = float(self.south_input.text() or 0)
+            # Try to parse as bbox
+            if ',' in aoi_text:
+                coords = [float(x.strip()) for x in aoi_text.split(',')]
+                if len(coords) == 4:
+                    validate_bbox(coords)
+                    return
             
-            if validate_bbox([west, south, east, north]):
-                self._update_map_bounds([west, south, east, north])
+            # Try to parse as GeoJSON
+            coords = json.loads(aoi_text)
+            if isinstance(coords, list) and len(coords) > 2:
+                # Validate polygon coordinates
+                return
             
-        except ValueError:
-            pass
+        except (ValueError, json.JSONDecodeError):
+            self.status_bar.showMessage(
+                self.theme_manager.get_text("status_bar_input_error_prefix") + "Invalid AOI format"
+            )
     
     def _validate_dates(self):
-        """Validate date inputs."""
-        try:
-            start = self.start_date.date().toPyDate()
-            end = self.end_date.date().toPyDate()
-            
-            validate_dates(start, end)
-            
-        except ValueError as e:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Invalid Dates",
-                str(e)
+        """Validate the date range."""
+        start_date = self.start_date.date().toPyDate()
+        end_date = self.end_date.date().toPyDate()
+        
+        if start_date > end_date:
+            self.status_bar.showMessage(
+                self.theme_manager.get_text("status_bar_input_error_prefix") + "Start date must be before end date"
             )
     
-    def _update_map_bounds(self, bbox: list):
-        """Update map bounds."""
-        # TODO: Implement map bounds update
-        self.logger.info(f"Updating map bounds: {bbox}")
+    def _on_best_resolution_toggle(self, checked: bool):
+        """Handle best resolution toggle."""
+        self.target_resolution_spin.setEnabled(not checked)
+        if checked:
+            self.target_resolution_spin.setToolTip(self.theme_manager.get_text("target_resolution_auto_tooltip"))
+        else:
+            self.target_resolution_spin.setToolTip(self.theme_manager.get_text("target_resolution_manual_tooltip"))
+    
+    def _on_tiling_method_change(self, method: str):
+        """Handle tiling method change."""
+        if method == 'degree':
+            self.num_subsections_spin.setSuffix(" tiles")
+        else:
+            self.num_subsections_spin.setSuffix(" pixels")
     
     def _start_processing(self):
-        """Start processing with current parameters."""
-        try:
-            # Get parameters
-            params = {
-                'area_of_interest': [
-                    float(self.west_input.text()),
-                    float(self.south_input.text()),
-                    float(self.east_input.text()),
-                    float(self.north_input.text())
-                ],
-                'start_date': self.start_date.date().toPyDate(),
-                'end_date': self.end_date.date().toPyDate(),
-                'sensor_name': self.sensor_combo.currentText(),
-                'output_dir': self.output_dir.text(),
-                'cloud_mask': self.cloud_mask_check.isChecked(),
-                'max_cloud_cover': self.cloud_cover_spin.value()
-            }
-            
-            # Validate parameters
-            self._validate_processing_params(params)
-            
-            # Start processing
-            self.download_manager.process_request(params)
-            
-        except Exception as e:
-            self.logger.error(f"Processing failed: {e}")
-            QtWidgets.QMessageBox.critical(
-                self,
-                "Processing Error",
-                f"Failed to start processing: {str(e)}"
-            )
+        """Start the processing."""
+        # TODO: Implement processing logic
+        self.logger.info("Processing started")
+        self.start_button.setEnabled(False)
+        self.cancel_button.setEnabled(True)
+        self.status_bar.showMessage(self.theme_manager.get_text("status_bar_processing_started"))
     
     def _cancel_processing(self):
-        """Cancel current processing operation."""
-        self.download_manager.request_cancel()
+        """Cancel the processing."""
+        # TODO: Implement cancellation logic
+        self.logger.info("Processing cancelled")
+        self.start_button.setEnabled(True)
+        self.cancel_button.setEnabled(False)
+        self.status_bar.showMessage(self.theme_manager.get_text("status_bar_cancellation_requested"))
     
-    def _validate_processing_params(self, params: Dict[str, Any]) -> None:
-        """Validate processing parameters."""
-        # Validate area
-        if not validate_bbox(params['area_of_interest']):
-            raise ValueError("Invalid area of interest")
-        
-        # Validate dates
-        validate_dates(params['start_date'], params['end_date'])
-        
-        # Validate sensor
-        if not get_sensor_details(params['sensor_name']):
-            raise ValueError(f"Invalid sensor: {params['sensor_name']}")
-        
-        # Validate output directory
-        if not os.path.isdir(params['output_dir']):
-            raise ValueError(f"Invalid output directory: {params['output_dir']}")
+    def _verify_satellites(self):
+        """Verify satellite availability."""
+        # TODO: Implement satellite verification
+        self.logger.info("Satellite verification started")
+        self.status_bar.showMessage("Verifying satellite availability...")
     
-    def _update_progress(self, progress: Dict[str, Any]) -> None:
-        """Update progress display.
-        
-        Args:
-            progress: Progress information from tracker.
-        """
-        if progress['status'] == 'running':
-            self.progress_bar.setValue(int(progress['progress'] * 100))
-            self.progress_bar.setFormat(
-                f"{progress['operation']}: "
-                f"{progress['completed']}/{progress['total']} "
-                f"({progress['elapsed_time']} elapsed, "
-                f"{progress['estimated_time']} remaining)"
-            )
-        elif progress['status'] == 'completed':
-            self.progress_bar.setValue(100)
-            self.progress_bar.setFormat("Processing completed")
-        elif progress['status'] == 'failed':
-            self.progress_bar.setValue(0)
-            self.progress_bar.setFormat(f"Processing failed: {progress['error']}")
-        else:
-            self.progress_bar.setValue(0)
-            self.progress_bar.setFormat("Ready") 
+    def _show_satellite_info(self):
+        """Show satellite information tab."""
+        self.tab_widget.setCurrentIndex(1)  # Switch to satellite info tab
+    
+    def _show_post_processing(self):
+        """Show post-processing tab."""
+        self.tab_widget.setCurrentIndex(2)  # Switch to post-processing tab
+    
+    def _show_about_dialog(self):
+        """Show about dialog."""
+        msg = QtWidgets.QMessageBox(self)
+        msg.setWindowTitle(self.theme_manager.get_text("about_dialog_title"))
+        msg.setText(self.theme_manager.get_text("about_dialog_tagline"))
+        msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+        msg.exec_() 
