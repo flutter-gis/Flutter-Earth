@@ -1,2 +1,0 @@
-[console_scripts]
-flutter-earth = dead_the_third.flutter_earth_6_19:main
