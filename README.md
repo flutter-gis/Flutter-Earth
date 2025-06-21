@@ -1,222 +1,184 @@
 # Flutter Earth
 
-A powerful tool for downloading and processing satellite imagery using Google Earth Engine.
+A modern, powerful tool for downloading and processing satellite imagery from Google Earth Engine with a beautiful Qt6-based interface.
 
 ## Features
 
-- Download satellite imagery from multiple sensors (Landsat, Sentinel-2, etc.)
-- Process and analyze satellite data with cloud masking
-- GUI and CLI interfaces
-- Configurable processing parameters
-- Progress tracking and error handling
-
-## Prerequisites
-
-- Python 3.8 or higher
-- Google Earth Engine account and authentication
-- Required Python packages (see requirements.txt)
+- 🌍 **Interactive Map Selection**: Draw polygons and rectangles directly on the map
+- 🛰️ **Multi-Satellite Support**: Access to Landsat, Sentinel, and other satellite collections
+- 📊 **Advanced Processing**: NDVI, EVI, and other vegetation indices
+- 🎨 **Modern Qt6 Interface**: Beautiful, responsive user interface
+- 📁 **Multiple Output Formats**: GeoTIFF, JPEG, PNG with metadata
+- 🔧 **Batch Processing**: Process multiple areas simultaneously
+- 📈 **Real-time Progress**: Live progress tracking and status updates
+- 🎯 **Precision Control**: Fine-tuned sensor selection and processing parameters
 
 ## Installation
 
-### 1. Clone or download the project
+### Prerequisites
+
+- Python 3.8 or higher
+- Google Earth Engine account and authentication
+- Qt6 runtime (included with PyQt6)
+
+### Install Flutter Earth
 
 ```bash
-git clone <repository-url>
-cd "dead the third"
-```
+# Clone the repository
+git clone https://github.com/flutter-earth/flutter-earth.git
+cd flutter-earth
 
-### 2. Install required packages
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
+
+# Or install in development mode
+pip install -e .
 ```
 
-### 3. Set up Earth Engine authentication
+### Earth Engine Setup
 
-**Option A: Use the built-in authentication dialog (Recommended)**
-1. Run the application: `python flutter_earth_6-19.py`
-2. When prompted, click "Help" to see detailed setup instructions
-3. Follow the steps to create a Google Cloud project and service account
-4. Enter your Project ID and select your service account key file
-5. Click "Test Connection" to verify everything works
-6. Click "Save & Continue" to save your settings
+1. **Create a Google Earth Engine account**:
+   - Visit [Earth Engine Signup](https://signup.earthengine.google.com/)
+   - Sign up with your Google account
 
-**Option B: Use the setup script**
-```bash
-python setup_earth_engine.py
-```
+2. **Authenticate with Earth Engine**:
+   ```bash
+   # Run the authentication setup
+   python -c "import ee; ee.Initialize(); print('Earth Engine ready!')"
+   ```
 
-**Option C: Manual setup**
-```bash
-# Install Earth Engine API
-pip install earthengine-api
+3. **Verify installation**:
+   ```bash
+   # Test Earth Engine connection
+   python -c "import ee; ee.Initialize(); print('Earth Engine ready!')"
+   ```
 
-# Authenticate with Earth Engine
-earthengine authenticate
-```
+## Quick Start
 
-**Note:** You need to sign up for Earth Engine access at: https://developers.google.com/earth-engine/guides/access
-
-### 4. Test the installation
+### Launch the Application
 
 ```bash
-python test_basic.py
+# Start Flutter Earth
+python main.py
 ```
 
-### 5. Test the authentication system (Optional)
+### Basic Usage
 
-```bash
-python demo_auth.py
-```
+1. **Select Area of Interest**:
+   - Use the map interface to draw a polygon
+   - Or enter coordinates manually
+   - Or import a shapefile
 
-## Authentication System
+2. **Choose Time Period**:
+   - Set start and end dates
+   - Use predefined periods (last month, last year, etc.)
 
-Flutter Earth includes a built-in authentication system that makes it easy to set up Google Earth Engine access:
+3. **Select Satellites**:
+   - Choose from available satellite collections
+   - Set cloud cover thresholds
+   - Configure sensor priorities
 
-### Features
+4. **Configure Processing**:
+   - Select output format and resolution
+   - Choose vegetation indices
+   - Set tiling options
 
-- **Service Account Authentication**: Uses Google Cloud service accounts for secure, programmatic access
-- **Interactive Setup Dialog**: User-friendly GUI for entering project ID and key file
-- **Help System**: Built-in instructions for creating Google Cloud projects and service accounts
-- **Connection Testing**: Verify your setup before saving
-- **Persistent Storage**: Credentials are saved locally for future use
-- **Fallback Support**: Still supports traditional OAuth authentication
+5. **Start Download**:
+   - Review settings and start processing
+   - Monitor progress in real-time
+   - Download results when complete
 
-### Setup Process
+## Advanced Features
 
-1. **Sign up for Earth Engine**: Visit https://developers.google.com/earth-engine/guides/access
-2. **Create Google Cloud Project**: Set up a project with Earth Engine API enabled
-3. **Create Service Account**: Generate a service account with appropriate Earth Engine roles
-4. **Download Key File**: Download the JSON key file for your service account
-5. **Configure Flutter Earth**: Use the built-in dialog to enter your Project ID and select your key file
+### Vegetation Indices
 
-### Security
+- **NDVI** (Normalized Difference Vegetation Index)
+- **EVI** (Enhanced Vegetation Index)
+- **SAVI** (Soil-Adjusted Vegetation Index)
+- **NDWI** (Normalized Difference Water Index)
 
-- Service account key files are stored locally and should be kept secure
-- Never commit key files to version control
-- The application stores only the file path, not the key contents
-- Consider using environment variables for production deployments
+### Output Formats
 
-## Usage
+- **GeoTIFF**: High-quality raster with geospatial metadata
+- **JPEG/PNG**: Quick preview images
+- **Shapefile**: Vector boundaries and metadata
+- **CSV**: Tabular data and statistics
 
-### GUI Mode (Default)
+### Batch Processing
 
-Run the application with a graphical interface:
-
-```bash
-python flutter_earth_6-19.py
-```
-
-### CLI Mode
-
-Run the application from the command line:
-
-```bash
-python flutter_earth_6-19.py --cli west,south,east,north start_date end_date sensor_name output_dir
-```
-
-**Example:**
-```bash
-python flutter_earth_6-19.py --cli -122.4,37.7,-122.3,37.8 2023-01-01 2023-12-31 LANDSAT_9 ./output
-```
-
-### Parameters
-
-- `west,south,east,north`: Bounding box coordinates (longitude, latitude)
-- `start_date`: Start date in YYYY-MM-DD format
-- `end_date`: End date in YYYY-MM-DD format
-- `sensor_name`: Satellite sensor name (e.g., LANDSAT_9, SENTINEL_2)
-- `output_dir`: Output directory for processed images
+- Process multiple areas simultaneously
+- Queue management and priority control
+- Resume interrupted downloads
+- Export processing logs
 
 ## Configuration
 
-The application uses a configuration file (`flutter_earth_config.json`) that is automatically created on first run. You can modify settings like:
-
-- Output directory
-- Tile size
-- Maximum cloud cover
-- Number of worker threads
-- Cloud masking options
-
-## Supported Sensors
-
-- **Landsat 9**: 30m resolution, optical bands
-- **Sentinel-2**: 10m resolution, optical bands
-- Additional sensors can be configured
-
-## Troubleshooting
-
-### Earth Engine Authentication Issues
-
-1. Make sure you have signed up for Earth Engine access
-2. Run `earthengine authenticate` to set up authentication
-3. Check that your Google Cloud project has Earth Engine enabled
-
-### Import Errors
-
-1. Ensure all required packages are installed: `pip install -r requirements.txt`
-2. Check that you're running Python 3.8 or higher
-3. Verify the project structure is correct
-
-### Processing Errors
-
-1. Check that your bounding box coordinates are valid
-2. Ensure the date range contains available data
-3. Verify the sensor name is supported
-4. Check that the output directory is writable
-
-## Project Structure
-
-```
-dead the third/
-├── dead_the_third/          # Main package
-│   ├── __init__.py
-│   ├── config.py           # Configuration management
-│   ├── download_manager.py # Download and processing logic
-│   ├── earth_engine.py     # Earth Engine operations
-│   ├── errors.py           # Error handling
-│   ├── gui.py             # GUI interface
-│   ├── progress_tracker.py # Progress tracking
-│   ├── types.py           # Type definitions
-│   └── utils.py           # Utility functions
-├── flutter_earth_6-19.py   # Main application entry point
-├── test_basic.py          # Basic functionality tests
-├── setup_earth_engine.py  # Earth Engine setup script
-├── requirements.txt       # Python dependencies
-└── README.md             # This file
-```
+Flutter Earth uses a configuration file for persistent settings. The configuration is automatically created on first run.
 
 ## Development
+
+### Project Structure
+
+```
+flutter_earth/
+├── main.py              # Main entry point
+├── flutter_earth/       # Core package
+│   ├── __init__.py
+│   ├── types.py         # Data types and models
+│   ├── config.py        # Configuration management
+│   ├── earth_engine.py  # Earth Engine operations
+│   ├── gui.py           # Main GUI interface
+│   ├── gui_components.py # GUI components
+│   ├── download_manager.py # Download management
+│   ├── progress_tracker.py # Progress tracking
+│   ├── themes.py        # UI themes
+│   ├── utils.py         # Utility functions
+│   └── errors.py        # Error handling
+├── requirements.txt     # Dependencies
+├── setup.py            # Package setup
+└── README.md           # This file
+```
 
 ### Running Tests
 
 ```bash
-python test_basic.py
+# Run basic tests
+python -m pytest tests/
 ```
 
-### Adding New Sensors
+### Code Quality
 
-1. Add sensor details to the `SATELLITE_DETAILS` dictionary in `config.py`
-2. Implement sensor-specific processing in `earth_engine.py`
-3. Update the GUI to include the new sensor option
+```bash
+# Format code
+black .
 
-## License
+# Lint code
+flake8 .
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For issues and questions:
-
-1. Check the troubleshooting section above
-2. Run the test script to identify specific problems
-3. Check the logs in the `logs/` directory
-4. Ensure Earth Engine authentication is properly set up
+# Type checking
+mypy .
+```
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request 
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+- **Documentation**: [https://flutter-earth.readthedocs.io](https://flutter-earth.readthedocs.io)
+- **Issues**: [GitHub Issues](https://github.com/flutter-earth/flutter-earth/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/flutter-earth/flutter-earth/discussions)
+
+## Acknowledgments
+
+- Google Earth Engine team for the powerful API
+- Qt team for the excellent Qt6 framework
+- Open source community for the amazing libraries
+
+---
+
+**Flutter Earth** - Making satellite imagery accessible to everyone 🌍✨ 
