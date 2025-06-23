@@ -1,186 +1,88 @@
-# Earth Engine Setup Guide
+# Flutter Earth: Google Earth Engine Service Account Setup Guide
 
-This guide will help you set up Google Earth Engine for use with Flutter Earth.
+This guide provides step-by-step instructions for setting up a Google Cloud Platform (GCP) **Service Account**, which is the recommended method for authenticating with Google Earth Engine when using the Flutter Earth application.
 
-## Prerequisites
+## Why Use a Service Account?
 
-1. **Google Account**: You need a Google account
-2. **Earth Engine Access**: You need to sign up for Earth Engine access
-3. **Google Cloud Project**: You need a Google Cloud project with Earth Engine enabled
+-   **No Browser Needed**: Service accounts authenticate automatically without requiring you to log in through a browser, making them ideal for desktop applications and automated scripts.
+-   **Secure**: You grant specific permissions to the service account, limiting its access to only what is necessary.
+-   **Stable**: Unlike user-based authentication, service account credentials do not expire as frequently.
 
-## Step-by-Step Setup
+---
 
-### 1. Sign up for Earth Engine Access
+## Step 1: Sign up for Earth Engine Access
 
-1. Visit: https://developers.google.com/earth-engine/guides/access
-2. Click "Sign up for Earth Engine"
-3. Fill out the application form
-4. Wait for approval (usually takes 1-2 business days)
+If you have not already, you must register your Google account for Earth Engine access.
+1.  Go to the [Earth Engine signup page](https://signup.earthengine.google.com/).
+2.  Follow the instructions to register. Approval can sometimes take a day or two.
+3.  You will receive an email once your account is activated. **You cannot proceed until your registration is approved.**
 
-### 2. Create a Google Cloud Project
+---
 
-1. Go to: https://console.cloud.google.com/
-2. Click "Select a project" → "New Project"
-3. Give your project a name (e.g., "flutter-earth-project")
-4. Click "Create"
+## Step 2: Create a Google Cloud Project
 
-### 3. Enable Earth Engine API
+All Earth Engine usage is managed through a Google Cloud Project.
+1.  Navigate to the [Google Cloud Console](https://console.cloud.google.com/).
+2.  Click the project selector dropdown in the top bar and click **"New Project"**.
+3.  Enter a descriptive **Project name** (e.g., "Flutter Earth GEE Project").
+4.  Select a **Location** if applicable and click **"Create"**.
 
-1. In your Google Cloud project, go to "APIs & Services" → "Library"
-2. Search for "Earth Engine API"
-3. Click on "Earth Engine API"
-4. Click "Enable"
+---
 
-### 4. Set up Authentication
+## Step 3: Enable the Earth Engine API
 
-#### Option A: Using Python (Recommended)
+You must enable the Earth Engine API for your new project.
+1.  With your new project selected in the Google Cloud Console, navigate to the **"APIs & Services"** > **"Library"**.
+2.  In the search bar, type `Earth Engine API` and press Enter.
+3.  Click on the **"Earth Engine API"** result.
+4.  Click the **"Enable"** button. If it is already enabled, you don't need to do anything.
 
-```bash
-# Install the Earth Engine API
-pip install earthengine-api
+---
 
-# Authenticate (this will open a browser)
-python -c "import ee; ee.Authenticate()"
+## Step 4: Create a Service Account
 
-# Initialize with your project
-python -c "import ee; ee.Initialize(project='your-project-id')"
-```
+Now, we will create the service account that Flutter Earth will use to authenticate.
+1.  In the Google Cloud Console, navigate to **"IAM & Admin"** > **"Service Accounts"**.
+2.  Click **"+ CREATE SERVICE ACCOUNT"** at the top.
+3.  **Service account details**:
+    -   **Service account name**: Give it a clear name, like `flutter-earth-user`.
+    -   The **Service account ID** will be generated for you.
+    -   **Description**: Add a description, such as "Service account for the Flutter Earth desktop application".
+4.  Click **"CREATE AND CONTINUE"**.
+5.  **Grant this service account access to project**:
+    -   Click the **Role** dropdown.
+    -   Search for and select the **"Earth Engine Resource Viewer"** role. This provides sufficient permissions for downloading data.
+    -   *Note: If you plan to manage assets, you may need a more permissive role like "Earth Engine Resource Writer".*
+6.  Click **"CONTINUE"**.
+7.  Leave the "Grant users access to this service account" section blank and click **"DONE"**.
 
-#### Option B: Using Command Line (if available)
+---
 
-```bash
-# Install the Earth Engine API
-pip install earthengine-api
+## Step 5: Create and Download a JSON Key
 
-# Authenticate
-earthengine authenticate
+The service account needs a key file for authentication.
+1.  You should now see your newly created service account in the list.
+2.  Click the three-dot "Actions" menu (⋮) at the far right of your service account's row and select **"Manage keys"**.
+3.  Click **"ADD KEY"** > **"Create new key"**.
+4.  Select **JSON** as the key type and click **"CREATE"**.
+5.  A JSON file will be automatically downloaded to your computer. **This is your service account key.**
 
-# Set your project
-earthengine set_project your-project-id
-```
+**IMPORTANT:**
+-   **Treat this JSON file like a password.** Do not share it or commit it to version control.
+-   Store it in a secure, memorable location on your computer (e.g., in a `.keys` folder in your user home directory).
+-   Flutter Earth will ask you for the path to this file, but it will not store the file's contents.
 
-### 5. Test Your Setup
+---
 
-Run the test script to verify everything is working:
+## Step 6: Configure Flutter Earth
 
-```bash
-python test_basic.py
-```
+The final step is to tell Flutter Earth how to use your new credentials. The application now automatically handles this through its authentication setup.
 
-## Troubleshooting
+1.  Launch the Flutter Earth application (`python main.py`).
+2.  The application will automatically look for authentication details. If not found, it will guide you to set them up.
+3.  You will need two pieces of information:
+    -   **Your GCP Project ID**: The ID of the project you created in Step 2.
+    -   **Path to your Service Account Key**: The full path to the JSON file you downloaded in Step 5.
+4.  The application will test the connection and save the configuration for future use.
 
-### "No project found" Error
-
-This error occurs when Earth Engine doesn't know which Google Cloud project to use.
-
-**Solution:**
-1. Make sure you have a Google Cloud project with Earth Engine API enabled
-2. Initialize Earth Engine with your project ID:
-
-```python
-import ee
-ee.Initialize(project='your-project-id')
-```
-
-### "PERMISSION_DENIED" Error
-
-This error occurs when your account doesn't have the necessary permissions.
-
-**Solution:**
-1. Make sure you're signed up for Earth Engine access
-2. Make sure you're using the correct Google account
-3. Make sure your Google Cloud project has Earth Engine API enabled
-4. Try re-authenticating:
-
-```python
-import ee
-ee.Authenticate()
-ee.Initialize(project='your-project-id')
-```
-
-### "Token has expired" Error
-
-This error occurs when your authentication token has expired.
-
-**Solution:**
-Re-authenticate:
-
-```python
-import ee
-ee.Authenticate()
-ee.Initialize(project='your-project-id')
-```
-
-## Project ID Configuration
-
-To avoid having to specify your project ID every time, you can:
-
-1. **Set it in your code** (recommended for development):
-   ```python
-   import ee
-   ee.Initialize(project='your-project-id')
-   ```
-
-2. **Set it as an environment variable**:
-   ```bash
-   # Windows
-   set EARTHENGINE_PROJECT=your-project-id
-   
-   # Linux/Mac
-   export EARTHENGINE_PROJECT=your-project-id
-   ```
-
-3. **Modify the application** to use your project ID by default
-
-## Verification
-
-To verify your setup is working, run this Python code:
-
-```python
-import ee
-from ee import data as ee_data
-
-# Initialize with your project
-ee.Initialize(project='your-project-id')
-
-# Test basic functionality
-test_image = ee.Image('USGS/SRTMGL1_003')
-bounds = test_image.geometry().bounds().getInfo()
-print(f"Success! Test image bounds: {bounds}")
-```
-
-## Common Issues
-
-### Windows-specific Issues
-
-1. **Command not found**: The `earthengine` command might not be available on Windows. Use the Python authentication method instead.
-
-2. **Path issues**: Make sure Python and pip are in your PATH.
-
-### Authentication Issues
-
-1. **Browser doesn't open**: Copy the URL from the terminal and paste it into your browser manually.
-
-2. **Wrong account**: Make sure you're signed in with the correct Google account that has Earth Engine access.
-
-### Project Issues
-
-1. **Wrong project ID**: Make sure you're using the correct project ID from your Google Cloud console.
-
-2. **API not enabled**: Make sure the Earth Engine API is enabled in your Google Cloud project.
-
-## Getting Help
-
-If you're still having issues:
-
-1. Check the Earth Engine documentation: https://developers.google.com/earth-engine
-2. Check the Earth Engine Python API documentation: https://developers.google.com/earth-engine/guides/python_install
-3. Visit the Earth Engine forum: https://groups.google.com/g/google-earth-engine-developers
-
-## Next Steps
-
-Once Earth Engine is working:
-
-1. Run the test script: `python test_basic.py`
-2. Try the main application: `python flutter_earth_6-19.py`
-3. Check the logs in the `logs/` directory for any issues 
+You are now ready to use Flutter Earth! 

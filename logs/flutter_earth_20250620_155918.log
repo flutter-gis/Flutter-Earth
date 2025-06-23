@@ -1,0 +1,3 @@
+2025-06-20 15:59:20,037 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-20 15:59:20,771 - __main__ - WARNING - Failed to import application modules: No module named 'PySide6'. This is often caused by missing packages.
+2025-06-20 15:59:20,771 - __main__ - INFO - Attempting to install dependencies from C:\Users\U1060469\OneDrive - Sanofi\Desktop\FE Repo\Flutter-Earth\flutter_earth_pkg\requirements.txt
