@@ -7,6 +7,7 @@ from pathlib import Path
 import rasterio
 import ee
 import requests
+from PySide6.QtCore import QObject, Signal
 
 def validate_bbox(bbox: List[float]) -> bool:
     """Validate bounding box coordinates."""
@@ -153,4 +154,39 @@ def cleanup_temp_files(file_paths: List[str]) -> None:
             if os.path.exists(path):
                 os.remove(path)
         except Exception as e:
-            logging.warning(f"Failed to remove temporary file {path}: {e}") 
+            logging.warning(f"Failed to remove temporary file {path}: {e}")
+
+class QtLogHandler(QObject, logging.Handler):
+    log_signal = Signal(str)
+
+    def __init__(self, level=logging.INFO):
+        QObject.__init__(self)
+        logging.Handler.__init__(self, level)
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.log_signal.emit(msg)
+
+def setup_logging(log_file: str = 'flutter_earth.log', gui_handler: QtLogHandler = None, level=logging.INFO):
+    """Configure logging for both file and GUI output."""
+    logger = logging.getLogger()
+    logger.setLevel(level)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    # File handler
+    fh = logging.FileHandler(log_file, encoding='utf-8')
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    # GUI handler
+    if gui_handler is not None:
+        gui_handler.setFormatter(formatter)
+        logger.addHandler(gui_handler)
+    # Also add a stream handler for console output
+    sh = logging.StreamHandler()
+    sh.setFormatter(formatter)
+    logger.addHandler(sh)
+    return logger
+
+# Usage in GUI:
+# log_handler = QtLogHandler()
+# log_handler.log_signal.connect(your_qtextedit_append_function)
+# setup_logging(gui_handler=log_handler) 

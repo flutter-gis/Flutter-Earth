@@ -1,6 +1,7 @@
 """Satellite information and details for Flutter Earth."""
 from typing import Dict, Any, List, Tuple
 from datetime import datetime
+from .config import SATELLITE_DETAILS
 
 # Satellite timeline information
 SENSOR_TIMELINE = {
@@ -148,12 +149,35 @@ AVAILABLE_INDICES = {
 
 
 class SatelliteInfoManager:
-    """Manages satellite information and provides utility methods."""
-    
+    """Centralized access to satellite sensor metadata and utilities."""
     def __init__(self):
-        """Initialize the satellite info manager."""
-        pass
-    
+        self._details = SATELLITE_DETAILS
+
+    def get_available_sensors(self):
+        """Return a list of available sensor names."""
+        return list(self._details.keys())
+
+    def get_sensor_details(self, sensor_name):
+        """Return details dict for a given sensor name."""
+        return self._details.get(sensor_name, {})
+
+    def get_available_indices(self):
+        """Return a dict of available indices per sensor (example structure)."""
+        # This can be expanded as needed
+        return {
+            'LANDSAT_9': ['NDVI', 'EVI'],
+            'LANDSAT_8': ['NDVI', 'EVI'],
+            'SENTINEL_2': ['NDVI', 'EVI'],
+            'ERA5_LAND': ['Temperature']
+        }
+
+    def get_satellite_categories(self):
+        """Return a dict grouping sensors by category (example structure)."""
+        return {
+            'Optical': ['LANDSAT_9', 'LANDSAT_8', 'SENTINEL_2'],
+            'Climate': ['ERA5_LAND']
+        }
+
     def get_satellite_details(self, sensor_name: str) -> Dict[str, Any]:
         """Get detailed information for a satellite sensor."""
         return SATELLITE_DETAILS.get(sensor_name, {})
@@ -161,10 +185,6 @@ class SatelliteInfoManager:
     def get_satellite_categories(self) -> Dict[str, List[str]]:
         """Get satellite categories and their sensors."""
         return SATELLITE_CATEGORIES
-    
-    def get_available_sensors(self) -> List[str]:
-        """Get list of all available sensors."""
-        return list(SATELLITE_DETAILS.keys())
     
     def get_sensor_timeline(self, sensor_name: str) -> Tuple[str, str]:
         """Get start and end dates for a sensor."""
@@ -202,10 +222,6 @@ class SatelliteInfoManager:
         except (ValueError, TypeError):
             return True  # If end date parsing fails, assume still active
     
-    def get_available_indices(self) -> Dict[str, Dict[str, Any]]:
-        """Get available vegetation and other indices."""
-        return AVAILABLE_INDICES
-    
     def get_sensors_by_category(self, category: str) -> List[str]:
         """Get sensors in a specific category."""
         return SATELLITE_CATEGORIES.get(category, [])
@@ -223,4 +239,9 @@ class SatelliteInfoManager:
     def get_sensor_uses(self, sensor_name: str) -> List[str]:
         """Get common use categories for a sensor."""
         details = self.get_satellite_details(sensor_name)
-        return details.get('use_categories', []) 
+        return details.get('use_categories', [])
+
+# Usage:
+# sat_manager = SatelliteInfoManager()
+# sensors = sat_manager.get_available_sensors()
+# details = sat_manager.get_sensor_details('LANDSAT_9') 
