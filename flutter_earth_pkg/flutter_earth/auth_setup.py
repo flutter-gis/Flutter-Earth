@@ -167,18 +167,28 @@ class AuthSetupDialog(QtWidgets.QDialog):
             )
             
     def load_existing_settings(self):
-        """Load existing authentication settings."""
+        """Load existing authentication settings, but only if they are valid."""
         config_file = Path("flutter_earth_auth.json")
         if config_file.exists():
             try:
                 with open(config_file, 'r') as f:
                     config = json.load(f)
-                    
-                self.project_edit.setText(config.get('project_id', ''))
-                self.key_file_edit.setText(config.get('key_file', ''))
                 
+                # Set project ID if it exists
+                self.project_edit.setText(config.get('project_id', ''))
+                
+                # Only set key file path if it exists, otherwise leave it blank
+                key_file_path = config.get('key_file', '')
+                if key_file_path and os.path.exists(key_file_path):
+                    self.key_file_edit.setText(key_file_path)
+                else:
+                    # If path is invalid, clear it to not show the user
+                    self.key_file_edit.clear()
+
             except Exception as e:
                 self.logger.warning(f"Failed to load existing auth settings: {e}")
+                self.project_edit.clear()
+                self.key_file_edit.clear()
                 
     def save_settings(self):
         """Save authentication settings."""
@@ -339,30 +349,57 @@ class AuthManager:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.auth_file = Path("flutter_earth_auth.json")
-        
+    
     def has_credentials(self) -> bool:
         """Check if authentication credentials exist."""
         return self.auth_file.exists()
-        
+    
     def load_credentials(self) -> Optional[Dict[str, str]]:
-        """Load authentication credentials."""
+        """Load authentication credentials, preferring environment variable if set."""
+        # 1. Check environment variable for key file
+        env_key_file = os.environ.get("FLUTTER_EARTH_KEY_FILE")
+        env_project_id = os.environ.get("FLUTTER_EARTH_PROJECT_ID")
+        if env_key_file and os.path.exists(env_key_file):
+            self.logger.info("Loading Earth Engine credentials from environment variables.")
+            return {
+                'project_id': env_project_id or '',
+                'key_file': env_key_file
+            }
+
+        # 2. Fallback to config file
         if not self.has_credentials():
             return None
-            
+        
         try:
             with open(self.auth_file, 'r') as f:
-                return json.load(f)
-        except Exception as e:
-            self.logger.error(f"Failed to load credentials: {e}")
-            return None
+                config = json.load(f)
             
+            key_file = config.get('key_file', '')
+            project_id = config.get('project_id', '')
+
+            if not key_file:
+                self.logger.info("Earth Engine key file not configured in auth file. User will be prompted.")
+                return None
+
+            if os.path.exists(key_file):
+                return {'project_id': project_id, 'key_file': key_file}
+            else:
+                self.logger.warning(
+                    "The configured Earth Engine key file was not found at its stored path. "
+                    "It may have been moved or deleted. Please select the file again."
+                )
+                return None
+        except Exception as e:
+            self.logger.error(f"Failed to load credentials from auth file: {e}")
+            return None
+    
     def setup_credentials(self, parent=None) -> Optional[Dict[str, str]]:
         """Show setup dialog and return credentials if successful."""
         dialog = AuthSetupDialog(parent)
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
             return dialog.get_credentials()
         return None
-        
+    
     def initialize_earth_engine(self, parent=None) -> bool:
         """Initialize Earth Engine with stored or new credentials."""
         try:
@@ -376,19 +413,26 @@ class AuthManager:
                 # Show setup dialog
                 credentials = self.setup_credentials(parent)
                 if not credentials:
+                    QtWidgets.QMessageBox.critical(
+                        parent,
+                        "Earth Engine Authentication Required",
+                        "No valid Earth Engine key file found. Please provide your service account key file."
+                    )
                     return False
-                    
             # Initialize with credentials
             service_account_creds = ee.ServiceAccountCredentials('', credentials['key_file'])
             ee.Initialize(service_account_creds, project=credentials['project_id'])
-            
             # Test connection
             test_image = ee.Image('USGS/SRTMGL1_003')
             bounds = test_image.geometry().bounds().getInfo()
-            
             self.logger.info("Earth Engine initialized successfully")
             return True
-            
         except Exception as e:
             self.logger.error(f"Failed to initialize Earth Engine: {e}")
+            if parent:
+                QtWidgets.QMessageBox.critical(
+                    parent,
+                    "Earth Engine Initialization Failed",
+                    f"Failed to initialize Earth Engine:\n\n{str(e)}\n\nPlease check your credentials and try again."
+                )
             return False 

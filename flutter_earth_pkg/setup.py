@@ -2,7 +2,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="dead_the_third",
+    name="flutter_earth",
     version="1.0.0",
     packages=find_packages(),
     install_requires=[
@@ -22,7 +22,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'flutter-earth=dead_the_third.flutter_earth_6_19:main',
+            'flutter-earth=flutter_earth.flutter_earth_6_19:main',
         ],
     },
     author="Flutter Earth Project",

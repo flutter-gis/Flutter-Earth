@@ -1,6 +1,7 @@
 """Type definitions for Flutter Earth."""
 from typing import TypedDict, List, Dict, Union, Optional, Tuple, Any, Literal, Callable
 from datetime import datetime, date
+from dataclasses import dataclass
 import ee
 
 __all__ = [
@@ -25,15 +26,15 @@ BandList = List[str]
 ScaleDict = Dict[str, float]
 
 # Earth Engine types with proper typing
-EEImage = ee.Image
-EEFeature = ee.Feature
-EEFeatureCollection = ee.FeatureCollection
-CloudMaskFunction = Callable[[ee.Image], ee.Image]
-ProcessingFunction = Callable[[ee.Image, 'ProcessingParams'], ee.Image]
+EEImage = ee.Image  # type: ignore
+EEFeature = ee.Feature  # type: ignore
+EEFeatureCollection = ee.FeatureCollection  # type: ignore
+CloudMaskFunction = Callable[[EEImage], EEImage]
+ProcessingFunction = Callable[[EEImage, 'ProcessingParams'], EEImage]
 
 class ValidationRule:
     """Rule for validating configuration values."""
-    def __init__(self, type: type, required: bool = False, min_value: Optional[Union[int, float]] = None,
+    def __init__(self, type: Union[type, Tuple[type, ...]], required: bool = False, min_value: Optional[Union[int, float]] = None,
                  max_value: Optional[Union[int, float]] = None, allowed_values: Optional[List[Any]] = None):
         self.type = type
         self.required = required
@@ -45,8 +46,11 @@ class ValidationRule:
         """Validate a value against this rule."""
         if value is None:
             return not self.required
-            
-        if not isinstance(value, self.type):
+
+        if isinstance(self.type, tuple):
+            if not any(isinstance(value, t) for t in self.type):
+                return False
+        elif not isinstance(value, self.type):
             return False
             
         if self.min_value is not None and value < self.min_value:
@@ -116,16 +120,17 @@ class ProcessingResult(TypedDict, total=False):
     bounds: BBox
     metadata: Dict[str, Any]
 
-class AppConfig(TypedDict):
+@dataclass
+class AppConfig:
     """Application configuration."""
-    DEFAULT_OUTPUT_DIR: str
-    TILE_SIZE_DEG: float
-    OVERLAP_DEG: float
-    MAX_CLOUD_COVER: float
-    DEFAULT_RESOLUTION: Optional[float]
-    THEME: Theme
-    RECENT_DIRECTORIES: List[str]
-    SENSOR_PRIORITY: List[str]
+    output_dir: str
+    tile_size: float
+    max_workers: int
+    cloud_mask: bool
+    max_cloud_cover: float
+    sensor_priority: List[str]
+    recent_directories: List[str]
+    theme: str
 
 class GeoJSON(TypedDict):
     """GeoJSON object type."""
