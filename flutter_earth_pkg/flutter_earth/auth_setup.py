@@ -4,7 +4,7 @@ import json
 import logging
 from typing import Optional, Dict, Any
 from pathlib import Path
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore, QtGui
 
 class AuthSetupDialog(QtWidgets.QDialog):
     """Dialog for setting up Earth Engine authentication."""
@@ -395,8 +395,11 @@ class AuthManager:
     
     def setup_credentials(self, parent=None) -> Optional[Dict[str, str]]:
         """Show setup dialog and return credentials if successful."""
+        from PySide6 import QtWidgets
+        if QtWidgets.QApplication.instance() is None:
+            raise RuntimeError("QApplication must be created before showing authentication dialogs. Please ensure QApplication is initialized before calling setup_credentials.")
         dialog = AuthSetupDialog(parent)
-        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+        if dialog.exec_() == QtWidgets.QDialog.DialogCode.Accepted:
             return dialog.get_credentials()
         return None
     

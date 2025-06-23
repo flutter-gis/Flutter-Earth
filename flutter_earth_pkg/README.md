@@ -54,6 +54,137 @@ config.set('theme', 'Light')
 - Progress tracking and logging
 - Theme customization
 
+## Threading and Signal/Slot Best Practices
+
+This codebase uses PySide6's `QThread` and `Signal`/`Slot` patterns for all long-running or parallel backend operations. This ensures safe, responsive GUI updates and robust background processing.
+
+**Key Rules:**
+- All threaded work must be done in a `QThread` subclass (e.g., `DownloadWorkerThread`, `SampleDownloadThread`).
+- All communication with the GUI or main thread must use Qt `Signal`s. Never update the GUI directly from a worker thread.
+- Always connect signals before starting a thread.
+- To cancel a thread, call its `request_cancel()` method (if available).
+- Use type-annotated signals for clarity and safety.
+
+### Example: Using DownloadWorkerThread
+```python
+from flutter_earth.download_worker import DownloadWorkerThread
+
+def on_progress(current, total):
+    print(f"Progress: {current}/{total}")
+
+def on_complete(success, message):
+    print(f"Done: {success}, {message}")
+
+thread = DownloadWorkerThread(tiles, params, earth_engine, config)
+thread.progress_update.connect(on_progress)
+thread.download_complete.connect(on_complete)
+thread.start()
+# To cancel:
+thread.request_cancel()
+```
+
+### Example: Using SampleDownloadThread
+```python
+from flutter_earth.processing import SampleDownloadThread
+
+def on_sample_finished(sample_key, success, message):
+    print(f"Sample {sample_key} finished: {success}, {message}")
+
+thread = SampleDownloadThread(sample_key, config, base_path, earth_engine, download_manager)
+thread.sample_download_finished.connect(on_sample_finished)
+thread.start()
+# To cancel:
+thread.request_cancel()
+```
+
+**Best Practices:**
+- Never block the main thread with long-running work.
+- Use signals to report progress, errors, and completion.
+- Always check for cancellation in your thread's `run()` method.
+- Document all threaded classes with usage examples and signal signatures.
+
+## Error Handling and User Feedback
+
+All backend operations (especially threaded ones) emit robust error signals to provide both user-friendly and technical/log messages. This ensures that the GUI can display actionable feedback to users and log details for debugging.
+
+**Key Pattern:**
+- All threaded classes and managers emit `error_occurred: Signal(str, str)` (user_message, log_message).
+- The GUI/backend bridge (e.g., `AppBackend`) connects to these signals and relays them to QML or logs them.
+- The frontend can display user dialogs for user_message and log log_message for diagnostics.
+
+### Example: Connecting Error Signals in the Backend
+```python
+# In your AppBackend or main window setup:
+self.download_manager.error_occurred.connect(self.onDownloadError)
+
+@Slot(str, str)
+def onDownloadError(self, user_message, log_message):
+    print(f"[Download Error] {user_message}\nDetails: {log_message}")
+    # Optionally emit a QML signal or show a dialog
+    self.downloadErrorOccurred.emit(user_message, log_message)
+```
+
+### Example: Handling Errors in QML
+```qml
+Connections {
+    target: backend
+    function onDownloadErrorOccurred(userMessage, logMessage) {
+        // Show a dialog or notification
+        errorDialog.text = userMessage + "\n" + logMessage;
+        errorDialog.open();
+    }
+}
+```
+
+**Best Practices:**
+- Always provide both a user-friendly and a technical message in error signals.
+- Log all exceptions with `exc_info=True` for full tracebacks.
+- Never show raw tracebacks to users; use user_message for dialogs and log_message for logs.
+- Document all error signals and their usage in threaded classes and managers.
+
+## Progress Tracking and User Feedback
+
+All long-running operations (downloads, sample management, etc.) emit progress signals to provide real-time feedback to the GUI. This enables progress bars, status messages, and estimated time displays for users.
+
+**Key Pattern:**
+- All threaded classes and managers emit progress signals (e.g., `progress_update: Signal(int, int)` for downloads, `sample_download_progress: Signal(str, int, int)` for samples).
+- The GUI/backend bridge (e.g., `AppBackend`) connects to these signals and relays them to QML.
+- The frontend can display progress bars and status messages using these signals.
+
+### Example: Connecting Progress Signals in the Backend
+```python
+# In your AppBackend or main window setup:
+self.download_manager.progress_update.connect(self.onDownloadProgress)
+self.sample_manager.sample_download_progress.connect(self.onSampleDownloadProgress)
+
+@Slot(int, int)
+def onDownloadProgress(self, current, total):
+    self.downloadProgressUpdated.emit(current, total)
+
+@Slot(str, int, int)
+def onSampleDownloadProgress(self, sample_key, current, total):
+    self.sampleDownloadProgressUpdated.emit(sample_key, current, total)
+```
+
+### Example: Handling Progress in QML
+```qml
+Connections {
+    target: backend
+    function onDownloadProgressUpdated(current, total) {
+        progressBar.value = total > 0 ? current / total : 0;
+    }
+    function onSampleDownloadProgressUpdated(sampleKey, current, total) {
+        // Update a per-sample progress bar or status
+        sampleProgressBar.value = total > 0 ? current / total : 0;
+    }
+}
+```
+
+**Best Practices:**
+- Always emit progress signals at meaningful steps (not too frequent, not too sparse).
+- Use consistent signal signatures for all progress updates.
+- Document all progress signals and their usage in threaded classes and managers.
+
 ## Installation
 
 1. Clone this repository

@@ -1,21 +1,121 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import QtWebEngine 1.10
-import "." as App
+import QtQuick.Layouts 1.15
+import QtLocation 5.15
+import QtPositioning 5.15
 
 Rectangle {
     id: mapView
-    color: App.Style.widget_bg
-    radius: 8
+    color: "#fffde7"
+    anchors.fill: parent
 
-    WebEngineView {
-        id: webEngineView
-        anchors.fill: parent
+    property string mapType: "Street"
+    property var mapTypes: [
+        { label: "Street", value: Map.StreetMap },
+        { label: "Satellite", value: Map.SatelliteMapDay },
+        { label: "Terrain", value: Map.TerrainMap },
+        { label: "Hybrid", value: Map.HybridMap },
+        { label: "Night", value: Map.NightMap },
+        { label: "Light", value: Map.LightMap }
+    ]
+    property var aoiCoords: [] // [minLon, minLat, maxLon, maxLat]
+    property bool drawingAOI: false
+    property var firstCorner: null
 
-        Component.onCompleted: {
-            if (backend) {
-                webEngineView.url = backend.getMapUrl()
+    ColumnLayout {
+        anchors.centerIn: parent
+        spacing: 20
+
+        Text {
+            text: qsTr("Map View")
+            font.pointSize: 22
+            font.bold: true
+            color: "#616161"
+        }
+
+        // Map with selectable type and AOI drawing
+        Map {
+            id: map
+            width: 500; height: 350
+            plugin: Plugin { name: "osm" }
+            center: QtPositioning.coordinate(37.7749, -122.4194) // Default: San Francisco
+            zoomLevel: 6
+            activeMapType: mapTypes[mapTypeCombo.currentIndex].value
+
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                onPressed: {
+                    if (!drawingAOI) {
+                        // Start AOI selection
+                        firstCorner = map.toCoordinate(Qt.point(mouse.x, mouse.y));
+                        drawingAOI = true;
+                        aoiCoords = [];
+                    } else {
+                        // Finish AOI selection
+                        var secondCorner = map.toCoordinate(Qt.point(mouse.x, mouse.y));
+                        var minLat = Math.min(firstCorner.latitude, secondCorner.latitude);
+                        var maxLat = Math.max(firstCorner.latitude, secondCorner.latitude);
+                        var minLon = Math.min(firstCorner.longitude, secondCorner.longitude);
+                        var maxLon = Math.max(firstCorner.longitude, secondCorner.longitude);
+                        aoiCoords = [minLon, minLat, maxLon, maxLat];
+                        drawingAOI = false;
+                    }
+                }
+            }
+
+            // AOI Rectangle overlay
+            MapRectangle {
+                id: aoiOverlay
+                visible: aoiCoords.length === 4
+                color: "#0288d1"
+                opacity: 0.3
+                border.color: "#0288d1"
+                border.width: 2
+                topLeft: aoiCoords.length === 4 ? QtPositioning.coordinate(aoiCoords[1], aoiCoords[0]) : QtPositioning.coordinate(0,0)
+                bottomRight: aoiCoords.length === 4 ? QtPositioning.coordinate(aoiCoords[3], aoiCoords[2]) : QtPositioning.coordinate(0,0)
             }
         }
+
+        // Map type selector
+        RowLayout {
+            spacing: 10
+            Text { text: qsTr("Map Type:"); font.pointSize: 16 }
+            ComboBox {
+                id: mapTypeCombo
+                model: mapTypes
+                textRole: "label"
+                onCurrentIndexChanged: mapType = model[currentIndex].label
+            }
+        }
+
+        RowLayout {
+            spacing: 10
+            Button {
+                text: qsTr("Set AOI for Download")
+                enabled: aoiCoords.length === 4
+                onClicked: {
+                    backend.setSetting("area_of_interest", aoiCoords);
+                    messageDialog.text = qsTr("AOI set for download:\n") + JSON.stringify(aoiCoords);
+                    messageDialog.open();
+                }
+            }
+            Button {
+                text: qsTr("Clear AOI")
+                enabled: aoiCoords.length === 4
+                onClicked: {
+                    aoiCoords = [];
+                    drawingAOI = false;
+                }
+            }
+        }
+    }
+
+    MessageDialog {
+        id: messageDialog
+        title: qsTr("Map Info")
+        text: ""
+        visible: false
+        onAccepted: visible = false
     }
 } 

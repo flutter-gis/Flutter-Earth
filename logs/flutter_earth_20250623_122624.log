@@ -1,0 +1,10 @@
+2025-06-23 12:26:25,925 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-23 12:26:26,760 - __main__ - INFO - Starting Flutter Earth QML Application
+2025-06-23 12:26:26,762 - __main__ - CRITICAL - A critical error occurred, and the application cannot start: 'QmlGUILauncher' object has no attribute 'backend'
+Traceback (most recent call last):
+  File "C:\Users\U1060469\OneDrive - Sanofi\Desktop\FE Repo\Flutter-Earth\main.py", line 93, in main
+    launcher.launch()
+  File "C:\Users\U1060469\OneDrive - Sanofi\Desktop\FE Repo\Flutter-Earth\flutter_earth_pkg\flutter_earth\gui.py", line 172, in launch
+    gee_initialized = self.backend.earth_engine.initialize(parent=None)
+                      ^^^^^^^^^^^^
+AttributeError: 'QmlGUILauncher' object has no attribute 'backend'

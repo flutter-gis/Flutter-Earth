@@ -1,0 +1,11 @@
+2025-06-23 12:24:43,889 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-23 12:24:44,717 - __main__ - INFO - Starting Flutter Earth QML Application
+2025-06-23 12:24:44,717 - __main__ - CRITICAL - A critical error occurred, and the application cannot start: Please destroy the QApplication singleton before creating a new QApplication instance.
+Traceback (most recent call last):
+  File "C:\Users\U1060469\OneDrive - Sanofi\Desktop\FE Repo\Flutter-Earth\main.py", line 92, in main
+    launcher = QmlGUILauncher()
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\U1060469\OneDrive - Sanofi\Desktop\FE Repo\Flutter-Earth\flutter_earth_pkg\flutter_earth\gui.py", line 137, in __init__
+    self.app = QApplication(sys.argv)
+               ^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Please destroy the QApplication singleton before creating a new QApplication instance.

@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional, List, Union, Literal
 from pathlib import Path
 import copy
 from dataclasses import fields
+from PySide6.QtCore import QObject, Signal
 
 from .types import AppConfig, Environment, SatelliteDetails, ValidationRule
 from .errors import ConfigurationError
@@ -165,11 +166,17 @@ SATELLITE_DETAILS: Dict[str, SatelliteDetails] = {
     }
 }
 
-class ConfigManager:
-    """Manages application configuration."""
+class ConfigManager(QObject):
+    """Manages application configuration.
+    Emits config_changed(dict) when the config is changed or reloaded.
+    Emits settingChanged(str key, object value) for each individual setting change.
+    """
+    config_changed = Signal(dict)  # Emitted when config is changed or reloaded
+    settingChanged = Signal(str, object)  # Emitted when a single setting is changed
     
     def __init__(self, config_file: str = 'flutter_earth_config.json', environment: Environment = 'production'):
         """Initialize configuration manager."""
+        super().__init__()
         self.config_file = config_file
         self.environment = environment
         self.config: AppConfig = self._get_env_config()
@@ -190,117 +197,94 @@ class ConfigManager:
             value = getattr(config, key, None)
             if value is None and rule.required:
                 raise ConfigurationError(f"Missing required configuration key: {key}")
-            
             if not rule.validate(value):
                 type_str = getattr(rule.type, '__name__', str(rule.type))
                 raise ConfigurationError(
                     f"Invalid configuration value for {key}: {value}. "
                     f"Expected type {type_str}"
                 )
-    
+
     def load_config(self) -> None:
-        """Load configuration from file."""
+        """Load configuration from file, falling back to defaults if needed."""
         try:
             if os.path.exists(self.config_file):
-                with open(self.config_file, 'r') as f:
-                    loaded_config: Dict[str, Any] = json.load(f)
-                
-                for key, value in loaded_config.items():
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                for key, value in data.items():
                     if hasattr(self.config, key):
                         setattr(self.config, key, value)
-
-                self._validate_config(self.config)
-                logging.info(f"Configuration loaded from {self.config_file}")
-            else:
-                self._validate_config(self.config)
-                self.save_config()
-                logging.info(f"Created new configuration file at {self.config_file}")
-        except Exception as e:
-            raise ConfigurationError(f"Failed to load configuration: {str(e)}")
-    
-    def save_config(self) -> None:
-        """Save configuration to file."""
-        try:
-            output_dir = os.path.dirname(self.config_file)
-            if output_dir:
-                os.makedirs(output_dir, exist_ok=True)
-                
             self._validate_config(self.config)
-            
-            with open(self.config_file, 'w') as f:
-                config_dict = {
-                    f.name: getattr(self.config, f.name)
-                    for f in fields(self.config)
-                }
-                json.dump(config_dict, f, indent=4)
+            logging.info(f"Configuration loaded from {self.config_file}")
+        except Exception as e:
+            logging.error(f"Failed to load config: {e}. Using defaults.")
+        self.config_changed.emit(self.to_dict())
+
+    def reload_config(self) -> None:
+        """Reload configuration from file and emit config_changed signal."""
+        self.load_config()
+
+    def save_config(self) -> None:
+        """Save current configuration to file."""
+        try:
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(self.to_dict(), f, indent=2)
             logging.info(f"Configuration saved to {self.config_file}")
         except Exception as e:
-            raise ConfigurationError(f"Failed to save configuration: {str(e)}")
-    
+            logging.error(f"Failed to save config: {e}")
+
     def get(self, key: str, default: Any = None) -> Any:
-        """Get configuration value."""
+        """Get a configuration value by key."""
         return getattr(self.config, key, default)
-    
+
     def set(self, key: str, value: Any) -> None:
-        """Set configuration value."""
-        temp_config = copy.deepcopy(self.config)
-        if hasattr(temp_config, key):
-            setattr(temp_config, key, value)
-        
-        self._validate_config(temp_config)
-        
-        setattr(self.config, key, value)
-        self.save_config()
+        """Set a configuration value and emit config_changed and settingChanged signals."""
+        if hasattr(self.config, key):
+            setattr(self.config, key, value)
+            self.save_config()
+            self.settingChanged.emit(key, value)
+            self.config_changed.emit(self.to_dict())
 
     def get_current_theme_colors(self) -> Dict[str, str]:
-        """Get the color palette for the current theme."""
-        theme_name = self.get('theme', 'Default (Dark)')
-        return THEMES.get(theme_name, THEMES['Default (Dark)'])
+        """Get the current theme color dictionary."""
+        return THEMES.get(self.config.theme, THEMES['Default (Dark)'])
 
     def get_available_themes(self) -> List[str]:
-        """Returns a list of available theme names."""
+        """Get a list of available theme names."""
         return list(THEMES.keys())
-        
+
     def update(self, updates: Dict[str, Any]) -> None:
-        """Update multiple configuration values."""
-        temp_config = copy.deepcopy(self.config)
+        """Update multiple configuration values and emit config_changed and settingChanged signals."""
         for key, value in updates.items():
-            if hasattr(temp_config, key):
-                setattr(temp_config, key, value)
-        
-        self._validate_config(temp_config)
-        
-        for key, value in updates.items():
-            setattr(self.config, key, value)
+            if hasattr(self.config, key):
+                setattr(self.config, key, value)
+                self.settingChanged.emit(key, value)
         self.save_config()
-    
+        self.config_changed.emit(self.to_dict())
+
     def add_recent_directory(self, directory: str) -> None:
-        """Add directory to recent directories list."""
-        if not os.path.isdir(directory):
-            logging.warning(f"Recent directory does not exist: {directory}")
-            return
-            
-        recent_dirs = self.get('recent_directories', [])
-        if directory in recent_dirs:
-            recent_dirs.remove(directory)
-        recent_dirs.insert(0, directory)
-        self.set('recent_directories', recent_dirs[:10])
-    
+        """Add a directory to the recent directories list."""
+        if directory not in self.config.recent_directories:
+            self.config.recent_directories.append(directory)
+            self.save_config()
+            self.config_changed.emit(self.to_dict())
+
     def get_satellite_details(self, sensor_name: str) -> Optional[SatelliteDetails]:
-        """Get details for a specific satellite sensor."""
+        """Get details for a given satellite sensor."""
         return SATELLITE_DETAILS.get(sensor_name)
 
     def get_environment(self) -> Environment:
-        """Get current environment."""
+        """Get the current environment."""
         return self.environment
-    
+
     def set_environment(self, environment: Environment) -> None:
-        """Set current environment and reload configuration."""
-        if environment not in ENV_CONFIGS:
-            raise ConfigurationError(f"Invalid environment: {environment}")
+        """Set the environment and reload config."""
         self.environment = environment
         self.config = self._get_env_config()
-        self.load_config()
+        self.reload_config()
 
-# Global configuration instance
-config_manager = ConfigManager(environment=os.getenv('FLUTTER_EARTH_ENV', 'production')) 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the config dataclass to a dictionary."""
+        return {field.name: getattr(self.config, field.name) for field in fields(self.config)}
+
+# Singleton instance for global access
+config_manager = ConfigManager() 
