@@ -4,6 +4,36 @@ import sys
 import logging
 from datetime import datetime
 from pathlib import Path
+import subprocess
+
+# List of all required packages (as used in this script)
+REQUIRED_PACKAGES = [
+    'numpy', 'rasterio', 'shapefile', 'folium', 'webview', 'requests',
+    'dateutil', 'ee', 'PySide6', 'PyQt6', 'tempfile', 'shutil', 'zipfile',
+    'hashlib', 'concurrent.futures', 'warnings', 'contextlib', 'logging',
+    'json', 'queue', 'threading', 'pathlib'
+]
+
+missing = []
+for pkg in REQUIRED_PACKAGES:
+    try:
+        if pkg == 'shapefile':
+            __import__('shapefile')
+        elif pkg == 'dateutil':
+            __import__('dateutil.relativedelta')
+        elif pkg == 'concurrent.futures':
+            __import__('concurrent.futures')
+        elif pkg == 'pathlib':
+            __import__('pathlib')
+        else:
+            __import__(pkg)
+    except ImportError:
+        missing.append(pkg)
+
+if missing:
+    print(f"Missing packages detected: {missing}. Installing...")
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', *missing])
+    print("All required packages are now installed. Please restart the program if you see any issues.")
 
 # --- EARLY LOGGING SETUP (MUST BE FIRST, BEFORE ANY OTHER IMPORTS) ---
 LOGS_DIR = Path("logs")

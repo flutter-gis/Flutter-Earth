@@ -29,6 +29,7 @@ ApplicationWindow {
     property string statusMessage: "Ready"
     property real overallProgress: 0.3
     property real monthlyProgress: 0.7
+    property var currentTaskId: null
 
     // --- Reusable Components ---
     component StyledButton: Button {
@@ -207,8 +208,7 @@ ApplicationWindow {
             // Content area
             SwipeView {
                 id: swipeView
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+                anchors.fill: parent
                 currentIndex: 0
                 
                 background: Rectangle {
@@ -216,121 +216,106 @@ ApplicationWindow {
                 }
 
                 // --- Download Tab ---
-                ScrollView {
+                Flickable {
+                    contentWidth: 1; contentHeight: 1
                     clip: true
-                    ScrollBar.vertical.policy: ScrollBar.AsNeeded
-                    ScrollBar.horizontal.policy: ScrollBar.AsNeeded
-                    padding: 20
-
-                    RowLayout {
-                        spacing: 20
+                    anchors.fill: parent
+                    
+                    GridLayout {
+                        id: downloadGrid
+                        columns: 2
+                        rows: 1
+                        anchors.fill: parent
+                        columnSpacing: 20
+                        rowSpacing: 0
                         
                         // --- Left Column: Settings ---
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 450
-                            spacing: 20
-
-                            Card {
-                                title: "Area & Time Settings"
-                                content: ColumnLayout {
-                                    spacing: 15
-                                    Layout.fillWidth: true
-                                    
-                                    Label { text: "Area of Interest (BBOX)"; color: secondaryTextColor }
-                                    StyledTextField { 
-                                        id: aoiInput; 
-                                        placeholderText: "minLon, minLat, maxLon, maxLat"; 
-                                        Layout.fillWidth: true 
-                                        Layout.preferredHeight: 40
-                                    }
-                                    RowLayout {
-                                        spacing: 10
-                                        StyledButton { 
-                                            text: "Select from Map"; 
-                                            Layout.fillWidth: true 
-                                            Layout.preferredHeight: 36
-                                            onClicked: handleSelectFromMap()
-                                        }
-                                        StyledButton { 
-                                            text: "Load SHP"; 
-                                            Layout.fillWidth: true 
-                                            Layout.preferredHeight: 36
-                                            onClicked: handleLoadShapefile()
-                                        }
-                                    }
-                                    
-                                    RowLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 10
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            Label { text: "Start Date"; color: secondaryTextColor }
-                                            StyledTextField { 
-                                                id: startDate; 
-                                                placeholderText: "YYYY-MM-DD"
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: 40
-                                            }
-                                        }
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            Label { text: "End Date"; color: secondaryTextColor }
-                                            StyledTextField { 
-                                                id: endDate; 
-                                                placeholderText: "YYYY-MM-DD" 
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: 40
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            Card {
-                                title: "Processing Settings"
-                                content: ColumnLayout {
-                                    spacing: 15
-                                    Layout.fillWidth: true
-                                    
-                                    Label { text: "Satellite"; color: secondaryTextColor }
-                                    StyledComboBox { 
-                                        id: satelliteCombo
-                                        model: ["Landsat 8", "Sentinel-2", "MODIS"]
-                                        Layout.fillWidth: true
-                                    }
-                                    
-                                    Label { text: "Max Cloud Cover (%)"; color: secondaryTextColor }
-                                    StyledSpinBox { 
-                                        id: cloudCoverSpin
-                                        from: 0; to: 100; value: 20
-                                        Layout.fillWidth: true
-                                    }
-                                }
-                            }
-                            
-                            Card {
-                                title: "Output Settings"
-                                content: ColumnLayout {
-                                    spacing: 15
-                                    Layout.fillWidth: true
-                                    Label { text: "Output Format"; color: secondaryTextColor }
-                                    StyledComboBox { 
-                                        id: outputFormatCombo
-                                        model: ["GeoTIFF", "NetCDF", "JPEG"]
-                                        Layout.fillWidth: true
-                                    }
-                                    Label { text: "Output Directory"; color: secondaryTextColor }
-                                    RowLayout{
-                                        Layout.fillWidth: true
+                        Item {
+                            GridLayout.column: 0
+                            GridLayout.row: 0
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 20
+                                Card {
+                                    title: "Area & Time Settings"
+                                    content: ColumnLayout {
+                                        spacing: 15
+                                        
+                                        Label { text: "Area of Interest (BBOX)"; color: secondaryTextColor }
                                         StyledTextField { 
-                                            id: outputDir; 
-                                            placeholderText: "Select a directory..."; 
-                                            Layout.fillWidth: true 
+                                            id: aoiInput; 
+                                            placeholderText: "minLon, minLat, maxLon, maxLat"
                                         }
-                                        StyledButton { 
-                                            text: "Browse" 
-                                            onClicked: handleBrowseOutput()
+                                        RowLayout {
+                                            spacing: 10
+                                            StyledButton { 
+                                                text: "Select from Map"
+                                                onClicked: handleSelectFromMap()
+                                            }
+                                            StyledButton { 
+                                                text: "Load SHP"
+                                                onClicked: handleLoadShapefile()
+                                            }
+                                        }
+                                        
+                                        RowLayout {
+                                            spacing: 10
+                                            ColumnLayout {
+                                                Label { text: "Start Date"; color: secondaryTextColor }
+                                                StyledTextField { 
+                                                    id: startDate; 
+                                                    placeholderText: "YYYY-MM-DD"
+                                                }
+                                            }
+                                            ColumnLayout {
+                                                Label { text: "End Date"; color: secondaryTextColor }
+                                                StyledTextField { 
+                                                    id: endDate; 
+                                                    placeholderText: "YYYY-MM-DD" 
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                Card {
+                                    title: "Processing Settings"
+                                    content: ColumnLayout {
+                                        spacing: 15
+                                        
+                                        Label { text: "Satellite"; color: secondaryTextColor }
+                                        StyledComboBox { 
+                                            id: satelliteCombo
+                                            model: ["Landsat 8", "Sentinel-2", "MODIS"]
+                                        }
+                                        
+                                        Label { text: "Max Cloud Cover (%)"; color: secondaryTextColor }
+                                        StyledSpinBox { 
+                                            id: cloudCoverSpin
+                                            from: 0; to: 100; value: 20
+                                        }
+                                    }
+                                }
+                                
+                                Card {
+                                    title: "Output Settings"
+                                    content: ColumnLayout {
+                                        spacing: 15
+                                        Label { text: "Output Format"; color: secondaryTextColor }
+                                        StyledComboBox { 
+                                            id: outputFormatCombo
+                                            model: ["GeoTIFF", "NetCDF", "JPEG"]
+                                        }
+                                        Label { text: "Output Directory"; color: secondaryTextColor }
+                                        RowLayout{
+                                            StyledTextField { 
+                                                id: outputDir; 
+                                                placeholderText: "Select a directory..."
+                                            }
+                                            StyledButton { 
+                                                text: "Browse" 
+                                                onClicked: handleBrowseOutput()
+                                            }
                                         }
                                     }
                                 }
@@ -338,75 +323,80 @@ ApplicationWindow {
                         }
 
                         // --- Right Column: Status & Logs ---
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: 350
-                            spacing: 20
-
-                            Card {
-                                title: "Progress"
-                                content: ColumnLayout {
-                                    spacing: 12
-                                    Layout.fillWidth: true
-                                    
-                                    Label { text: "Overall Progress"; color: secondaryTextColor }
-                                    StyledProgressBar {
-                                        id: overallProgressBar
-                                        value: overallProgress
-                                        Layout.fillWidth: true
-                                    }
-                                    
-                                    Label { text: "Monthly Progress"; color: secondaryTextColor }
-                                    StyledProgressBar {
-                                        id: monthlyProgressBar
-                                        value: monthlyProgress
-                                        Layout.fillWidth: true
+                        Item {
+                            GridLayout.column: 1
+                            GridLayout.row: 0
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 20
+                                Card {
+                                    title: "Progress"
+                                    content: ColumnLayout {
+                                        spacing: 12
+                                        
+                                        Label { text: "Overall Progress"; color: secondaryTextColor }
+                                        StyledProgressBar {
+                                            id: overallProgressBar
+                                            value: overallProgress
+                                        }
+                                        
+                                        Label { text: "Monthly Progress"; color: secondaryTextColor }
+                                        StyledProgressBar {
+                                            id: monthlyProgressBar
+                                            value: monthlyProgress
+                                        }
                                     }
                                 }
-                            }
-                            
-                            Card {
-                                title: "Log Console"
-                                Layout.fillHeight: true
-                                content: TextArea {
-                                    id: logConsole
-                                    Layout.fillWidth: true
-                                    Layout.fillHeight: true
-                                    text: "Ready to start download..."
-                                    readOnly: true
-                                    color: secondaryTextColor
-                                    background: Rectangle { 
-                                        color: contentBgLight 
-                                        border.color: borderColor
-                                        border.width: 1
-                                        radius: 4
+                                
+                                Card {
+                                    title: "Log Console"
+                                    content: TextArea {
+                                        id: logConsole
+                                        anchors.fill: parent
+                                        text: "Ready to start download..."
+                                        readOnly: true
+                                        color: secondaryTextColor
+                                        background: Rectangle { 
+                                            color: contentBgLight 
+                                            border.color: borderColor
+                                            border.width: 1
+                                            radius: 4
+                                        }
+                                        padding: 8
+                                        font.pointSize: 9
                                     }
-                                    padding: 8
-                                    font.pointSize: 9
                                 }
                             }
                         }
-                    } // End of RowLayout
-                } // End of ScrollView for Download Tab
+                    }
+                }
 
                 // --- Satellite Info Tab ---
                 Rectangle { 
                     color: sidebarBg; 
-                    Label { 
-                        text: "Satellite Info View"; 
-                        anchors.centerIn: parent; 
-                        color: textColor
-                    } 
+                    anchors.fill: parent
+                    ColumnLayout {
+                        anchors.centerIn: parent
+                        spacing: 20
+                        Label { 
+                            text: "Satellite Info View"; 
+                            color: textColor
+                        }
+                    }
                 }
                 
                 // --- Post-Processing Tab ---
                 Rectangle { 
                     color: sidebarBg; 
-                    Label { 
-                        text: "Post-Processing View"; 
-                        anchors.centerIn: parent; 
-                        color: textColor
-                    } 
+                    anchors.fill: parent
+                    ColumnLayout {
+                        anchors.centerIn: parent
+                        spacing: 20
+                        Label { 
+                            text: "Post-Processing View"; 
+                            color: textColor
+                        }
+                    }
                 }
             } // End of SwipeView
 
@@ -524,7 +514,6 @@ ApplicationWindow {
                 text: inputDialog.defaultValue
                 echoMode: inputDialog.dialogType === "password" ? TextInput.Password : TextInput.Normal
                 inputMethodHints: inputDialog.dialogType === "number" ? Qt.ImhFormattedNumbersOnly : Qt.ImhNone
-                Layout.fillWidth: true
             }
         }
         
@@ -559,21 +548,18 @@ ApplicationWindow {
     }
     
     function handleStartDownload() {
-        logConsole.append("Starting download...")
-        
+        logConsole.append("Starting download...");
         // Validate inputs
         if (!aoiInput.text || !startDate.text || !endDate.text || !outputDir.text) {
-            appDialog.openDialog("error", "Validation Error", "Please fill in all required fields")
-            return
+            appDialog.openDialog("error", "Validation Error", "Please fill in all required fields");
+            return;
         }
-        
         // Parse bbox
-        let bboxParts = aoiInput.text.split(',').map(part => parseFloat(part.trim()))
+        let bboxParts = aoiInput.text.split(',').map(part => parseFloat(part.trim()));
         if (bboxParts.length !== 4 || bboxParts.some(isNaN)) {
-            appDialog.openDialog("error", "Invalid BBOX", "Please enter valid coordinates: minLon, minLat, maxLon, maxLat")
-            return
+            appDialog.openDialog("error", "Invalid BBOX", "Please enter valid coordinates: minLon, minLat, maxLon, maxLat");
+            return;
         }
-        
         // Create parameters
         let params = {
             bbox: {
@@ -588,21 +574,27 @@ ApplicationWindow {
             output_format: outputFormatCombo.currentText,
             max_cloud_cover: cloudCoverSpin.value,
             output_directory: outputDir.text
-        }
-        
+        };
         try {
-            let taskId = flutterEarth.start_download(params)
-            logConsole.append("Download started with task ID: " + taskId)
-            statusMessage = "Download started..."
+            currentTaskId = flutterEarth.start_download(params);
+            logConsole.append("Download started with task ID: " + currentTaskId);
+            statusMessage = "Download started...";
         } catch (error) {
-            logConsole.append("Error starting download: " + error)
-            appDialog.openDialog("error", "Download Error", "Failed to start download: " + error)
+            logConsole.append("Error starting download: " + error);
+            appDialog.openDialog("error", "Download Error", "Failed to start download: " + error);
         }
     }
     
     function handleCancelDownload() {
-        logConsole.append("Cancelling download...")
-        flutterEarth.log_message("Cancel download clicked")
+        logConsole.append("Cancelling download...");
+        if (currentTaskId) {
+            let result = flutterEarth.cancel_download(currentTaskId);
+            logConsole.append("Cancel requested for task ID: " + currentTaskId + ", result: " + result);
+            statusMessage = "Download cancelled.";
+        } else {
+            logConsole.append("No active download to cancel.");
+            statusMessage = "No active download to cancel.";
+        }
     }
 
     // Connections to Python bridge
