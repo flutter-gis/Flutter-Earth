@@ -83,9 +83,14 @@ def process_image(image: ee.Image, params: Dict[str, Any]) -> ee.Image:
     return image
 
 def save_image(image: ee.Image, output_path: str, bbox: List[float], 
-               resolution: int) -> None:
+               resolution: int, overwrite: bool = True) -> None:
     """Save Earth Engine image to file."""
     try:
+        if not overwrite and os.path.exists(output_path):
+            logging.info(f"File {output_path} already exists and overwrite is False. Skipping download.")
+            # Optionally, return a status or specific value indicating skip
+            return
+
         url = image.getDownloadURL({
             'region': bbox,
             'scale': resolution,
@@ -121,6 +126,115 @@ def calculate_tiles(bbox: List[float], tile_size: float) -> List[Dict[str, Any]]
             current_south = tile_north
         current_west = min(current_west + tile_size, east)
     
+    return tiles
+
+def calculate_tiles(
+    bbox: List[float],
+    tiling_method: str,
+    tile_size_degrees: float = 1.0,
+    num_subsections: int = 100,
+    # target_resolution_m: int = 30 # Not directly used if num_subsections defines grid
+) -> List[Dict[str, Any]]:
+    """
+    Calculate tile definitions for a bounding box.
+    - If tiling_method is 'degree', tile_size_degrees is used.
+    - If tiling_method is 'pixel', num_subsections is used to divide the bbox into a grid.
+    """
+    west, south, east, north = bbox
+    tiles = []
+
+    if tiling_method == 'degree':
+        tile_size_x = tile_size_degrees
+        tile_size_y = tile_size_degrees
+
+        current_west = west
+        tile_idx = 0
+        while current_west < east:
+            current_south = south
+            while current_south < north:
+                tile_east = min(current_west + tile_size_x, east)
+                tile_north = min(current_south + tile_size_y, north)
+
+                # Ensure tile has non-zero width and height
+                if tile_east > current_west and tile_north > current_south:
+                    tiles.append({
+                        'bbox': [current_west, current_south, tile_east, tile_north],
+                        'index': tile_idx
+                    })
+                    tile_idx += 1
+                current_south = tile_north
+            current_west = tile_east # Move to the end of the last processed tile
+            if current_west >= east and current_south < north : # check if there's a remaining sliver in y after finishing x
+                current_west = west # reset west for the next row of slivers
+
+    elif tiling_method == 'pixel': # Interpreting 'pixel' method with num_subsections
+        # Determine grid dimensions (e.g., n_cols x n_rows)
+        # Aim for roughly square cells from num_subsections
+        total_width = east - west
+        total_height = north - south
+
+        if total_width <= 0 or total_height <= 0:
+            logging.warning("Bounding box has zero or negative extent.")
+            return []
+
+        # Aspect ratio of the bbox
+        aspect_ratio = total_width / total_height
+
+        # Calculate n_rows and n_cols to be as square as possible
+        # n_cols / n_rows approx aspect_ratio
+        # n_cols * n_rows approx num_subsections
+        # n_rows * aspect_ratio * n_rows approx num_subsections => n_rows^2 approx num_subsections / aspect_ratio
+        n_rows_float = (num_subsections / aspect_ratio)**0.5
+        n_cols_float = aspect_ratio * n_rows_float
+
+        n_rows = max(1, round(n_rows_float))
+        n_cols = max(1, round(n_cols_float))
+
+        # Adjust n_cols or n_rows to get closer to num_subsections if needed,
+        # or ensure at least one of them leads to a division.
+        # This simple rounding might not be optimal for all num_subsections values.
+        if n_rows * n_cols == 0 and num_subsections > 0 : # ensure at least 1x1 grid
+            n_rows = 1
+            n_cols = 1
+
+        logging.info(f"Pixel tiling: target ~{num_subsections} subsections. Grid: {n_cols}x{n_rows}. BBox W/H: {total_width}/{total_height}")
+
+        if n_cols == 0 or n_rows == 0 : # if still zero, cannot tile
+             logging.warning(f"Cannot tile with {n_cols}x{n_rows} grid for num_subsections {num_subsections}")
+             return []
+
+        tile_width_geo = total_width / n_cols
+        tile_height_geo = total_height / n_rows
+
+        tile_idx = 0
+        for i in range(n_cols):
+            current_west = west + i * tile_width_geo
+            tile_east = west + (i + 1) * tile_width_geo
+            # Ensure the last tile aligns with the boundary
+            if i == n_cols - 1:
+                tile_east = east
+
+            for j in range(n_rows):
+                current_south = south + j * tile_height_geo
+                tile_north = south + (j + 1) * tile_height_geo
+                # Ensure the last tile aligns with the boundary
+                if j == n_rows - 1:
+                    tile_north = north
+
+                if tile_east > current_west and tile_north > current_south:
+                    tiles.append({
+                        'bbox': [current_west, current_south, tile_east, tile_north],
+                        'index': tile_idx
+                    })
+                    tile_idx += 1
+    else:
+        logging.warning(f"Unknown tiling_method: {tiling_method}. Defaulting to single tile.")
+        tiles.append({'bbox': bbox, 'index': 0})
+
+    if not tiles: # Ensure at least one tile for the whole bbox if other methods fail
+        logging.warning(f"Tiling resulted in no tiles for method {tiling_method}. Using entire bbox as one tile.")
+        tiles.append({'bbox': bbox, 'index': 0})
+
     return tiles
 
 def merge_tiles(tile_paths: List[str], output_path: str) -> None:
