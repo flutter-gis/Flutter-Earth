@@ -83,27 +83,40 @@ def validate_polygon(coordinates: List[Tuple[float, float]]) -> bool:
     return True
 
 
-def validate_satellite_collection(collection_name: str) -> bool:
+from ..core.types import OutputFormat, VegetationIndex, SatelliteCollection
+
+# Note: SatelliteCollection in types.py is a dataclass, not an enum of names.
+# The EarthEngineManager._collections dictionary keys are the valid names.
+# So, validate_satellite_collection might need access to EarthEngineManager or a predefined list.
+# For now, I will keep validate_satellite_collection as is, assuming the list is maintained,
+# or it could be enhanced later to use EarthEngineManager.
+
+def validate_satellite_collection(collection_name: str, available_collections: List[str] = None) -> bool:
     """Validate satellite collection name.
     
     Args:
         collection_name: Collection name.
+        available_collections: Optional list of available collection names.
+                               If None, uses a default list.
         
     Returns:
         True if collection name is valid.
     """
-    valid_collections = [
-        "LANDSAT/LC08/C02/T1_L2",
-        "LANDSAT/LE07/C02/T1_L2",
-        "COPERNICUS/S2_SR_HARMONIZED",
-        "MODIS/006/MOD13Q1"
-    ]
-    
-    return collection_name in valid_collections
+    if available_collections:
+        return collection_name in available_collections
+    else:
+        # Default list, keep this updated or find a way to get from EarthEngineManager
+        default_valid_collections = [
+            "LANDSAT/LC08/C02/T1_L2",
+            "LANDSAT/LE07/C02/T1_L2",
+            "COPERNICUS/S2_SR_HARMONIZED",
+            "MODIS/006/MOD13Q1"
+        ]
+        return collection_name in default_valid_collections
 
 
 def validate_output_format(format_name: str) -> bool:
-    """Validate output format.
+    """Validate output format using OutputFormat Enum.
     
     Args:
         format_name: Output format name.
@@ -111,12 +124,15 @@ def validate_output_format(format_name: str) -> bool:
     Returns:
         True if format is valid.
     """
-    valid_formats = ["geotiff", "jpeg", "png", "shapefile", "csv"]
-    return format_name.lower() in valid_formats
+    try:
+        _ = OutputFormat(format_name.lower())
+        return True
+    except ValueError:
+        return False
 
 
 def validate_vegetation_index(index_name: str) -> bool:
-    """Validate vegetation index name.
+    """Validate vegetation index name using VegetationIndex Enum.
     
     Args:
         index_name: Vegetation index name.
@@ -124,8 +140,11 @@ def validate_vegetation_index(index_name: str) -> bool:
     Returns:
         True if index is valid.
     """
-    valid_indices = ["ndvi", "evi", "savi", "ndwi", "nbr"]
-    return index_name.lower() in valid_indices
+    try:
+        _ = VegetationIndex(index_name.lower())
+        return True
+    except ValueError:
+        return False
 
 
 def validate_cloud_cover(cloud_cover: float) -> bool:

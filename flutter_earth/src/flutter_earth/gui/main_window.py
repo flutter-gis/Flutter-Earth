@@ -3,10 +3,14 @@
 import logging
 from pathlib import Path
 from typing import Optional
+from datetime import datetime # Moved import
 
 from PyQt6.QtCore import pyqtSignal, QObject
+from PyQt6.QtWidgets import QFileDialog, QWidget, QInputDialog # Moved imports
 
 from ..core.config_manager import ConfigManager
+# Moved type imports from start_download method
+from ..core.types import ProcessingParams, BoundingBox, Polygon, Coordinates, OutputFormat, VegetationIndex
 from ..core.earth_engine_manager import EarthEngineManager
 from ..core.download_manager import DownloadManager
 from ..core.progress_tracker import ProgressTracker
@@ -76,8 +80,8 @@ class FlutterEarthBridge(QObject):
             task_id: Task ID.
             status: Status message.
         """
-        # Convert status to string if it's a DownloadStatus enum
-        status_str = str(status) if hasattr(status, 'value') else str(status)
+        # status is a DownloadStatus enum instance from DownloadManager
+        status_str = status.value
         self.status_updated.emit(task_id, status_str)
     
     def _on_task_completion(self, task_id: str, result) -> None:
@@ -134,8 +138,7 @@ class FlutterEarthBridge(QObject):
         """
         try:
             # Convert params to ProcessingParams object
-            from ..core.types import ProcessingParams, BoundingBox, OutputFormat, VegetationIndex
-            from datetime import datetime
+            # Imports moved to top of file
             
             # Parse area of interest
             if "bbox" in params:
@@ -235,7 +238,7 @@ class FlutterEarthBridge(QObject):
             title: Dialog title.
         """
         try:
-            from PyQt6.QtWidgets import QFileDialog, QWidget
+            # Imports moved to top of file
             
             # Create a temporary widget for the dialog
             parent = QWidget()
@@ -269,7 +272,7 @@ class FlutterEarthBridge(QObject):
             default_value: Default value.
         """
         try:
-            from PyQt6.QtWidgets import QInputDialog, QWidget
+            # Imports moved to top of file
             
             # Create a temporary widget for the dialog
             parent = QWidget()

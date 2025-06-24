@@ -217,17 +217,22 @@ ApplicationWindow {
 
                 // --- Download Tab ---
                 Flickable {
-                    contentWidth: 1; contentHeight: 1
+                    id: downloadTabFlickable
+                    // contentWidth: 1; contentHeight: 1 // Original problematic line
+                    contentWidth: width // Make content width same as Flickable's width
+                    contentHeight: downloadGrid.implicitHeight // Content height is natural height of the grid
                     clip: true
                     anchors.fill: parent
                     
                     GridLayout {
                         id: downloadGrid
                         columns: 2
-                        rows: 1
-                        anchors.fill: parent
+                        // rows: 1 // Let GridLayout determine rows based on content
+                        // anchors.fill: parent // Remove, height should be implicit
+                        width: downloadTabFlickable.width // Grid takes full width of flickable
+                        // Height will be determined implicitly by its content and row definitions.
                         columnSpacing: 20
-                        rowSpacing: 0
+                        // rowSpacing: 0 // Default or not set
                         
                         // --- Left Column: Settings ---
                         Item {

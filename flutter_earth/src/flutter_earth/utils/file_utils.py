@@ -1,6 +1,7 @@
 """File utility functions for Flutter Earth."""
 
 import os
+import math # Moved import math to top
 from pathlib import Path
 from typing import Union, List, Tuple, Optional
 from datetime import datetime, date
@@ -103,58 +104,6 @@ def cleanup_temp_files(temp_dir: Path) -> None:
         pass
 
 
-def validate_bbox(bbox: List[float]) -> bool:
-    """Validate bounding box coordinates.
-    
-    Args:
-        bbox: Bounding box as [min_lon, min_lat, max_lon, max_lat]
-        
-    Returns:
-        True if valid, False otherwise
-    """
-    if len(bbox) != 4:
-        return False
-    
-    min_lon, min_lat, max_lon, max_lat = bbox
-    
-    # Check coordinate ranges
-    if not (-180 <= min_lon <= 180) or not (-180 <= max_lon <= 180):
-        return False
-    if not (-90 <= min_lat <= 90) or not (-90 <= max_lat <= 90):
-        return False
-    
-    # Check logical order
-    if min_lon >= max_lon or min_lat >= max_lat:
-        return False
-    
-    return True
-
-
-def validate_dates(start_date: Union[str, date], end_date: Union[str, date]) -> None:
-    """Validate date range.
-    
-    Args:
-        start_date: Start date
-        end_date: End date
-        
-    Raises:
-        ValueError: If dates are invalid
-    """
-    if isinstance(start_date, str):
-        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-    if isinstance(end_date, str):
-        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-    
-    if start_date >= end_date:
-        raise ValueError("Start date must be before end date")
-    
-    if start_date < date(1972, 1, 1):  # Landsat 1 launch
-        raise ValueError("Start date too early - no satellite data available")
-    
-    if end_date > date.today():
-        raise ValueError("End date cannot be in the future")
-
-
 def create_output_dir(output_path: Union[str, Path]) -> Path:
     """Create output directory if it doesn't exist.
     
@@ -206,26 +155,8 @@ def get_sensor_details(sensor_name: str) -> Optional[dict]:
     return sensors.get(sensor_name.upper())
 
 
-def process_image(image_data: bytes, output_path: Path) -> bool:
-    """Process image data and save to file.
-    
-    Args:
-        image_data: Raw image data
-        output_path: Output file path
-        
-    Returns:
-        True if successful, False otherwise
-    """
-    try:
-        with open(output_path, 'wb') as f:
-            f.write(image_data)
-        return True
-    except Exception:
-        return False
-
-
 def save_image(image_data: bytes, output_path: Path) -> bool:
-    """Save image data to file.
+    """Save image data (bytes) to file.
     
     Args:
         image_data: Raw image data

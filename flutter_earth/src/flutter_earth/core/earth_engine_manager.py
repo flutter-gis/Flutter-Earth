@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any, List, Union
 from datetime import datetime
 
 import ee
-from PyQt6.QtWidgets import QWidget, QMessageBox, QInputDialog, QFileDialog
+from PyQt6.QtWidgets import QWidget, QMessageBox, QInputDialog, QFileDialog, QLineEdit
 
 from .types import SatelliteCollection, BoundingBox, Polygon
 
@@ -117,26 +117,50 @@ class EarthEngineManager:
             True if authentication was successful.
         """
         try:
-            msg = QMessageBox(parent)
-            msg.setIcon(QMessageBox.Icon.Information)
-            msg.setWindowTitle("Earth Engine Authentication")
-            msg.setText("Earth Engine authentication required.")
-            msg.setInformativeText(
+            title = "Earth Engine Authentication"
+            text = "Earth Engine authentication required."
+            informative_text = (
                 "Please authenticate with Google Earth Engine to continue.\n\n"
                 "You can either:\n"
                 "1. Use service account authentication\n"
                 "2. Use interactive authentication\n\n"
                 "Would you like to set up authentication now?"
             )
-            msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
+            # Constructing the full text for the question dialog
+            full_text = f"{text}\n\n{informative_text}"
+
+            reply = QMessageBox.question(
+                parent,
+                title,
+                full_text,
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No  # Default button
+            )
             
-            if msg.exec() == QMessageBox.StandardButton.Yes:
+            if reply == QMessageBox.StandardButton.Yes:
                 return self._setup_authentication(parent)
             
-            return False
+            # User chose No or closed the dialog
+            self._logger.info("User declined Earth Engine authentication.")
+            # The application should continue and allow GUI to open.
+            # The initialize method, which calls this, will return False.
+            # The main application logic should handle this to open GUI anyway.
+            # Emitting a message via bridge if available:
+            if hasattr(self, 'bridge') and self.bridge is not None:
+                 # Assuming 'bridge' is set on this manager instance if used with GUI
+                 # and 'showMessage' is a signal: (type, title, message)
+                 self.bridge.showMessage.emit('warning', 'Earth Engine Not Initialized',
+                                              'Earth Engine is not initialized. Some features may be unavailable.')
+            else:
+                 self._logger.warning("User declined EE auth. Bridge not available for UI message.")
+            return False # Indicates auth was not completed, but not an error in dialog display
             
         except Exception as e:
             self._logger.error(f"Error showing auth dialog: {e}")
+            if hasattr(self, 'bridge') and self.bridge is not None:
+                 self.bridge.showMessage.emit('error', 'Dialog Error', f'Could not display authentication dialog: {e}')
+            # Still return False, so GUI can attempt to load.
             return False
     
     def _setup_authentication(self, parent: QWidget) -> bool:
@@ -247,18 +271,78 @@ class EarthEngineManager:
             )
             
             # Initialize interactive authentication
-            ee.Initialize()
-            
-            self._initialized = True
-            self._logger.info("Interactive authentication successful")
-            return True
-            
-        except Exception as e:
-            self._logger.error(f"Interactive authentication failed: {e}")
+            # This may open a browser window if credentials are not found or are expired.
+            # After authentication, ee.Initialize still needs to be called.
+            # The ee.Authenticate() call is more explicit for triggering auth flow,
+            # but ee.Initialize() often does this implicitly if needed.
+
+            try:
+                # Attempt to initialize. This might use existing credentials from a previous
+                # ee.Authenticate() or gcloud session, or trigger a new auth flow.
+                self._logger.info("Attempting interactive Earth Engine initialization...")
+                ee.Initialize()
+                self._initialized = True
+                self._project_id = ee.data.get_project_id() # Try to get project ID if auto-detected
+                self._logger.info(f"Earth Engine initialized successfully via interactive flow (project: {self._project_id or 'auto-detected'}).")
+                return True
+            except Exception as e_init:
+                # Check if the error is specifically about a missing project ID
+                if "no project found" in str(e_init).lower() or \
+                   "project id" in str(e_init).lower() or \
+                   "Set a project ID" in str(e_init): # Common phrases in EE errors
+                    self._logger.warning(f"Interactive ee.Initialize() failed to find a project: {e_init}")
+
+                    project_id_str, ok = QInputDialog.getText(
+                        parent,
+                        "Project ID Required",
+                        "Authentication seems successful, but Earth Engine requires a Google Cloud Project ID.\n"
+                        "Please enter your Project ID:",
+                        QLineEdit.EchoMode.Normal,
+                        self._project_id or ""  # Suggest previously stored project ID, if any
+                    )
+
+                    if ok and project_id_str:
+                        try:
+                            # Retry initialization with the provided project ID
+                            # Credentials should be cached from the ee.Authenticate() or previous ee.Initialize() attempt
+                            ee.Initialize(project=project_id_str)
+                            self._initialized = True
+                            self._project_id = project_id_str # Store the successfully used project ID
+                            self._logger.info(f"Interactive authentication successful with specified project ID: {project_id_str}")
+                            # Consider saving this project_id to config for future use (e.g., self.config_manager.set_value(...))
+                            return True
+                        except Exception as e_proj_init:
+                            self._logger.error(f"Interactive authentication with specified project ID '{project_id_str}' failed: {e_proj_init}")
+                            QMessageBox.critical(
+                                parent,
+                                "Initialization Failed",
+                                f"Failed to initialize Earth Engine with Project ID '{project_id_str}':\n{str(e_proj_init)}"
+                            )
+                            return False
+                    else:
+                        self._logger.warning("User cancelled or did not provide a Project ID for interactive authentication.")
+                        QMessageBox.warning(
+                            parent,
+                            "Project ID Required",
+                            "A Google Cloud Project ID is necessary to use Earth Engine. Initialization was cancelled."
+                        )
+                        return False
+                else:
+                    # Other type of error during the initial ee.Initialize() attempt
+                    self._logger.error(f"Interactive authentication failed: {e_init}")
+                    QMessageBox.critical(
+                        parent,
+                        "Authentication Failed",
+                        f"Interactive authentication failed:\n{str(e_init)}"
+                    )
+                    return False
+
+        except Exception as e: # Catch-all for unexpected errors in this method
+            self._logger.error(f"An unexpected error occurred during interactive authentication setup: {e}")
             QMessageBox.critical(
                 parent,
-                "Authentication Failed",
-                f"Interactive authentication failed:\n{str(e)}"
+                "Authentication Error",
+                f"An unexpected error occurred during interactive authentication:\n{str(e)}"
             )
             return False
     
