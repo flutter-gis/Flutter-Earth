@@ -4,8 +4,9 @@ import QtQuick.Layouts 1.15
 
 Rectangle {
     id: downloadView
-    color: "#e3f2fd"
+    // color: "#e3f2fd" // Replaced by theme
     anchors.fill: parent
+    color: mainContent.currentTheme.widget_bg // Use theme color
 
     // Download parameters (bind to backend or user input)
     property var allSettings: backend.getAllSettings()
@@ -50,45 +51,51 @@ Rectangle {
             text: qsTr("Download Data")
             font.pointSize: 22
             font.bold: true
-            color: "#1565c0"
+            color: mainContent.currentTheme.primary // Theme color
         }
 
         // AOI (Area of Interest) - for now, manual entry; can be wired to MapView
         RowLayout {
             spacing: 10
-            Text { text: qsTr("AOI:"); font.pointSize: 16 }
+            Text { text: qsTr("AOI:"); font.pointSize: 16; color: mainContent.currentTheme.text }
             TextField {
                 id: aoiField
                 text: aoi
                 placeholderText: "[minLon, minLat, maxLon, maxLat]"
                 onEditingFinished: aoi = text
                 width: 250
+                color: mainContent.currentTheme.entry_fg
+                background: Rectangle { color: mainContent.currentTheme.entry_bg; border.color: mainContent.currentTheme.entry_border }
             }
         }
 
         // Dates
         RowLayout {
             spacing: 10
-            Text { text: qsTr("Start Date:"); font.pointSize: 16 }
+            Text { text: qsTr("Start Date:"); font.pointSize: 16; color: mainContent.currentTheme.text }
             TextField {
                 id: startDateField
                 text: startDate
                 onEditingFinished: startDate = text
                 width: 120
+                color: mainContent.currentTheme.entry_fg
+                background: Rectangle { color: mainContent.currentTheme.entry_bg; border.color: mainContent.currentTheme.entry_border }
             }
-            Text { text: qsTr("End Date:"); font.pointSize: 16 }
+            Text { text: qsTr("End Date:"); font.pointSize: 16; color: mainContent.currentTheme.text }
             TextField {
                 id: endDateField
                 text: endDate
                 onEditingFinished: endDate = text
                 width: 120
+                color: mainContent.currentTheme.entry_fg
+                background: Rectangle { color: mainContent.currentTheme.entry_bg; border.color: mainContent.currentTheme.entry_border }
             }
         }
 
         // Sensor selection
         RowLayout {
             spacing: 10
-            Text { text: qsTr("Sensor:"); font.pointSize: 16 }
+            Text { text: qsTr("Sensor:"); font.pointSize: 16; color: mainContent.currentTheme.text }
             ComboBox {
                 id: sensorCombo
                 model: backend.getAllSensors()
@@ -97,18 +104,23 @@ Rectangle {
                     if (currentIndex >= 0)
                         sensor = model[currentIndex];
                 }
+                // Basic theming for ComboBox
+                // background: Rectangle { color: mainContent.currentTheme.entry_bg; border.color: mainContent.currentTheme.entry_border }
+                // contentItem: Text { text: control.displayText; color: mainContent.currentTheme.entry_fg }
             }
         }
 
         // Output directory
         RowLayout {
             spacing: 10
-            Text { text: qsTr("Output Dir:"); font.pointSize: 16 }
+            Text { text: qsTr("Output Dir:"); font.pointSize: 16; color: mainContent.currentTheme.text }
             TextField {
                 id: outputDirField
                 text: outputDir
                 onEditingFinished: outputDir = text
                 width: 250
+                color: mainContent.currentTheme.entry_fg
+                background: Rectangle { color: mainContent.currentTheme.entry_bg; border.color: mainContent.currentTheme.entry_border }
             }
         }
 
@@ -119,15 +131,19 @@ Rectangle {
                 id: cloudMaskBox
                 checked: cloudMask
                 onCheckedChanged: cloudMask = checked
+                // indicator: Rectangle { color: control.checked ? mainContent.currentTheme.primary : mainContent.currentTheme.disabled }
             }
-            Text { text: qsTr("Cloud Mask"); font.pointSize: 16 }
-            Text { text: qsTr("Max Cloud Cover:"); font.pointSize: 16 }
+            Text { text: qsTr("Cloud Mask"); font.pointSize: 16; color: mainContent.currentTheme.text }
+            Text { text: qsTr("Max Cloud Cover:"); font.pointSize: 16; color: mainContent.currentTheme.text }
             SpinBox {
                 id: maxCloudSpin
                 value: maxCloudCover
                 from: 0; to: 100; stepSize: 1
                 onValueChanged: maxCloudCover = value
                 width: 80
+                // Basic theming
+                // background: Rectangle { color: mainContent.currentTheme.entry_bg; border.color: mainContent.currentTheme.entry_border }
+                // contentItem: Text { text: control.textFromValue(control.value, control.locale); color: mainContent.currentTheme.entry_fg }
             }
         }
 
@@ -162,25 +178,35 @@ Rectangle {
         ProgressBar {
             value: progressTotal > 0 ? progressCurrent / progressTotal : 0.0
             width: 300
+            background: Rectangle { color: mainContent.currentTheme.progressbar_bg }
+            contentItem: Item {
+                Rectangle {
+                    width: progressBar.visualPosition * progressBar.width
+                    height: progressBar.height
+                    color: mainContent.currentTheme.progressbar_fg
+                }
+            }
         }
         Text {
             text: downloadStatus
-            color: "#1565c0"
+            color: mainContent.currentTheme.text_subtle // Theme color
             font.pointSize: 14
         }
 
         // Download log/status area
-        Rectangle {
+        Rectangle { // Consider replacing with TextArea for scrollability
             width: 400; height: 100
-            color: "#bbdefb"
+            color: mainContent.currentTheme.entry_bg // Theme color
             radius: 8
-            border.color: "#1565c0"
+            border.color: mainContent.currentTheme.entry_border // Theme color
             border.width: 1
             Text {
-                anchors.centerIn: parent
+                anchors.fill: parent
+                anchors.margins: 5
                 text: downloadLog.length > 0 ? downloadLog : qsTr("Waiting for download...")
-                color: "#1565c0"
-                font.pointSize: 14
+                color: mainContent.currentTheme.text // Theme color
+                font.pointSize: 12 // Smaller font for log
+                wrapMode: Text.WordWrap
             }
         }
     }
@@ -190,6 +216,7 @@ Rectangle {
         title: qsTr("Download Info")
         text: ""
         visible: false
+        // Consider theming MessageDialog if possible, though it's often platform-styled
         onAccepted: visible = false
     }
 } 

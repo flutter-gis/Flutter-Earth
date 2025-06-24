@@ -1,6 +1,5 @@
 # Flutter Earth - QML Edition
 
-<<<<<<< HEAD
 A powerful, user-friendly tool for downloading and processing satellite imagery using the Google Earth Engine, now with a modern QML-based interface.
 
 ## Features
@@ -12,6 +11,8 @@ A powerful, user-friendly tool for downloading and processing satellite imagery 
 -   **On-the-fly Processing**: Includes cloud masking and other pre-processing capabilities.
 -   **Robust Configuration**: A clear, class-based configuration system manages all settings.
 -   **Comprehensive Satellite Info**: Browse detailed information about available satellites.
+-   **Interactive Map Selection**: Draw polygons and rectangles directly on the map (via QML MapView).
+-   **Vegetation Indices**: Calculation for NDVI, EVI available post-download.
 
 ## Prerequisites
 
@@ -24,13 +25,13 @@ A powerful, user-friendly tool for downloading and processing satellite imagery 
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone <repository-url> # Replace <repository-url> with the actual URL
 cd Flutter-Earth
 ```
 
 ### 2. Install required packages
 
-The dependencies are now managed within the `flutter_earth_pkg`.
+The dependencies are managed within the `flutter_earth_pkg`.
 
 ```bash
 pip install -r flutter_earth_pkg/requirements.txt
@@ -38,270 +39,106 @@ pip install -r flutter_earth_pkg/requirements.txt
 
 ### 3. Set up Earth Engine Authentication
 
-The application now primarily uses a **service account** for authentication with Google Earth Engine. You will need to:
+The application primarily uses a **service account** for authentication with Google Earth Engine. You will need to:
 1.  **Create a Google Cloud Project** and enable the Earth Engine API.
-2.  **Create a Service Account** within your project and grant it the "Earth Engine Resource Viewer" or similar permissions.
+2.  **Create a Service Account** within your project and grant it appropriate permissions (e.g., "Earth Engine Resource Viewer").
 3.  **Download the JSON key file** for your service account.
 
 For detailed, step-by-step instructions, please refer to `EARTH_ENGINE_SETUP.md`.
-=======
-A modern, powerful tool for downloading and processing satellite imagery from Google Earth Engine with a beautiful Qt6-based interface.
-
-## Features
-
-- 🌍 **Interactive Map Selection**: Draw polygons and rectangles directly on the map
-- 🛰️ **Multi-Satellite Support**: Access to Landsat, Sentinel, and other satellite collections
-- 📊 **Advanced Processing**: NDVI, EVI, and other vegetation indices
-- 🎨 **Modern Qt6 Interface**: Beautiful, responsive user interface
-- 📁 **Multiple Output Formats**: GeoTIFF, JPEG, PNG with metadata
-- 🔧 **Batch Processing**: Process multiple areas simultaneously
-- 📈 **Real-time Progress**: Live progress tracking and status updates
-- 🎯 **Precision Control**: Fine-tuned sensor selection and processing parameters
-
-## Installation
-
-### Prerequisites
-
-- Python 3.8 or higher
-- Google Earth Engine account and authentication
-- Qt6 runtime (included with PyQt6)
-
-### Install Flutter Earth
-
-```bash
-# Clone the repository
-git clone https://github.com/flutter-earth/flutter-earth.git
-cd flutter-earth
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Or install in development mode
-pip install -e .
-```
-
-### Earth Engine Setup
-
-1. **Create a Google Earth Engine account**:
-   - Visit [Earth Engine Signup](https://signup.earthengine.google.com/)
-   - Sign up with your Google account
-
-2. **Authenticate with Earth Engine**:
-   ```bash
-   # Run the authentication setup
-   python -c "import ee; ee.Initialize(); print('Earth Engine ready!')"
-   ```
-
-3. **Verify installation**:
-   ```bash
-   # Test Earth Engine connection
-   python -c "import ee; ee.Initialize(); print('Earth Engine ready!')"
-   ```
+Alternatively, traditional `earthengine authenticate` can be used if service account setup is not preferred, though the application is geared towards service accounts.
 
 ## Quick Start
 
 ### Launch the Application
 
 ```bash
-# Start Flutter Earth
 python main.py
 ```
+Or use the provided run scripts if available (e.g., `run.bat` or `run.ps1` on Windows).
 
-### Basic Usage
+Upon first launch, or if credentials are not found, you might be guided through the Earth Engine authentication setup via the application's UI if a service account key is not already configured in `flutter_earth_auth.json` or via environment variables.
 
-1. **Select Area of Interest**:
-   - Use the map interface to draw a polygon
-   - Or enter coordinates manually
-   - Or import a shapefile
+### Basic Usage (QML Interface)
 
-2. **Choose Time Period**:
-   - Set start and end dates
-   - Use predefined periods (last month, last year, etc.)
-
-3. **Select Satellites**:
-   - Choose from available satellite collections
-   - Set cloud cover thresholds
-   - Configure sensor priorities
-
-4. **Configure Processing**:
-   - Select output format and resolution
-   - Choose vegetation indices
-   - Set tiling options
-
-5. **Start Download**:
-   - Review settings and start processing
-   - Monitor progress in real-time
-   - Download results when complete
-
-## Advanced Features
-
-### Vegetation Indices
-
-- **NDVI** (Normalized Difference Vegetation Index)
-- **EVI** (Enhanced Vegetation Index)
-- **SAVI** (Soil-Adjusted Vegetation Index)
-- **NDWI** (Normalized Difference Water Index)
-
-### Output Formats
->>>>>>> be259fa1a1f5c8571d423145995d33dfec88b40a
-
-- **GeoTIFF**: High-quality raster with geospatial metadata
-- **JPEG/PNG**: Quick preview images
-- **Shapefile**: Vector boundaries and metadata
-- **CSV**: Tabular data and statistics
-
-<<<<<<< HEAD
-You can run the application using the main script or the provided batch/powershell files.
-
-### Using the Python main script:
-```bash
-python main.py
-```
-
-### Using the run scripts (Windows):
-```bash
-# Using PowerShell
-./run.ps1
-
-# Or using Command Prompt
-run.bat
-```
-Upon first launch, you may be prompted to configure your Earth Engine credentials if they are not already set up.
+1.  **Home View**: Check Earth Engine status.
+2.  **Map View**: Select an Area of Interest (AOI) by drawing a rectangle. Click "Set AOI for Download".
+3.  **Download View**:
+    *   The AOI from the map should ideally be pre-filled (current implementation might require manual entry or fixing).
+    *   Set start and end dates.
+    *   Choose a sensor.
+    *   Configure cloud mask and max cloud cover.
+    *   Specify an output directory.
+    *   Click "Start Download".
+4.  **Progress View**: Monitor download progress.
+5.  **Settings View**:
+    *   Change UI theme.
+    *   Update default output directory.
+    *   Clear cache and logs.
 
 ## Configuration
 
-The application uses a configuration file (`flutter_earth_config.json`) that is automatically created in the root directory on first run. You can modify settings such as:
+The application uses a configuration file (`flutter_earth_config.json`) managed by `flutter_earth_pkg/flutter_earth/config.py`. This file is typically created/updated in the root directory of the project on first run or when settings are changed. Key settings include:
 
 -   Default output directory
 -   UI Theme (`Default (Dark)`, `Light`, `Sanofi`)
--   Tile size for downloads
--   Maximum cloud cover percentage
 -   Default sensor priority
+-   Cloud masking preferences and cloud cover limits
 
 ## Project Structure
 
-The project has been refactored into a more robust and modular structure:
+The project is structured as follows:
 
 ```
 Flutter-Earth/
 ├── flutter_earth_pkg/
 │   └── flutter_earth/      # Main Python package source
 │       ├── __init__.py
-│       ├── qml/            # QML source files for the UI
+│       ├── qml/            # QML source files for the UI (main.qml, views, etc.)
 │       │   ├── main.qml
 │       │   └── ...
-│       ├── config.py       # Application configuration and themes
-│       ├── gui.py          # PyQt/QML application launcher and backend bridge
+│       ├── auth_setup.py   # Earth Engine authentication logic
+│       ├── config.py       # Application configuration (AppConfig, themes)
+│       ├── download_manager.py # Handles download orchestration
+│       ├── download_worker.py  # Thread for actual download tasks
 │       ├── earth_engine.py # Core Earth Engine interactions
-│       ├── processing.py   # Data processing logic
-│       └── ...             # Other backend modules
-├── main.py                 # Main application entry point
-├── run.bat                 # Windows batch script to run the app
-├── run.ps1                 # Windows PowerShell script to run the app
-├── EARTH_ENGINE_SETUP.md   # Detailed GEE setup instructions
-├── requirements.txt        # Top-level dependencies (if any)
-└── README.md               # This file
+│       ├── gui.py          # PySide6/QML application launcher and AppBackend bridge
+│       ├── processing.py   # Image processing utilities, index calculations
+│       ├── satellite_info.py # Satellite metadata
+│       ├── themes.py       # Theme management
+│       ├── types.py        # Custom data types and type hints
+│       ├── utils.py        # General utility functions
+│       └── ...             # Other backend modules (errors, progress_tracker, etc.)
+├── main.py                 # Main application entry point script
+├── EARTH_ENGINE_SETUP.md   # Detailed GEE service account setup instructions
+├── flutter_earth_pkg/requirements.txt # Python dependencies for the package
+├── README.md               # This file
+└── ...                     # Other miscellaneous files (e.g. .gitignore)
 ```
+
+(Note: Older `flutter_earth/` directory containing a Qt Widgets version might exist and is planned for cleanup.)
 
 ## Development
 
 ### Adding New Sensors
 
-1.  Add the sensor's metadata to the `SATELLITE_DETAILS` dictionary in `flutter_earth_pkg/flutter_earth/config.py`.
-2.  If the new sensor requires unique processing steps, implement them in `flutter_earth_pkg/flutter_earth/processing.py`.
-3.  The satellite information view will automatically pick up the new sensor data.
+1.  Add the sensor's metadata to `SATELLITE_DETAILS` in `flutter_earth_pkg/flutter_earth/satellite_info.py`.
+2.  Update `DATA_COLLECTIONS` and `SENSOR_TIMELINE` in the same file.
+3.  If the new sensor requires unique processing or cloud masking, add corresponding functions to `flutter_earth_pkg/flutter_earth/processing.py` (see `CLOUD_MASKS` and `SENSOR_PROCESSORS` dictionaries) or `flutter_earth_pkg/flutter_earth/earth_engine.py`.
+4.  Ensure the `AppBackend` in `gui.py` and relevant QML views (e.g., `DownloadView.qml` for sensor selection) can access the new sensor.
 
-### Modifying the UI
+### Modifying the UI (QML)
 
-The user interface is defined in the `.qml` files located in `flutter_earth_pkg/flutter_earth/qml/`. You can edit these files to change the UI layout and behavior. The Python backend is exposed to QML via the `AppBackend` class in `flutter_earth_pkg/flutter_earth/gui.py`.
-=======
-### Batch Processing
+The user interface is defined in the `.qml` files located in `flutter_earth_pkg/flutter_earth/qml/`.
+-   Edit these files to change UI layout, appearance, and behavior.
+-   The Python backend (`AppBackend` class in `flutter_earth_pkg/flutter_earth/gui.py`) is exposed to QML. Use its slots and properties to interact with Python logic, and connect to its signals for updates from Python.
 
-- Process multiple areas simultaneously
-- Queue management and priority control
-- Resume interrupted downloads
-- Export processing logs
+## License
 
-## Configuration
-
-Flutter Earth uses a configuration file for persistent settings. The configuration is automatically created on first run.
-
-## Development
-
-### Project Structure
-
-```
-flutter_earth/
-├── main.py              # Main entry point
-├── flutter_earth/       # Core package
-│   ├── __init__.py
-│   ├── types.py         # Data types and models
-│   ├── config.py        # Configuration management
-│   ├── earth_engine.py  # Earth Engine operations
-│   ├── gui.py           # Main GUI interface
-│   ├── gui_components.py # GUI components
-│   ├── download_manager.py # Download management
-│   ├── progress_tracker.py # Progress tracking
-│   ├── themes.py        # UI themes
-│   ├── utils.py         # Utility functions
-│   └── errors.py        # Error handling
-├── requirements.txt     # Dependencies
-├── setup.py            # Package setup
-└── README.md           # This file
-```
-
-### Running Tests
-
-```bash
-# Run basic tests
-python -m pytest tests/
-```
-
-### Code Quality
-
-```bash
-# Format code
-black .
->>>>>>> be259fa1a1f5c8571d423145995d33dfec88b40a
-
-# Lint code
-flake8 .
-
-<<<<<<< HEAD
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. (Assuming, please verify and add a LICENSE file).
 
 ## Support
 
 For issues and questions:
-1.  Ensure your Earth Engine service account is correctly set up as per `EARTH_ENGINE_SETUP.md`.
-2.  Check the application logs stored in the `logs/` directory.
-3.  If you encounter a bug, please open an issue on the project's GitHub page. 
-=======
-# Type checking
-mypy .
-```
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-- **Documentation**: [https://flutter-earth.readthedocs.io](https://flutter-earth.readthedocs.io)
-- **Issues**: [GitHub Issues](https://github.com/flutter-earth/flutter-earth/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/flutter-earth/flutter-earth/discussions)
-
-## Acknowledgments
-
-- Google Earth Engine team for the powerful API
-- Qt team for the excellent Qt6 framework
-- Open source community for the amazing libraries
-
----
-
-**Flutter Earth** - Making satellite imagery accessible to everyone 🌍✨ 
->>>>>>> be259fa1a1f5c8571d423145995d33dfec88b40a
+1.  Ensure your Earth Engine service account is correctly set up as per `EARTH_ENGINE_SETUP.md` or that you have authenticated via other means.
+2.  Check the application logs (e.g., `flutter_earth.log` in the root directory or console output).
+3.  If you encounter a bug, please open an issue on the project's GitHub page.

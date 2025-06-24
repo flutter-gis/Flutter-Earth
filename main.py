@@ -1,105 +1,41 @@
-"""Flutter Earth - A modern tool for downloading and processing satellite imagery."""
-import os
 import sys
-import logging
-from datetime import datetime
-from pathlib import Path
-import subprocess
+import os
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QDir
 
-# List of all required packages (as used in this script)
-REQUIRED_PACKAGES = [
-    'numpy', 'rasterio', 'shapefile', 'folium', 'webview', 'requests',
-    'dateutil', 'ee', 'PySide6', 'PyQt6', 'tempfile', 'shutil', 'zipfile',
-    'hashlib', 'concurrent.futures', 'warnings', 'contextlib', 'logging',
-    'json', 'queue', 'threading', 'pathlib'
-]
+# Add the package to the Python path if it's not already
+# This assumes main.py is in the root and flutter_earth_pkg is a sibling directory
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, script_dir)
 
-missing = []
-for pkg in REQUIRED_PACKAGES:
-    try:
-        if pkg == 'shapefile':
-            __import__('shapefile')
-        elif pkg == 'dateutil':
-            __import__('dateutil.relativedelta')
-        elif pkg == 'concurrent.futures':
-            __import__('concurrent.futures')
-        elif pkg == 'pathlib':
-            __import__('pathlib')
-        else:
-            __import__(pkg)
-    except ImportError:
-        missing.append(pkg)
-
-if missing:
-    print(f"Missing packages detected: {missing}. Installing...")
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', *missing])
-    print("All required packages are now installed. Please restart the program if you see any issues.")
-
-# --- EARLY LOGGING SETUP (MUST BE FIRST, BEFORE ANY OTHER IMPORTS) ---
-LOGS_DIR = Path("logs")
-LOGS_DIR.mkdir(exist_ok=True)
-log_file = LOGS_DIR / f"flutter_earth_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-
-# Set up logging to file (overwrite) and console
-log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
-file_handler.setFormatter(logging.Formatter(log_format))
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setFormatter(logging.Formatter(log_format))
-
-logging.basicConfig(level=logging.INFO, handlers=[file_handler, console_handler])
-
-# Log the start of the application
-logging.info("=== Flutter Earth Application Started ===")
-logging.info(f"Log file: {log_file}")
-
-# --- END EARLY LOGGING SETUP ---
-
-# Now import all other modules
-import json
-import time
-import queue
-import threading
-import numpy
-import rasterio
-import shapefile
-import folium
-import webview
-import requests
-from datetime import timedelta
-from dateutil.relativedelta import relativedelta
-from typing import Optional, List, Dict, Any, Union, Tuple
-
-import ee
-from ee import data as ee_data
-
-# Import additional required modules
-import tempfile
-import shutil
-import zipfile
-import hashlib
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import warnings
-from contextlib import contextmanager
-
-# Import local modules
 try:
-    from flutter_earth.src.flutter_earth.main import main as flutter_earth_main
-    logging.info("Flutter Earth modules imported successfully")
+    from flutter_earth_pkg.flutter_earth.gui import QmlGUILauncher
+    from flutter_earth_pkg.flutter_earth.utils import setup_logging, QtLogHandler
+    # from flutter_earth_pkg.flutter_earth.config import ConfigManager # Not strictly needed for basic launch
 except ImportError as e:
-    logging.error(f"Error importing Flutter Earth modules: {e}")
-    logging.error("Please ensure all required modules are in the correct directory structure")
+    print(f"Error importing Flutter Earth modules: {e}")
+    print("Please ensure flutter_earth_pkg is in the correct directory and all dependencies are installed from flutter_earth_pkg/requirements.txt.")
     sys.exit(1)
 
-def main():
-    """Main entry point for Flutter Earth application."""
-    try:
-        logging.info("Starting Flutter Earth application...")
-        # Run the main Flutter Earth application
-        return flutter_earth_main()
-    except Exception as e:
-        logging.error(f"Failed to start Flutter Earth: {e}")
-        return 1
-
 if __name__ == "__main__":
-    sys.exit(main())
+    # Set an environment variable to tell Qt where to find QML plugins, if necessary.
+    # This is often needed if the app isn't "installed" in a standard location.
+    # os.environ["QT_PLUGIN_PATH"] = os.path.join(os.path.dirname(sys.executable), "Lib", "site-packages", "PySide6", "plugins")
+    # os.environ["QML2_IMPORT_PATH"] = os.path.join(os.path.dirname(sys.executable), "Lib", "site-packages", "PySide6", "qml")
+    # The above lines are examples and might need adjustment based on the environment.
+
+    app = QApplication(sys.argv)
+
+    # Setup logging (minimal for now, can be expanded with config)
+    qt_log_handler = QtLogHandler()
+    # In a real app, you'd connect qt_log_handler.log_signal to a QML item
+    # For now, it will just allow utils.setup_logging to add it.
+    logger = setup_logging(gui_handler=qt_log_handler)
+
+    logger.info("Starting Flutter Earth QML Application...")
+
+    launcher = QmlGUILauncher()
+    launcher.launch()
+    # launcher.launch() contains app.exec(), so no need for sys.exit(app.exec()) here
+
+    logger.info("Flutter Earth QML Application finished.")

@@ -5,8 +5,9 @@ import Qt.labs.settings 1.0
 
 Rectangle {
     id: settingsView
-    color: "#f3e5f5"
+    // color: "#f3e5f5" // Replaced by theme
     anchors.fill: parent
+    color: mainContent.currentTheme.widget_bg // Use theme color
 
     property var allSettings: backend.getAllSettings()
 
@@ -36,13 +37,13 @@ Rectangle {
             text: qsTr("Settings")
             font.pointSize: 22
             font.bold: true
-            color: "#6a1b9a"
+            color: mainContent.currentTheme.primary // Theme color
         }
 
         // Theme selection
         RowLayout {
             spacing: 10
-            Text { text: qsTr("Theme:"); font.pointSize: 16 }
+            Text { text: qsTr("Theme:"); font.pointSize: 16; color: mainContent.currentTheme.text }
             ComboBox {
                 id: themeCombo
                 model: backend.getAvailableThemes()
@@ -51,13 +52,14 @@ Rectangle {
                     if (currentIndex >= 0)
                         backend.setSetting("theme", model[currentIndex]);
                 }
+                // Basic theming
             }
         }
 
         // Output directory
         RowLayout {
             spacing: 10
-            Text { text: qsTr("Output Directory:"); font.pointSize: 16 }
+            Text { text: qsTr("Output Directory:"); font.pointSize: 16; color: mainContent.currentTheme.text }
             TextField {
                 id: outputDirField
                 text: allSettings.output_dir
@@ -65,6 +67,8 @@ Rectangle {
                     backend.setSetting("output_dir", text);
                 }
                 width: 300
+                color: mainContent.currentTheme.entry_fg
+                background: Rectangle { color: mainContent.currentTheme.entry_bg; border.color: mainContent.currentTheme.entry_border }
             }
         }
 

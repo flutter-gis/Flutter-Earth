@@ -3,12 +3,21 @@ import QtQuick.Controls 2.15
 
 Rectangle {
     id: sidebar
-    color: "#fce4ec"
+    // color: "#fce4ec" // Replaced by theme
     width: 160
     anchors.top: parent.top
     anchors.bottom: parent.bottom
     anchors.left: parent.left
     z: 2
+
+    property color bgColor: "lightgrey"
+    property color itemDefaultColor: "white"
+    property color itemHoverColor: "lightsteelblue"
+    property color itemPressColor: "steelblue"
+    property color itemBorderColor: "grey"
+    property color itemTextColor: "black"
+
+    color: bgColor
 
     signal homeClicked()
     signal mapClicked()
@@ -23,12 +32,12 @@ Rectangle {
         spacing: 20
         Repeater {
             model: [
-                { label: qsTr("Home"), signal: "homeClicked" },
-                { label: qsTr("Map"), signal: "mapClicked" },
-                { label: qsTr("Download"), signal: "downloadClicked" },
-                { label: qsTr("Progress"), signal: "progressClicked" },
-                { label: qsTr("Settings"), signal: "settingsClicked" },
-                { label: qsTr("About"), signal: "aboutClicked" }
+                { label: qsTr("Home"), signalName: "homeClicked" },      // Changed 'signal' to 'signalName' for clarity
+                { label: qsTr("Map"), signalName: "mapClicked" },
+                { label: qsTr("Download"), signalName: "downloadClicked" },
+                { label: qsTr("Progress"), signalName: "progressClicked" },
+                { label: qsTr("Settings"), signalName: "settingsClicked" },
+                { label: qsTr("About"), signalName: "aboutClicked" }
             ]
             delegate: Rectangle {
                 width: parent.width
@@ -36,26 +45,23 @@ Rectangle {
                 radius: 12
                 property bool pressed: false
                 property bool hovered: false
-                color: pressed ? "#f06292" : hovered ? "#f8bbd0" : "white"
-                border.color: "#e91e63"
-                border.width: 2
-                scale: pressed ? 1.13 : hovered ? 1.07 : 1.0
-                Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutElastic } }
-                Behavior on color { ColorAnimation { duration: 120 } }
-                Rectangle {
-                    anchors.fill: parent
-                    color: "#e91e63"
-                    opacity: pressed ? 0.12 : hovered ? 0.07 : 0
-                    radius: 12
-                    z: 1
-                    Behavior on opacity { NumberAnimation { duration: 120 } }
-                }
+
+                color: pressed ? sidebar.itemPressColor : hovered ? sidebar.itemHoverColor : sidebar.itemDefaultColor
+                border.color: sidebar.itemBorderColor
+                border.width: 1 // Reduced border width for a cleaner look
+
+                scale: pressed ? 1.05 : hovered ? 1.02 : 1.0 // Subtle scale
+                Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.InOutQuad } }
+                Behavior on color { ColorAnimation { duration: 90 } }
+
+                // Removed inner rectangle for opacity, relying on direct color change
+
                 Text {
                     anchors.centerIn: parent
                     text: modelData.label
                     font.pointSize: 16
                     font.bold: true
-                    color: "#880e4f"
+                    color: sidebar.itemTextColor
                     z: 2
                 }
                 MouseArea {
@@ -64,7 +70,7 @@ Rectangle {
                     onPressed: parent.pressed = true
                     onReleased: {
                         parent.pressed = false
-                        sidebar[modelData.signal]()
+                        sidebar[modelData.signalName]() // Corrected to use signalName
                     }
                     onCanceled: parent.pressed = false
                     onEntered: parent.hovered = true

@@ -4,8 +4,10 @@ import QtQuick.Layouts 1.15
 
 Rectangle {
     id: progressView
-    color: "#e8f5e9"
+    // color: "#e8f5e9" // Replaced by theme
     anchors.fill: parent
+    color: mainContent.currentTheme.widget_bg // Use theme color
+
     ColumnLayout {
         anchors.centerIn: parent
         spacing: 30
@@ -13,20 +15,43 @@ Rectangle {
             text: qsTr("Download Progress")
             font.pointSize: 22
             font.bold: true
-            color: "#388e3c"
+            color: mainContent.currentTheme.primary // Theme color
         }
         ProgressBar {
-            value: backend && backend.progress_tracker ? backend.progress_tracker.getProgress() : 0.0
+            id: progressBar
+            value: backend ? backend.getProgress().progress : 0.0
             width: 300
+            background: Rectangle { color: mainContent.currentTheme.progressbar_bg }
+            contentItem: Item {
+                Rectangle {
+                    width: progressBar.visualPosition * progressBar.width
+                    height: progressBar.height
+                    color: mainContent.currentTheme.progressbar_fg
+                }
+            }
         }
         BusyIndicator {
-            running: true
+            id: busyIndicator
+            running: backend ? backend.getProgress().status === 'running' : false
             width: 48; height: 48
+            // Consider theming BusyIndicator if default is not good
         }
         Text {
-            text: backend && backend.progress_tracker ? backend.progress_tracker.getStatus() : qsTr("No active downloads.")
+            id: statusText
+            text: backend ? backend.getProgressStatusText() : qsTr("No active downloads.")
             font.pointSize: 14
-            color: "#388e3c"
+            color: mainContent.currentTheme.text_subtle // Theme color
+            wrapMode: Text.WordWrap
+            width: parent.width - 20 // Ensure text wraps within layout
+        }
+        Button {
+            text: qsTr("Refresh Progress")
+            onClicked: {
+                var progressData = backend.getProgress();
+                progressBar.value = progressData.progress;
+                statusText.text = backend.getProgressStatusText();
+                busyIndicator.running = progressData.status === 'running';
+            }
         }
     }
 } 

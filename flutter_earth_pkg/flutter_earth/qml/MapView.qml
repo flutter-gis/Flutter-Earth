@@ -6,8 +6,9 @@ import QtPositioning 5.15
 
 Rectangle {
     id: mapView
-    color: "#fffde7"
+    // color: "#fffde7" // Replaced by theme
     anchors.fill: parent
+    color: mainContent.currentTheme.widget_bg // Use theme color
 
     property string mapType: "Street"
     property var mapTypes: [
@@ -30,13 +31,15 @@ Rectangle {
             text: qsTr("Map View")
             font.pointSize: 22
             font.bold: true
-            color: "#616161"
+            color: mainContent.currentTheme.primary // Theme color
         }
 
         // Map with selectable type and AOI drawing
         Map {
             id: map
-            width: 500; height: 350
+            Layout.fillWidth: true
+            Layout.fillHeight: true // Make map take available vertical space in ColumnLayout
+            Layout.minimumHeight: 300 // Ensure it has a reasonable minimum height
             plugin: Plugin { name: "osm" }
             center: QtPositioning.coordinate(37.7749, -122.4194) // Default: San Francisco
             zoomLevel: 6
@@ -68,9 +71,8 @@ Rectangle {
             MapRectangle {
                 id: aoiOverlay
                 visible: aoiCoords.length === 4
-                color: "#0288d1"
-                opacity: 0.3
-                border.color: "#0288d1"
+                color: Qt.rgba(mainContent.currentTheme.primary.r, mainContent.currentTheme.primary.g, mainContent.currentTheme.primary.b, 0.3) // Theme color with opacity
+                border.color: mainContent.currentTheme.primary // Theme color
                 border.width: 2
                 topLeft: aoiCoords.length === 4 ? QtPositioning.coordinate(aoiCoords[1], aoiCoords[0]) : QtPositioning.coordinate(0,0)
                 bottomRight: aoiCoords.length === 4 ? QtPositioning.coordinate(aoiCoords[3], aoiCoords[2]) : QtPositioning.coordinate(0,0)
@@ -79,13 +81,15 @@ Rectangle {
 
         // Map type selector
         RowLayout {
+            id: mapControlsRow // Added id for anchoring map
             spacing: 10
-            Text { text: qsTr("Map Type:"); font.pointSize: 16 }
+            Text { text: qsTr("Map Type:"); font.pointSize: 16; color: mainContent.currentTheme.text }
             ComboBox {
                 id: mapTypeCombo
                 model: mapTypes
                 textRole: "label"
                 onCurrentIndexChanged: mapType = model[currentIndex].label
+                // Basic theming for ComboBox
             }
         }
 

@@ -112,25 +112,41 @@ class AppBackend(QObject):
         
         return QUrl.fromLocalFile(temp_file.name)
 
-    @Slot()
-    def startDownload(self):
-        """Start a download with dummy parameters (to be replaced with real UI input)."""
-        # Dummy parameters for demonstration
-        params = {
-            'area_of_interest': [0, 0, 1, 1],
-            'start_date': '2022-01-01',
-            'end_date': '2022-01-31',
-            'sensor_name': 'LANDSAT_9',
-            'output_dir': 'flutter_earth_downloads',
-            'cloud_mask': True,
-            'max_cloud_cover': 20.0
-        }
+    @Slot(dict)
+    def startDownloadWithParams(self, params_dict: dict):
+        """Start a download with parameters from QML."""
+        # Parameters expected from QML:
+        # {
+        #     'area_of_interest': aoiCoords, // e.g., [lon, lat, lon, lat]
+        #     'start_date': "YYYY-MM-DD",
+        #     'end_date': "YYYY-MM-DD",
+        #     'sensor_name': "SENSOR_ID",
+        #     'output_dir': "/path/to/output",
+        #     'cloud_mask': True/False,
+        #     'max_cloud_cover': 20.0
+        # }
         if not self.earth_engine.initialized:
             print("Earth Engine not initialized. Cannot start download.")
+            self.downloadErrorOccurred.emit("Earth Engine Not Initialized", "Please ensure GEE is authenticated and initialized.")
             return
-        print("Starting download with params:", params)
-        result = self.download_manager.process_request(params)
-        print("Download result:", result)
+
+        print("Starting download with params:", params_dict)
+
+        # Basic validation of incoming params_dict (can be expanded)
+        required_keys = ['area_of_interest', 'start_date', 'end_date', 'sensor_name', 'output_dir', 'cloud_mask', 'max_cloud_cover']
+        for key in required_keys:
+            if key not in params_dict:
+                error_msg = f"Missing parameter: {key}"
+                print(f"[ERROR] {error_msg}")
+                self.downloadErrorOccurred.emit("Missing Download Parameter", error_msg)
+                return
+
+        # Initialize download manager with current app config if not already done (idempotent)
+        self.download_manager.initialize(self.config_manager.to_dict())
+        result = self.download_manager.process_request(params_dict)
+        print("Download process_request result:", result)
+        if not result.get('started', False):
+            self.downloadErrorOccurred.emit("Download Start Failed", result.get('message', "Unknown error starting download."))
 
     @Slot()
     def cancelDownload(self):
@@ -138,11 +154,36 @@ class AppBackend(QObject):
         print("Cancelling download...")
         self.download_manager.request_cancel()
 
-    @Slot(result=float)
+    @Slot(result=dict) # Changed result type
     def getProgress(self):
-        """Return the current progress as a float (0.0–1.0) for QML progress bar."""
+        """Return the current progress information as a dictionary."""
+        # progress_info structure:
+        # {
+        #     'status': self.status,
+        #     'operation': self.current_operation,
+        #     'progress': progress, # float 0.0-1.0
+        #     'completed': self.completed_items,
+        #     'total': self.total_items,
+        #     'elapsed_time': str(elapsed).split('.')[0],
+        #     'estimated_time': str(remaining).split('.')[0] if remaining else None,
+        #     'error': self.error
+        # }
+        return self.progress_tracker.get_progress()
+
+    @Slot(result=str)
+    def getProgressStatusText(self):
+        """Returns a human-readable status string for progress."""
         progress_info = self.progress_tracker.get_progress()
-        return float(progress_info.get('progress', 0.0))
+        status = progress_info.get('status', 'idle')
+        operation = progress_info.get('operation')
+
+        if status == 'running' and operation:
+            return f"Running: {operation} ({progress_info.get('completed',0)}/{progress_info.get('total',0)})"
+        elif status == 'completed' and operation:
+            return f"Completed: {operation}"
+        elif status == 'failed' and operation:
+            return f"Failed: {operation} - {progress_info.get('error', 'Unknown error')}"
+        return "Status: Idle"
 
     @Slot(str, str)
     def onDownloadError(self, user_message, log_message):

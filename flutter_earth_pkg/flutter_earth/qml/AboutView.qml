@@ -4,8 +4,9 @@ import QtQuick.Layouts 1.15
 
 Rectangle {
     id: aboutView
-    color: "#e0f2f1"
+    // color: "#e0f2f1" // Replaced by theme
     anchors.fill: parent
+    color: mainContent.currentTheme.widget_bg // Use theme color
 
     property string userName: backend.getSetting ? backend.getSetting("user_name") || "" : ""
     property bool namePrompted: false
@@ -26,23 +27,23 @@ Rectangle {
             text: userName ? (qsTr("Hello ") + userName + "!") : qsTr("Hello!")
             font.pointSize: 20
             font.bold: true
-            color: "#004d40"
+            color: mainContent.currentTheme.primary // Theme color
         }
         Text {
             text: qsTr("About Flutter Earth")
             font.pointSize: 22
             font.bold: true
-            color: "#004d40"
+            color: mainContent.currentTheme.primary // Theme color
         }
         Text {
             text: qsTr("Version 1.0.0")
             font.pointSize: 14
-            color: "#00796b"
+            color: mainContent.currentTheme.text_subtle // Theme color
         }
         Text {
             text: qsTr("Developed by Jakob Newman and contributors.")
             font.pointSize: 14
-            color: "#00796b"
+            color: mainContent.currentTheme.text_subtle // Theme color
         }
         Button {
             text: qsTr("Visit Project Website")
