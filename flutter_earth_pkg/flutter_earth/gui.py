@@ -25,6 +25,7 @@ from .earth_engine import EarthEngineManager
 from .download_manager import DownloadManager
 from .progress_tracker import ProgressTracker
 from .satellite_info import SatelliteInfoManager, SATELLITE_DETAILS, SATELLITE_CATEGORIES
+from .themes import ThemeManager # Import ThemeManager
 
 class AppBackend(QObject):
     """
@@ -32,7 +33,7 @@ class AppBackend(QObject):
     It provides the business logic and data access for the UI.
     """
     sensorPriorityChanged = Signal()
-    themeChanged = Signal()
+    themeChanged = Signal(str, dict) # Emits theme name and full theme data dict
     downloadErrorOccurred = Signal(str, str)  # user_message, log_message
     downloadProgressUpdated = Signal(int, int)  # current, total
     sampleDownloadProgressUpdated = Signal(str, int, int)  # sample_key, current, total
@@ -47,14 +48,27 @@ class AppBackend(QObject):
         self.download_manager = download_manager
         self.progress_tracker = progress_tracker
         self.satellite_manager = SatelliteInfoManager()
+        self.theme_manager = ThemeManager() # Instantiate ThemeManager
+
         # Connect error signals for user feedback
         self.download_manager.error_occurred.connect(self.onDownloadError)
         self.download_manager.progress_update.connect(self.onDownloadProgress)
+
         # Settings signals for QML
         self.config_manager.config_changed.connect(self.configChanged.emit)
         self.config_manager.settingChanged.connect(self.settingChanged.emit)
+
+        # Theme signal
+        self.theme_manager.theme_changed.connect(self.onThemeManagerThemeChanged)
+
+
         # If you have a sample_manager, connect its progress here (pseudo-code):
         # self.sample_manager.sample_download_progress.connect(self.onSampleDownloadProgress)
+
+    @Slot(str, dict)
+    def onThemeManagerThemeChanged(self, theme_name: str, theme_data: dict):
+        """Relay ThemeManager's theme_changed signal to QML."""
+        self.themeChanged.emit(theme_name, theme_data)
     
     @Slot(result=bool)
     def isGeeInitialized(self):
@@ -78,23 +92,25 @@ class AppBackend(QObject):
         return self.satellite_manager.get_available_indices()
     
     @Slot(result=dict)
-    def getCurrentThemeColors(self):
+    def getCurrentThemeColors(self): # Still returns only colors for direct use, QML can use full data
         return self.config_manager.get_current_theme_colors()
+
+    @Slot(result=dict)
+    def getCurrentThemeData(self): # Expose full theme data
+        return self.theme_manager.get_current_theme_data()
 
     @Slot(result=str)
     def getCurrentThemeName(self):
-        return self.config_manager.get('theme', 'Default (Dark)')
+        return self.theme_manager.current_theme_name()
 
     @Slot(result=list)
-    def getAvailableThemes(self):
-        return self.config_manager.get_available_themes()
+    def getAvailableThemes(self): # Returns list of dicts with metadata
+        return self.theme_manager.get_available_themes_meta()
 
     @Slot(str)
     def setTheme(self, theme_name: str):
-        if theme_name in self.getAvailableThemes():
-            self.config_manager.set('theme', theme_name)
-            self.themeChanged.emit()
-            print(f"Theme changed to: {theme_name}")
+        self.theme_manager.set_current_theme(theme_name)
+        # The theme_manager.theme_changed signal is now connected to self.themeChanged
 
     @Slot(result=QUrl)
     def getMapUrl(self):
@@ -112,25 +128,73 @@ class AppBackend(QObject):
         
         return QUrl.fromLocalFile(temp_file.name)
 
-    @Slot()
-    def startDownload(self):
-        """Start a download with dummy parameters (to be replaced with real UI input)."""
-        # Dummy parameters for demonstration
-        params = {
-            'area_of_interest': [0, 0, 1, 1],
-            'start_date': '2022-01-01',
-            'end_date': '2022-01-31',
-            'sensor_name': 'LANDSAT_9',
-            'output_dir': 'flutter_earth_downloads',
-            'cloud_mask': True,
-            'max_cloud_cover': 20.0
-        }
+    @Slot(dict)
+    def startDownloadWithParams(self, params: dict):
+        """
+        Start a download with parameters from the QML frontend.
+        Expected keys in params:
+        - area_of_interest (list or str that can be parsed to list)
+        - start_date (str, e.g., "YYYY-MM-DD")
+        - end_date (str, e.g., "YYYY-MM-DD")
+        - sensor_name (str)
+        - output_dir (str)
+        - cloud_mask (bool)
+        - max_cloud_cover (float/int)
+        """
+        print(f"Received download request with params: {params}")
+
         if not self.earth_engine.initialized:
             print("Earth Engine not initialized. Cannot start download.")
+            self.downloadErrorOccurred.emit("Earth Engine Not Initialized",
+                                            "GEE must be authenticated and initialized to start downloads.")
             return
-        print("Starting download with params:", params)
+
+        # Basic validation and parsing (can be expanded)
+        try:
+            aoi_raw = params.get('area_of_interest')
+            if isinstance(aoi_raw, str):
+                # Attempt to parse from string if it's like "lon,lat,lon,lat" or JSON list
+                if '[' in aoi_raw: # Likely JSON
+                    import json
+                    aoi = json.loads(aoi_raw)
+                else: # Assuming comma separated lon,lat,lon,lat
+                    aoi = [float(x.strip()) for x in aoi_raw.split(',')]
+                params['area_of_interest'] = aoi
+            elif not isinstance(aoi_raw, list):
+                raise ValueError("Area of Interest (AOI) must be a list or a parseable string.")
+
+            # Ensure other critical params exist (more validation can be added)
+            required_keys = ['start_date', 'end_date', 'sensor_name', 'output_dir']
+            for key in required_keys:
+                if key not in params:
+                    raise ValueError(f"Missing required parameter: {key}")
+
+            # Ensure numeric types for relevant fields
+            if 'max_cloud_cover' in params:
+                params['max_cloud_cover'] = float(params['max_cloud_cover'])
+
+        except Exception as e:
+            error_msg = f"Invalid parameters for download: {e}"
+            print(f"[ERROR] {error_msg}")
+            self.downloadErrorOccurred.emit("Invalid Download Parameters", str(e))
+            return
+
+        print("Starting download processing with validated params:", params)
+        # TODO: Consider running process_request in a separate thread if it's blocking
+        # and can't be handled by the DownloadManager's internal threading.
+        # For now, assuming DownloadManager handles threading appropriately.
         result = self.download_manager.process_request(params)
-        print("Download result:", result)
+
+        if result and result.get("status") == "error":
+            print(f"Download processing reported an error: {result.get('message')}")
+            self.downloadErrorOccurred.emit("Download Error", result.get('message', "Unknown error during processing."))
+        elif result:
+            print(f"Download processing initiated/completed: {result}")
+            # Success/progress messages should ideally come from DownloadManager signals
+        else:
+            print("Download processing did not return a conclusive result.")
+            # self.downloadErrorOccurred.emit("Download Error", "Processing did not start or failed silently.")
+
 
     @Slot()
     def cancelDownload(self):

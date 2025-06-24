@@ -20,9 +20,13 @@ Item {
             if (mainContent.currentView === "MapView") return "MapView.qml"
             if (mainContent.currentView === "DownloadView") return "DownloadView.qml"
             if (mainContent.currentView === "ProgressView") return "ProgressView.qml"
+            if (mainContent.currentView === "SatelliteInfoView") return "SatelliteInfoView.qml" // New
+            if (mainContent.currentView === "IndexAnalysisView") return "IndexAnalysisView.qml" // New
+            if (mainContent.currentView === "VectorDownloadView") return "VectorDownloadView.qml" // New
+            if (mainContent.currentView === "DataViewerView") return "DataViewerView.qml"       // New
             if (mainContent.currentView === "SettingsView") return "SettingsView.qml"
             if (mainContent.currentView === "AboutView") return "AboutView.qml"
-            // Add more views here as needed
+            // Default view
             return "HomeView.qml"
         }
     }

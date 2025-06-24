@@ -66,10 +66,24 @@ class DownloadManager(QObject):
             self.cancel_requested = False
             self._validate_params(params)
             output_dir = create_output_dir(params['output_dir'])
+
+            # Updated calculate_tiles call
+            tiling_method = params.get('tiling_method', 'degree')
+            tile_size_degrees = float(params.get('tile_size_degrees', self.config.get('tile_size_degrees', 1.0))) # Assuming a default or config
+            num_subsections = int(params.get('num_subsections', self.config.get('num_subsections', 100)))
+
             tiles = calculate_tiles(
-                params['area_of_interest'],
-                self.config.get('tile_size', 1.0)
+                bbox=params['area_of_interest'],
+                tiling_method=tiling_method,
+                tile_size_degrees=tile_size_degrees,
+                num_subsections=num_subsections
             )
+
+            if not tiles:
+                self.logger.error("No tiles were calculated. Aborting download.")
+                self.error_occurred.emit("Tiling Error", "Failed to calculate any tiles for the given AOI and parameters.")
+                return {'started': False, 'message': "No tiles calculated."}
+
             # Stop any previous worker
             if self.worker is not None and self.worker.isRunning():
                 self.worker.request_cancel()
