@@ -49,7 +49,8 @@ ApplicationWindow {
     MainContent {
         id: mainContent
         anchors.top: topBar.bottom
-        anchors.left: sidebar.right
+        anchors.left: appWindow.isSideBarVisible ? sidebar.right : parent.left
+        anchors.leftMargin: appWindow.isSideBarVisible ? 0 : 10 // Add some margin when sidebar is hidden
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         z: 1

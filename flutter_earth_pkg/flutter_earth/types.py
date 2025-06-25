@@ -131,6 +131,7 @@ class AppConfig:
     sensor_priority: List[str]
     recent_directories: List[str]
     theme: str
+    theme_suboptions: Optional[Dict[str, Any]] = None
 
 class GeoJSON(TypedDict):
     """GeoJSON object type."""

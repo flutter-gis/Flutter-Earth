@@ -23,7 +23,8 @@ CONFIG_RULES: Dict[str, ValidationRule] = {
     'max_cloud_cover': ValidationRule(type=(int, float), required=True, min_value=0, max_value=100),
     'sensor_priority': ValidationRule(type=list, required=False),
     'recent_directories': ValidationRule(type=list, required=True),
-    'theme': ValidationRule(type=str, required=True)
+    'theme': ValidationRule(type=str, required=True),
+    'theme_suboptions': ValidationRule(type=dict, required=False)
 }
 
 # Theme definitions
