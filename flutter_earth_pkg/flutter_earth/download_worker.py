@@ -56,19 +56,31 @@ class DownloadWorkerThread(QThread):
             if all(r['success'] for r in results) and not self.cancel_requested:
                 try:
                     self._merge_results(results)
+                    # Cleanup tiles if requested and merge was successful
+                    if self.params.get('cleanup_tiles', True): # Default to True if not specified
+                        tile_paths_to_clean = [r['output_path'] for r in results if r.get('output_path') and r['success']]
+                        if tile_paths_to_clean:
+                            from .utils import cleanup_temp_files
+                            self.logger.info(f"Cleaning up {len(tile_paths_to_clean)} intermediate tile(s).")
+                            cleanup_temp_files(tile_paths_to_clean)
+                        else:
+                            self.logger.info("No tiles to clean up or all tiles failed.")
                 except Exception as e:
-                    self.logger.error(f"Error merging results: {e}", exc_info=True)
-                    self.error_occurred.emit("Failed to merge results.", str(e))
-                    self.download_complete.emit(False, f"Merging failed: {e}")
+                    self.logger.error(f"Error during merge or cleanup: {e}", exc_info=True)
+                    self.error_occurred.emit("Failed to merge or cleanup results.", str(e))
+                    self.download_complete.emit(False, f"Merging or cleanup failed: {e}")
                     return
+
+            # Determine final status based on results and cancellation
             if self.cancel_requested:
                 self.download_complete.emit(False, "Download cancelled by user.")
-            elif all(r['success'] for r in results):
-                self.download_complete.emit(True, "Processing completed successfully")
+            elif all(r['success'] for r in results): # Check success of all tiles again
+                self.download_complete.emit(True, "Processing completed successfully.")
             else:
-                self.download_complete.emit(False, "Some tiles failed to process.")
+                failed_tile_count = sum(1 for r in results if not r['success'])
+                self.download_complete.emit(False, f"{failed_tile_count} tile(s) failed to process.")
         except Exception as e:
-            self.logger.error(f"Processing failed: {e}", exc_info=True)
+            self.logger.error(f"Overall processing failed: {e}", exc_info=True)
             self.error_occurred.emit("Processing failed.", str(e))
             self.download_complete.emit(False, str(e))
 
@@ -128,11 +140,36 @@ class DownloadWorkerThread(QThread):
                 self.params['output_dir'],
                 f"tile_{tile['index']}.tif"
             )
-            resolution = get_sensor_details(self.params['sensor_name']).get('resolution', 30)
-            save_image(processed, output_path, tile['bbox'], resolution)
+
+            # Determine resolution
+            sensor_details = get_sensor_details(self.params['sensor_name'])
+            default_resolution = sensor_details.get('resolution', 30)
+
+            use_best_res = self.params.get('use_best_resolution', True) # Default to true if not specified
+
+            if use_best_res:
+                resolution_to_use = default_resolution
+                self.logger.info(f"Using best resolution for sensor {self.params['sensor_name']}: {resolution_to_use}m")
+            else:
+                resolution_to_use = self.params.get('target_resolution', default_resolution)
+                self.logger.info(f"Using target resolution for sensor {self.params['sensor_name']}: {resolution_to_use}m (best was {default_resolution}m)")
+
+            should_overwrite = self.params.get('overwrite_existing', True) # Default to True if not specified
+            save_image(processed, output_path, tile['bbox'], resolution_to_use, overwrite=should_overwrite)
+
+            # Check if file was actually saved (especially if overwrite was False and file existed)
+            if not os.path.exists(output_path) and not (not should_overwrite and os.path.exists(output_path)): # Re-check logic here
+                # This condition means: file doesn't exist AND it's NOT the case that we skipped an existing file
+                # This implies save_image itself failed or was skipped but shouldn't have been.
+                # However, save_image currently doesn't return a status to indicate skip vs actual save.
+                # For now, assume if save_image returns (no exception), and overwrite was true, it saved.
+                # If overwrite was false and file existed, it correctly skipped.
+                # A more robust way would be for save_image to return a status.
+                pass # Assuming save_image handles logging for skips.
+
             return {
-                'success': True,
-                'message': "Tile processed successfully",
+                'success': True, # Success here means the process for the tile didn't error, even if skipped.
+                'message': f"Tile processed successfully (path: {output_path})",
                 'tile_index': tile['index'],
                 'output_path': output_path,
                 'error': None

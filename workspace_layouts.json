@@ -1,0 +1,184 @@
+{
+  "layouts": [
+    {
+      "name": "Default",
+      "description": "Default workspace layout",
+      "created": "2025-06-25 06:24:32.598060",
+      "modified": "2025-06-25 06:24:32.598062",
+      "panels": [
+        {
+          "panel_type": "PanelType.LAYER_LIST",
+          "visible": true,
+          "docked": true,
+          "position": "left",
+          "size": [
+            250,
+            400
+          ],
+          "position_coords": [
+            0,
+            0
+          ],
+          "z_order": 0
+        },
+        {
+          "panel_type": "PanelType.TOOLBOX",
+          "visible": true,
+          "docked": true,
+          "position": "left",
+          "size": [
+            250,
+            300
+          ],
+          "position_coords": [
+            0,
+            0
+          ],
+          "z_order": 0
+        },
+        {
+          "panel_type": "PanelType.SEARCH",
+          "visible": true,
+          "docked": true,
+          "position": "top",
+          "size": [
+            400,
+            50
+          ],
+          "position_coords": [
+            0,
+            0
+          ],
+          "z_order": 0
+        },
+        {
+          "panel_type": "PanelType.BOOKMARKS",
+          "visible": false,
+          "docked": true,
+          "position": "right",
+          "size": [
+            250,
+            300
+          ],
+          "position_coords": [
+            0,
+            0
+          ],
+          "z_order": 0
+        },
+        {
+          "panel_type": "PanelType.ATTRIBUTE_TABLE",
+          "visible": false,
+          "docked": true,
+          "position": "bottom",
+          "size": [
+            600,
+            200
+          ],
+          "position_coords": [
+            0,
+            0
+          ],
+          "z_order": 0
+        },
+        {
+          "panel_type": "PanelType.COORDINATE_DISPLAY",
+          "visible": true,
+          "docked": true,
+          "position": "bottom",
+          "size": [
+            200,
+            30
+          ],
+          "position_coords": [
+            0,
+            0
+          ],
+          "z_order": 0
+        },
+        {
+          "panel_type": "PanelType.SCALE_BAR",
+          "visible": true,
+          "docked": true,
+          "position": "bottom",
+          "size": [
+            150,
+            30
+          ],
+          "position_coords": [
+            0,
+            0
+          ],
+          "z_order": 0
+        },
+        {
+          "panel_type": "PanelType.NOTIFICATION_CENTER",
+          "visible": false,
+          "docked": true,
+          "position": "right",
+          "size": [
+            300,
+            400
+          ],
+          "position_coords": [
+            0,
+            0
+          ],
+          "z_order": 0
+        },
+        {
+          "panel_type": "PanelType.TASK_MANAGER",
+          "visible": false,
+          "docked": true,
+          "position": "right",
+          "size": [
+            300,
+            300
+          ],
+          "position_coords": [
+            0,
+            0
+          ],
+          "z_order": 0
+        }
+      ],
+      "map_views": [
+        {
+          "view_id": "main",
+          "view_type": "MapViewType.MAIN",
+          "center": [
+            0.0,
+            0.0
+          ],
+          "zoom_level": 10.0,
+          "rotation": 0.0,
+          "tilt": 0.0,
+          "layers": [],
+          "synchronized": false,
+          "visible": true,
+          "tab_title": ""
+        },
+        {
+          "view_id": "overview",
+          "view_type": "MapViewType.OVERVIEW",
+          "center": [
+            0.0,
+            0.0
+          ],
+          "zoom_level": 5.0,
+          "rotation": 0.0,
+          "tilt": 0.0,
+          "layers": [],
+          "synchronized": false,
+          "visible": false,
+          "tab_title": ""
+        }
+      ],
+      "active_tab": "main",
+      "zen_mode": false
+    }
+  ],
+  "bookmarks": [],
+  "measurements": [],
+  "saved_at": "2025-06-25T13:26:02.106226"
+}
