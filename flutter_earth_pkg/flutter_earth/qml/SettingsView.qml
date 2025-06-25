@@ -234,68 +234,74 @@ Rectangle {
                     font.family: ThemeProvider.getFont("body").family
                     font.pixelSize: ThemeProvider.getFont("body").pixelSize
                     color: ThemeProvider.getColor("text")
-                    topPadding: 10
+                    topPadding: 20 // Increased top padding for better separation
+                    Layout.topMargin: 15 // Add margin from the groupbox above or theme grid
                 }
-                CheckBox {
-                    id: useCharacterCatchphrasesBox
-                    text: ThemeProvider.getCatchphrase("settings_opt_catchphrases", "Use Character Catchphrases")
-                    checked: currentThemeData.options && currentThemeData.options.use_character_catchphrases !== undefined ? currentThemeData.options.use_character_catchphrases : false
-                    font.family: ThemeProvider.getFont("body").family
-                    font.pixelSize: ThemeProvider.getFont("body").pixelSize
-                    indicator: Rectangle {
-                        implicitWidth: 20; implicitHeight: 20; radius: 6
-                        border.color: parent.checked ? ThemeProvider.getColor("primary") : ThemeProvider.getColor("widget_border")
-                        border.width: 2
-                        color: parent.checked ? ThemeProvider.getColor("primary") : ThemeProvider.getColor("widget_bg")
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 10; height: 10; radius: 3
-                            color: parent.checked ? ThemeProvider.getColor("button_fg") : "transparent"
-                            visible: parent.checked
+                ColumnLayout { // Wrap checkboxes in a ColumnLayout for consistent spacing
+                    Layout.fillWidth: true
+                    spacing: 10 // Spacing between checkboxes
+
+                    CheckBox {
+                        id: useCharacterCatchphrasesBox
+                        text: ThemeProvider.getCatchphrase("settings_opt_catchphrases", "Use Character Catchphrases")
+                        checked: currentThemeData.options && currentThemeData.options.use_character_catchphrases !== undefined ? currentThemeData.options.use_character_catchphrases : false
+                        font.family: ThemeProvider.getFont("body").family
+                        font.pixelSize: ThemeProvider.getFont("body").pixelSize
+                        indicator: Rectangle {
+                            implicitWidth: 20; implicitHeight: 20; radius: 6
+                            border.color: parent.checked ? ThemeProvider.getColor("primary") : ThemeProvider.getColor("widget_border")
+                            border.width: 2
+                            color: parent.checked ? ThemeProvider.getColor("primary") : ThemeProvider.getColor("widget_bg")
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 10; height: 10; radius: 3
+                                color: parent.checked ? ThemeProvider.getColor("button_fg") : "transparent"
+                                visible: parent.checked
+                            }
                         }
+                        onCheckedChanged: saveThemeSubOptions()
                     }
-                    onCheckedChanged: saveThemeSubOptions()
-                }
-                CheckBox {
-                    id: showSpecialIconsBox
-                    text: ThemeProvider.getCatchphrase("settings_opt_icons", "Show Special Icons")
-                    checked: currentThemeData.options && currentThemeData.options.show_special_icons !== undefined ? currentThemeData.options.show_special_icons : false
-                    font.family: ThemeProvider.getFont("body").family
-                    font.pixelSize: ThemeProvider.getFont("body").pixelSize
-                    indicator: Rectangle {
-                        implicitWidth: 20; implicitHeight: 20; radius: 6
-                        border.color: parent.checked ? ThemeProvider.getColor("primary") : ThemeProvider.getColor("widget_border")
-                        border.width: 2
-                        color: parent.checked ? ThemeProvider.getColor("primary") : ThemeProvider.getColor("widget_bg")
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 10; height: 10; radius: 3
-                            color: parent.checked ? ThemeProvider.getColor("button_fg") : "transparent"
-                            visible: parent.checked
+                    CheckBox {
+                        id: showSpecialIconsBox
+                        text: ThemeProvider.getCatchphrase("settings_opt_icons", "Show Special Icons")
+                        checked: currentThemeData.options && currentThemeData.options.show_special_icons !== undefined ? currentThemeData.options.show_special_icons : false
+                        font.family: ThemeProvider.getFont("body").family
+                        font.pixelSize: ThemeProvider.getFont("body").pixelSize
+                        indicator: Rectangle {
+                            implicitWidth: 20; implicitHeight: 20; radius: 6
+                            border.color: parent.checked ? ThemeProvider.getColor("primary") : ThemeProvider.getColor("widget_border")
+                            border.width: 2
+                            color: parent.checked ? ThemeProvider.getColor("primary") : ThemeProvider.getColor("widget_bg")
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 10; height: 10; radius: 3
+                                color: parent.checked ? ThemeProvider.getColor("button_fg") : "transparent"
+                                visible: parent.checked
+                            }
                         }
+                        onCheckedChanged: saveThemeSubOptions()
                     }
-                    onCheckedChanged: saveThemeSubOptions()
-                }
-                CheckBox {
-                    id: enableAnimatedBackgroundBox
-                    text: ThemeProvider.getCatchphrase("settings_opt_animations", "Enable Animated Backgrounds")
-                    checked: currentThemeData.options && currentThemeData.options.enable_animated_background !== undefined ? currentThemeData.options.enable_animated_background : false
-                    font.family: ThemeProvider.getFont("body").family
-                    font.pixelSize: ThemeProvider.getFont("body").pixelSize
-                    indicator: Rectangle {
-                        implicitWidth: 20; implicitHeight: 20; radius: 6
-                        border.color: parent.checked ? ThemeProvider.getColor("primary") : ThemeProvider.getColor("widget_border")
-                        border.width: 2
-                        color: parent.checked ? ThemeProvider.getColor("primary") : ThemeProvider.getColor("widget_bg")
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 10; height: 10; radius: 3
-                            color: parent.checked ? ThemeProvider.getColor("button_fg") : "transparent"
-                            visible: parent.checked
+                    CheckBox {
+                        id: enableAnimatedBackgroundBox
+                        text: ThemeProvider.getCatchphrase("settings_opt_animations", "Enable Animated Backgrounds")
+                        checked: currentThemeData.options && currentThemeData.options.enable_animated_background !== undefined ? currentThemeData.options.enable_animated_background : false
+                        font.family: ThemeProvider.getFont("body").family
+                        font.pixelSize: ThemeProvider.getFont("body").pixelSize
+                        indicator: Rectangle {
+                            implicitWidth: 20; implicitHeight: 20; radius: 6
+                            border.color: parent.checked ? ThemeProvider.getColor("primary") : ThemeProvider.getColor("widget_border")
+                            border.width: 2
+                            color: parent.checked ? ThemeProvider.getColor("primary") : ThemeProvider.getColor("widget_bg")
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 10; height: 10; radius: 3
+                                color: parent.checked ? ThemeProvider.getColor("button_fg") : "transparent"
+                                visible: parent.checked
+                            }
                         }
+                        onCheckedChanged: saveThemeSubOptions()
                     }
-                    onCheckedChanged: saveThemeSubOptions()
-                }
+                } // End of ColumnLayout for checkboxes
 
                 // Output directory
                 GroupBox {

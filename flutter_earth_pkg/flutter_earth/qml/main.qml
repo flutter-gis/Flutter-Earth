@@ -18,10 +18,28 @@ ApplicationWindow {
     property bool zenMode: false
     property var dockedPanels: ({})
     property var floatingPanels: ({})
+    property string currentDisplayMode: "advancedMap" // "advancedMap" or "otherView"
 
     // Global search component
     GlobalSearch {
         id: globalSearch
+        onOpenSettingsRequested: {
+            console.log("GlobalSearch requested to open settings.")
+            mainContent.currentView = "SettingsView.qml"
+            appWindow.currentDisplayMode = "otherView"
+            globalSearch.hide()
+        }
+        onOpenAddLayerDialogRequested: {
+            console.log("GlobalSearch requested to open Add Layer dialog/panel.")
+            // Placeholder: Actual mechanism to open 'Add Layer' UI would go here.
+            // This might involve making a specific panel visible, or calling a backend function
+            // that prepares data for an 'Add Layer' dialog.
+            // For now, just logging and hiding search.
+            // Example: if there's an AddLayerPanel.qml that can be loaded or made visible:
+            // if (addLayerPanelLoader.source !== "AddLayerPanel.qml") addLayerPanelLoader.source = "AddLayerPanel.qml"
+            // addLayerPanel.visible = true // or addLayerPanel.open()
+            globalSearch.hide()
+        }
     }
 
     // Keyboard shortcuts
@@ -50,7 +68,8 @@ ApplicationWindow {
         id: mainSplitView
         anchors.fill: parent
         orientation: Qt.Horizontal
-        visible: !zenMode
+        // visible: !zenMode // Original
+        visible: appWindow.currentDisplayMode === "advancedMap" && !zenMode
 
         // Left dock area
         SplitView {
@@ -63,7 +82,8 @@ ApplicationWindow {
                 id: layerListPanel
                 SplitView.minimumHeight: 200
                 SplitView.preferredHeight: 300
-                visible: (dockedPanels.layer_list && dockedPanels.layer_list.visible) || true
+                // visible: (dockedPanels.layer_list && dockedPanels.layer_list.visible) || true // Original
+                visible: dockedPanels.hasOwnProperty("layer_list") && dockedPanels.layer_list.visible
                 
                 color: ThemeProvider.getColor("widget_bg")
                 border.color: ThemeProvider.getColor("widget_border")
@@ -84,7 +104,7 @@ ApplicationWindow {
                             anchors.margins: 5
 
                             Text {
-                                text: "Layers"
+                                text: qsTr("Layers")
                                 color: ThemeProvider.getColor("text_on_primary")
                                 font.family: ThemeProvider.getFont("body").family
                                 font.pixelSize: ThemeProvider.getFont("body").pixelSize
@@ -116,7 +136,8 @@ ApplicationWindow {
                 id: toolboxPanel
                 SplitView.minimumHeight: 150
                 SplitView.preferredHeight: 250
-                visible: (dockedPanels.toolbox && dockedPanels.toolbox.visible) || true
+                // visible: (dockedPanels.toolbox && dockedPanels.toolbox.visible) || true // Original
+                visible: dockedPanels.hasOwnProperty("toolbox") && dockedPanels.toolbox.visible
                 
                 color: ThemeProvider.getColor("widget_bg")
                 border.color: ThemeProvider.getColor("widget_border")
@@ -137,7 +158,7 @@ ApplicationWindow {
                             anchors.margins: 5
 
                             Text {
-                                text: "Tools"
+                                text: qsTr("Tools")
                                 color: ThemeProvider.getColor("text_on_primary")
                                 font.family: ThemeProvider.getFont("body").family
                                 font.pixelSize: ThemeProvider.getFont("body").pixelSize
@@ -210,7 +231,8 @@ ApplicationWindow {
                 id: bookmarksPanel
                 SplitView.minimumHeight: 150
                 SplitView.preferredHeight: 200
-                visible: (dockedPanels.bookmarks && dockedPanels.bookmarks.visible) || true
+                // visible: (dockedPanels.bookmarks && dockedPanels.bookmarks.visible) || true // Original
+                visible: dockedPanels.hasOwnProperty("bookmarks") && dockedPanels.bookmarks.visible
                 
                 color: ThemeProvider.getColor("widget_bg")
                 border.color: ThemeProvider.getColor("widget_border")
@@ -231,7 +253,7 @@ ApplicationWindow {
                             anchors.margins: 5
 
                             Text {
-                                text: "Bookmarks"
+                                text: qsTr("Bookmarks")
                                 color: ThemeProvider.getColor("text_on_primary")
                                 font.family: ThemeProvider.getFont("body").family
                                 font.pixelSize: ThemeProvider.getFont("body").pixelSize
@@ -263,7 +285,8 @@ ApplicationWindow {
                 id: attributeTablePanel
                 SplitView.minimumHeight: 150
                 SplitView.preferredHeight: 200
-                visible: (dockedPanels.attribute_table && dockedPanels.attribute_table.visible) || false
+                // visible: (dockedPanels.attribute_table && dockedPanels.attribute_table.visible) || false // Original
+                visible: dockedPanels.hasOwnProperty("attribute_table") && dockedPanels.attribute_table.visible
                 
                 color: ThemeProvider.getColor("widget_bg")
                 border.color: ThemeProvider.getColor("widget_border")
@@ -284,7 +307,7 @@ ApplicationWindow {
                             anchors.margins: 5
 
                             Text {
-                                text: "Attribute Table"
+                                text: qsTr("Attribute Table")
                                 color: ThemeProvider.getColor("text_on_primary")
                                 font.family: ThemeProvider.getFont("body").family
                                 font.pixelSize: ThemeProvider.getFont("body").pixelSize
@@ -385,23 +408,54 @@ ApplicationWindow {
         width: 50
         visible: !zenMode
         z: 3
-        onHomeClicked: mainContent.currentView = "HomeView"
-        onMapClicked: mainContent.currentView = "MapView"
-        onDownloadClicked: mainContent.currentView = "DownloadView"
-        onProgressClicked: mainContent.currentView = "ProgressView"
-        onSatelliteInfoClicked: mainContent.currentView = "SatelliteInfoView"
-        onIndexAnalysisClicked: mainContent.currentView = "IndexAnalysisView"
-        onVectorDownloadClicked: mainContent.currentView = "VectorDownloadView"
-        onDataViewerClicked: mainContent.currentView = "DataViewerView"
-        onSettingsClicked: mainContent.currentView = "SettingsView"
-        onAboutClicked: mainContent.currentView = "AboutView"
+        onHomeClicked: {
+            mainContent.currentView = "HomeView.qml"
+            appWindow.currentDisplayMode = "otherView"
+        }
+        onMapClicked: {
+            // mainContent.currentView = "MapView.qml" // MapView is part of AdvancedMapView in this context
+            appWindow.currentDisplayMode = "advancedMap"
+        }
+        onDownloadClicked: {
+            mainContent.currentView = "DownloadView.qml"
+            appWindow.currentDisplayMode = "otherView"
+        }
+        onProgressClicked: {
+            mainContent.currentView = "ProgressView.qml"
+            appWindow.currentDisplayMode = "otherView"
+        }
+        onSatelliteInfoClicked: {
+            mainContent.currentView = "SatelliteInfoView.qml"
+            appWindow.currentDisplayMode = "otherView"
+        }
+        onIndexAnalysisClicked: {
+            mainContent.currentView = "IndexAnalysisView.qml"
+            appWindow.currentDisplayMode = "otherView"
+        }
+        onVectorDownloadClicked: {
+            mainContent.currentView = "VectorDownloadView.qml"
+            appWindow.currentDisplayMode = "otherView"
+        }
+        onDataViewerClicked: {
+            mainContent.currentView = "DataViewerView.qml"
+            appWindow.currentDisplayMode = "otherView"
+        }
+        onSettingsClicked: {
+            mainContent.currentView = "SettingsView.qml"
+            appWindow.currentDisplayMode = "otherView"
+        }
+        onAboutClicked: {
+            mainContent.currentView = "AboutView.qml"
+            appWindow.currentDisplayMode = "otherView"
+        }
     }
 
     // Main content area (for non-map views)
     MainContent {
         id: mainContent
-        visible: false // Hidden in advanced mode, shown for other views
-        z: 1
+        // visible: false // Hidden in advanced mode, shown for other views // Original
+        visible: appWindow.currentDisplayMode === "otherView" && !zenMode
+        z: 1 // Ensure it's above zenMapView if active and currentDisplayMode changes
     }
 
     // --- Thematic Particle Effects ---

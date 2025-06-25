@@ -3,7 +3,7 @@ import QtQuick.Controls 2.15
 
 Item {
     id: mainContent
-    property string currentView: "HomeView"
+    property string currentView: "HomeView.qml" // Default to a .qml file
     anchors.top: parent.top
     anchors.left: parent.left
     anchors.right: parent.right
@@ -15,19 +15,15 @@ Item {
     Loader {
         id: viewLoader
         anchors.fill: parent
-        source: {
-            if (mainContent.currentView === "HomeView") return "HomeView.qml"
-            if (mainContent.currentView === "MapView") return "MapView.qml"
-            if (mainContent.currentView === "DownloadView") return "DownloadView.qml"
-            if (mainContent.currentView === "ProgressView") return "ProgressView.qml"
-            if (mainContent.currentView === "SatelliteInfoView") return "SatelliteInfoView.qml" // New
-            if (mainContent.currentView === "IndexAnalysisView") return "IndexAnalysisView.qml" // New
-            if (mainContent.currentView === "VectorDownloadView") return "VectorDownloadView.qml" // New
-            if (mainContent.currentView === "DataViewerView") return "DataViewerView.qml"       // New
-            if (mainContent.currentView === "SettingsView") return "SettingsView.qml"
-            if (mainContent.currentView === "AboutView") return "AboutView.qml"
-            // Default view
-            return "HomeView.qml"
+        source: mainContent.currentView // currentView now holds the direct .qml filename
+
+        // Fallback if currentView is empty or invalid, though ideally SideBar always sets a valid one.
+        // Consider adding an onError handler for the Loader if necessary.
+        // Default view can be set by initializing mainContent.currentView to "HomeView.qml"
+        Component.onCompleted: {
+            if (!mainContent.currentView) {
+                mainContent.currentView = "HomeView.qml";
+            }
         }
     }
 } 

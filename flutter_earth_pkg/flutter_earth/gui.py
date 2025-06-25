@@ -302,6 +302,13 @@ class AppBackend(QObject):
         - output_dir (str)
         - cloud_mask (bool)
         - max_cloud_cover (float/int)
+        - use_best_resolution (bool)
+        - target_resolution (int/float)
+        - tiling_method (str: "degree" or "pixel")
+        - num_subsections (int)
+        - overwrite_existing (bool)
+        - cleanup_tiles (bool)
+        Note: The DownloadManager must be updated to handle all these parameters.
         """
         print(f"Received download request with params: {params}")
 
@@ -496,19 +503,20 @@ class AppBackend(QObject):
         """Load raster data for viewing."""
         try:
             # Placeholder implementation - would integrate with actual raster loading
+            # Placeholder adjusted to better match QML expectations
             return {
                 "success": True,
                 "file_path": file_path,
-                "file_size": "1.2 GB",
-                "dimensions": [5120, 5120],
-                "bands": [
-                    {"name": "Blue", "min": 0, "max": 255, "mean": 127},
-                    {"name": "Green", "min": 0, "max": 255, "mean": 127},
-                    {"name": "Red", "min": 0, "max": 255, "mean": 127},
-                    {"name": "NIR", "min": 0, "max": 255, "mean": 127}
-                ],
-                "projection": "EPSG:4326",
-                "extent": [-180, -90, 180, 90]
+                "file_size": "1.2 GB (Placeholder)",
+                "width": 5120, # Was dimensions[0]
+                "height": 5120, # Was dimensions[1]
+                "bands": "4 (RGB-NIR Placeholder)", # QML expects a string
+                "crs": "EPSG:4326 (Placeholder)", # Was projection
+                "dtype": "uint8 (Placeholder)", # Added
+                "nodata": "0 (Placeholder)", # Added
+                "bounds": { # Added, QML expects an object with left, bottom, right, top
+                    "left": -180.0, "bottom": -90.0, "right": 180.0, "top": 90.0
+                }
             }
         except Exception as e:
             return {
@@ -521,19 +529,16 @@ class AppBackend(QObject):
         """Load vector data for viewing."""
         try:
             # Placeholder implementation - would integrate with actual vector loading
+            # Placeholder adjusted to better match QML expectations
             return {
                 "success": True,
                 "file_path": file_path,
-                "file_size": "45 MB",
-                "geometry_type": "Polygon",
-                "feature_count": 1250,
-                "attributes": [
-                    {"name": "id", "type": "Integer"},
-                    {"name": "name", "type": "String"},
-                    {"name": "area", "type": "Float"},
-                    {"name": "population", "type": "Integer"}
-                ],
-                "extent": [-122.5, 37.5, -122.0, 38.0]
+                "file_size": "45 MB (Placeholder)",
+                "geometry_types": ["Polygon (Placeholder)"], # QML expects geometry_types (plural, array)
+                "feature_count": 1250, # Matches
+                "crs": "EPSG:4326 (Placeholder)", # Added
+                "bounds": [-122.5, 37.5, -122.0, 38.0], # Was extent, QML expects array [minx,miny,maxx,maxy]
+                "columns": ["id (Placeholder)", "name (Placeholder)", "area (Placeholder)"] # QML expects columns (array of strings)
             }
         except Exception as e:
             return {
@@ -1000,7 +1005,26 @@ class AppBackend(QObject):
     def removeTask(self, task_id):
         """Remove task"""
         self.advanced_gis.remove_task(task_id)
+
+    # --- Global Search Related Slots ---
+    @Slot(str)
+    def focusOnLayer(self, layer_id_or_name: str):
+        """Focus on a specific layer in the map view."""
+        print(f"[AppBackend] Request to focus on layer: {layer_id_or_name}")
+        # self.advanced_gis.focus_on_layer(layer_id_or_name) # Conceptual call
+
+    @Slot(str)
+    def goToBookmark(self, bookmark_name: str):
+        """Navigate map view to a saved bookmark."""
+        print(f"[AppBackend] Request to go to bookmark: {bookmark_name}")
+        # self.advanced_gis.go_to_bookmark(bookmark_name) # Conceptual call
     
+    @Slot(str)
+    def activateGISTool(self, tool_name: str):
+        """Activate a general GIS tool."""
+        print(f"[AppBackend] Request to activate GIS tool: {tool_name}")
+        # self.advanced_gis.activate_tool(tool_name) # Conceptual call
+
     # Advanced GIS Signal Handlers
     @Slot(str, dict)
     def onPanelStateChanged(self, panel_type, state):

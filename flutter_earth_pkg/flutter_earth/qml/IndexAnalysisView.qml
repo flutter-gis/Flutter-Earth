@@ -139,17 +139,19 @@ Rectangle {
                     spacing: 10
 
                     Repeater {
-                        model: Object.keys(availableIndices)
+                        model: availableIndices // Iterate over the array of index objects
                         delegate: CheckBox {
-                            text: modelData + " - " + availableIndices[modelData].name
-                            checked: selectedIndices.includes(modelData)
+                            // Use modelData.name (e.g., "NDVI") and modelData.full_name
+                            text: modelData.name + (modelData.full_name ? " - " + modelData.full_name : "")
+                            checked: selectedIndices.includes(modelData.name) // Check against the index name
                             onCheckedChanged: {
-                                if (checked && !selectedIndices.includes(modelData)) {
-                                    selectedIndices.push(modelData)
+                                if (checked && !selectedIndices.includes(modelData.name)) {
+                                    selectedIndices.push(modelData.name) // Store the index name
                                 } else if (!checked) {
-                                    var newIndices = selectedIndices.filter(i => i !== modelData)
-                                    selectedIndices = newIndices
+                                    var newSelectedIndices = selectedIndices.filter(i => i !== modelData.name)
+                                    selectedIndices = newSelectedIndices
                                 }
+                                console.log("Selected indices:", JSON.stringify(selectedIndices))
                             }
                             font: ThemeProvider.getFont("body")
                             indicator.width: 18
