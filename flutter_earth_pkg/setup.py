@@ -13,8 +13,6 @@ setup(
         "pywebview>=3.6.0",
         "requests>=2.26.0",
         "python-dateutil>=2.8.2",
-        "PyQt5>=5.15.0",
-        "PyQtWebEngine>=5.15.0",
         "earthengine-api>=0.1.290",
         "google-api-python-client>=2.0.0",
         "google-auth>=2.0.0",
