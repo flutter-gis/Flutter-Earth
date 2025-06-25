@@ -94,26 +94,24 @@ class EarthEngineManager:
         
         # Try to load stored credentials first
         auth_manager = AuthManager()
-        credentials = auth_manager.load_credentials()
+        creds = auth_manager.get_credentials()
+        print(f"[DEBUG] Attempting EE init with: {creds}")
+        if not auth_manager.has_credentials():
+            print("[DEBUG] No credentials found.")
+            return False
         
-        if credentials:
-            try:
-                # Initialize with stored service account credentials
-                try:
-                    service_account_creds = ee.ServiceAccountCredentials('', credentials['key_file'])
-                except AttributeError:
-                    # Fall back to regular initialization if ServiceAccountCredentials not available
-                    ee.Initialize(project=credentials['project_id'])
-                else:
-                    ee.Initialize(service_account_creds, project=credentials['project_id'])
-                ee_data.getAssetRoots()
-                logging.info("Earth Engine initialized successfully with stored credentials.")
-                self.initialized = True
-                self._last_health_check = time.time()
-                return True
-            except Exception as e:
-                logging.warning(f"Failed to initialize with stored credentials: {e}")
-                # Fall back to interactive setup
+        try:
+            # Initialize with stored service account credentials
+            credentials = ee.ServiceAccountCredentials('', creds['key_file'])
+            ee.Initialize(credentials, project=creds['project_id'])
+            ee_data.getAssetRoots()
+            logging.info("Earth Engine initialized successfully with stored credentials.")
+            self.initialized = True
+            self._last_health_check = time.time()
+            return True
+        except Exception as e:
+            print(f"[ERROR] Failed to initialize Earth Engine: {e}")
+            # Fall back to interactive setup
         
         # Try interactive authentication setup
         if parent:

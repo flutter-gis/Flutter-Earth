@@ -1,10 +1,11 @@
 """Utility functions for Flutter Earth."""
-from typing import List, Dict, Any, Union, Tuple
+from typing import List, Dict, Any, Union, Tuple, Optional
 from datetime import datetime, date
 import os
 import logging
 from pathlib import Path
 import rasterio
+from rasterio.merge import merge
 import ee
 import requests
 from PySide6.QtCore import QObject, Signal
@@ -91,8 +92,11 @@ def save_image(image: ee.Image, output_path: str, bbox: List[float],
             # Optionally, return a status or specific value indicating skip
             return
 
+        # Convert bbox to Earth Engine geometry
+        region = ee.Geometry.Rectangle(bbox[0], bbox[1], bbox[2], bbox[3])
+        
         url = image.getDownloadURL({
-            'region': bbox,
+            'region': region,
             'scale': resolution,
             'format': 'GeoTIFF'
         })
@@ -105,28 +109,6 @@ def save_image(image: ee.Image, output_path: str, bbox: List[float],
     except Exception as e:
         logging.error(f"Failed to save image: {e}")
         raise
-
-def calculate_tiles(bbox: List[float], tile_size: float) -> List[Dict[str, Any]]:
-    """Calculate tile definitions for a bounding box."""
-    west, south, east, north = bbox
-    tiles = []
-    
-    current_west = west
-    while current_west < east:
-        current_south = south
-        while current_south < north:
-            tile_east = min(current_west + tile_size, east)
-            tile_north = min(current_south + tile_size, north)
-            
-            tiles.append({
-                'bbox': [current_west, current_south, tile_east, tile_north],
-                'index': len(tiles)
-            })
-            
-            current_south = tile_north
-        current_west = min(current_west + tile_size, east)
-    
-    return tiles
 
 def calculate_tiles(
     bbox: List[float],
@@ -281,7 +263,7 @@ class QtLogHandler(QObject, logging.Handler):
         msg = self.format(record)
         self.log_signal.emit(msg)
 
-def setup_logging(log_file: str = 'flutter_earth.log', gui_handler: QtLogHandler = None, level=logging.INFO):
+def setup_logging(log_file: str = 'flutter_earth.log', gui_handler: Optional[QtLogHandler] = None, level=logging.INFO):
     """Configure logging for both file and GUI output."""
     logger = logging.getLogger()
     logger.setLevel(level)
