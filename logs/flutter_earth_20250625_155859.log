@@ -1,0 +1,9 @@
+2025-06-25 15:58:59,633 - root - INFO - === Flutter Earth Application Started ===
+2025-06-25 15:58:59,633 - root - INFO - Log file: logs\flutter_earth_20250625_155859.log
+2025-06-25 15:58:59,671 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-25 15:58:59,750 - root - INFO - Flutter Earth QML GUI modules imported successfully
+2025-06-25 15:58:59,750 - root - INFO - Initializing QApplication...
+2025-06-25 15:58:59,770 - root - INFO - Starting Flutter Earth QML GUI application...
+2025-06-25 15:58:59,770 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-25 15:58:59,785 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-25 15:58:59,785 - flutter_earth_pkg.flutter_earth.themes - INFO - ThemeManager initialized with theme: Fluttershy

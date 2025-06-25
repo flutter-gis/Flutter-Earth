@@ -83,4 +83,22 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
         }
     }
+    // Add a help button to the right
+    Button {
+        id: helpButton
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.right: parent.right
+        anchors.rightMargin: 20
+        width: 32; height: 32
+        text: "?"
+        font.pixelSize: 18
+        background: Rectangle {
+            color: ThemeProvider.getColor("accent", "#fff")
+            border.color: ThemeProvider.getColor("primary", "#888")
+            radius: 16
+        }
+        onClicked: helpPopup.open()
+        ToolTip.visible: hovered
+        ToolTip.text: "Help / Documentation"
+    }
 } 

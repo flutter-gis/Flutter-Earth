@@ -118,12 +118,16 @@ class DownloadWorkerThread(QThread):
 
     def _process_tile(self, tile: Dict[str, Any]) -> Dict[str, Any]:
         try:
+            # Convert bbox to Earth Engine geometry
+            bbox = tile['bbox']
+            region = ee.Geometry.Rectangle(bbox[0], bbox[1], bbox[2], bbox[3])
+            
             # Get image collection
             collection = self.earth_engine.get_collection(
                 self.params['sensor_name'],
                 self.params['start_date'],
                 self.params['end_date'],
-                bbox=tile['bbox']
+                region=region
             )
             # Apply cloud cover filter
             if self.params.get('max_cloud_cover'):

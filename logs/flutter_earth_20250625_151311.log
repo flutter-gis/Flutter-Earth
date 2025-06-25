@@ -1,0 +1,5 @@
+2025-06-25 15:13:11,673 - root - INFO - === Flutter Earth Application Started ===
+2025-06-25 15:13:11,673 - root - INFO - Log file: logs\flutter_earth_20250625_151311.log
+2025-06-25 15:13:11,717 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-25 15:13:11,766 - root - ERROR - Error importing Flutter Earth QML GUI modules: cannot import name 'Q_INVOKABLE' from 'PySide6.QtCore' (C:\Users\U1060469\AppData\Roaming\Python\Python312\site-packages\PySide6\QtCore.pyd)
+2025-06-25 15:13:11,767 - root - ERROR - Please ensure all required modules are in the correct directory structure and PySide6 is installed.

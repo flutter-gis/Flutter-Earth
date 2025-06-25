@@ -101,7 +101,7 @@ Popup {
                 text: ThemeProvider.getCatchphrase("auth_save", "Save Credentials")
                 onClicked: {
                     if (keyFileField.text && projectIdField.text) {
-                        authDialog.credentialsEntered(keyFile, projectId)
+                        authDialog.credentialsEntered(keyFileField.text, projectIdField.text)
                         authDialog.close()
                     }
                 }
@@ -123,6 +123,17 @@ Popup {
                     filePath = filePath.substring(1)
                 }
                 keyFileField.text = filePath
+            }
+        }
+    }
+
+    onOpened: {
+        if (backend && backend.getCredentials) {
+            var creds = backend.getCredentials();
+            if (creds && creds.project_id && creds.key_file) {
+                keyFileField.text = creds.key_file;
+                projectIdField.text = creds.project_id;
+                // Don't auto-apply - let user decide whether to save or modify
             }
         }
     }

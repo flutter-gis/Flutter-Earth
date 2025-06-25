@@ -16,7 +16,7 @@ import logging
 
 from PySide6.QtCore import QObject, Slot, QUrl, Signal
 from PySide6.QtWidgets import QApplication, QMessageBox
-from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtQml import QQmlApplicationEngine, QmlElement
 from PySide6.QtWebEngineWidgets import QWebEngineView 
 from PySide6.QtWebEngineCore import QWebEnginePage
 
@@ -42,6 +42,8 @@ class AppBackend(QObject):
     configChanged = Signal(dict)  # Emitted when config is changed or reloaded (QML)
     settingChanged = Signal(str, object)  # Emitted when a single setting is changed (QML)
     auth_missing = Signal()  # Signal when authentication is missing
+    authSaved = Signal(str)  # message
+    connectionStatusChanged = Signal(str)  # 'online' or 'offline'
 
     def __init__(self, config_manager: ConfigManager, earth_engine: EarthEngineManager,
                  download_manager: DownloadManager, progress_tracker: ProgressTracker, parent=None):
@@ -79,6 +81,12 @@ class AppBackend(QObject):
 
         # If you have a sample_manager, connect its progress here (pseudo-code):
         # self.sample_manager.sample_download_progress.connect(self.onSampleDownloadProgress)
+
+        # Emit initial connection status
+        if getattr(self.earth_engine, 'initialized', False):
+            self.connectionStatusChanged.emit('online')
+        else:
+            self.connectionStatusChanged.emit('offline')
 
     @Slot(str, dict)
     def onThemeManagerThemeChanged(self, theme_name: str, theme_data: dict):
@@ -828,12 +836,36 @@ class AppBackend(QObject):
     @Slot(str, str)
     def setAuthCredentials(self, key_file, project_id):
         """Set authentication credentials for Earth Engine."""
+        from .auth_setup import AuthManager
+        auth_manager = AuthManager()
+        auth_manager.save_credentials(project_id, key_file)
+        print(f"[DEBUG] Credentials saved: {key_file}, {project_id}")
+        # Try to re-initialize Earth Engine without emitting auth_missing signal
         try:
-            self.earth_engine.set_auth_credentials(key_file, project_id)
-            return True
+            if self.earth_engine.initialize(force=True):  # Force re-initialization
+                self.connectionStatusChanged.emit('online')
+                self.authSaved.emit("Credentials saved successfully!")
+            else:
+                self.connectionStatusChanged.emit('offline')
+                self.authSaved.emit("Credentials saved but Earth Engine initialization failed. Please check your credentials.")
         except Exception as e:
-            logging.error(f"Error setting auth credentials: {e}")
-            return False
+            print(f"[ERROR] Failed to re-initialize Earth Engine: {e}")
+            self.connectionStatusChanged.emit('offline')
+            self.authSaved.emit("Credentials saved but Earth Engine initialization failed. Please check your credentials.")
+
+    @Slot(result=dict)
+    def getCredentials(self):
+        """Get stored authentication credentials."""
+        from .auth_setup import AuthManager
+        auth_manager = AuthManager()
+        return auth_manager.get_credentials()
+
+    @Slot(result=bool)
+    def hasCredentials(self):
+        """Check if authentication credentials exist."""
+        from .auth_setup import AuthManager
+        auth_manager = AuthManager()
+        return auth_manager.has_credentials()
 
     # Advanced GIS Methods
     @Slot(result=dict)
@@ -1062,6 +1094,204 @@ class AppBackend(QObject):
         # This will be handled by QML
         pass
 
+    @Slot(result=str)
+    def getChangelog(self):
+        """Return the first 30 lines of the CHANGELOG.md as a string for QML display."""
+        changelog_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'CHANGELOG.md')
+        if not os.path.exists(changelog_path):
+            return "CHANGELOG.md not found."
+        try:
+            with open(changelog_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            return ''.join(lines[:30]) + ("..." if len(lines) > 30 else "")
+        except Exception as e:
+            return f"Error reading changelog: {e}"
+
+class LatexDocProvider(QObject):
+    @Slot(result=str)
+    def getLatexDoc(self):
+        return r'''
+\documentclass[12pt]{article}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{Flutter Earth QML Edition\\\large User and Developer Documentation}
+\author{flutter-gis}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+Flutter Earth is a modern, user-friendly tool for downloading and processing satellite imagery using Google Earth Engine, featuring a QML-based interface and a modular Python backend.
+
+\section{Features}
+\begin{itemize}
+    \item Modern QML Interface with theming support (Dark, Light, Sanofi, and more)
+    \item Modular Python backend for maintainability and scalability
+    \item Download satellite imagery from multiple sensors (Landsat, Sentinel, etc.)
+    \item On-the-fly processing (cloud masking, vegetation indices, etc.)
+    \item Robust configuration and settings management
+    \item Comprehensive satellite information browser
+    \item Batch processing and real-time progress tracking
+\end{itemize}
+
+\section{Installation}
+
+\subsection{Prerequisites}
+\begin{itemize}
+    \item Python 3.8 or higher
+    \item Google Earth Engine account with API access enabled
+    \item Required Python packages (see \texttt{flutter\_earth\_pkg/requirements.txt})
+\end{itemize}
+
+\subsection{Clone the Repository}
+\begin{lstlisting}[language=bash]
+git clone https://github.com/flutter-gis/Flutter-Earth.git
+cd Flutter-Earth
+\end{lstlisting}
+
+\subsection{Install Dependencies}
+\begin{lstlisting}[language=bash]
+pip install -r flutter_earth_pkg/requirements.txt
+\end{lstlisting}
+
+\subsection{Earth Engine Authentication}
+\begin{enumerate}
+    \item Create a Google Cloud Project and enable the Earth Engine API.
+    \item Create a Service Account and download the JSON key file.
+    \item Launch Flutter Earth and provide the Project ID and key file path when prompted.
+\end{enumerate}
+See Section~\ref{sec:gee-setup} for detailed setup instructions.
+
+\section{Quick Start}
+\begin{lstlisting}[language=bash]
+python main.py
+\end{lstlisting}
+\begin{enumerate}
+    \item Select Area of Interest (draw on map, enter coordinates, or import shapefile)
+    \item Choose time period and satellites
+    \item Configure processing options (output format, indices, etc.)
+    \item Start download and monitor progress
+\end{enumerate}
+
+\section{Configuration}
+The application uses a configuration file (\texttt{flutter\_earth\_config.json}) created on first run. You can modify:
+\begin{itemize}
+    \item Default output directory
+    \item UI theme
+    \item Tile size for downloads
+    \item Maximum cloud cover percentage
+    \item Sensor priority
+\end{itemize}
+
+\section{Project Structure}
+\begin{verbatim}
+Flutter-Earth/
+├── flutter_earth_pkg/
+│   └── flutter_earth/
+│       ├── __init__.py
+│       ├── qml/
+│       ├── config.py
+│       ├── gui.py
+│       ├── earth_engine.py
+│       ├── processing.py
+│       └── ...
+├── main.py
+├── run.bat
+├── EARTH_ENGINE_SETUP.md
+├── requirements.txt
+└── README.md
+\end{verbatim}
+
+\section{Theming Guide}
+\subsection{Theme Structure}
+Themes are defined in \texttt{flutter\_earth\_pkg/flutter\_earth/config.py} as Python dictionaries. Each theme includes metadata, colors, fonts, styles, paths, catchphrases, and options.
+
+\subsection{Adding a New Theme}
+\begin{enumerate}
+    \item Add a new entry to the \texttt{THEMES} dictionary.
+    \item Fill in all required sections (see code for template).
+    \item Add assets (images, fonts) as needed.
+    \item Test via the Settings $\rightarrow$ Appearance menu.
+\end{enumerate}
+
+\subsection{Customizing QML Components}
+QML components access theme properties via the \texttt{ThemeProvider} singleton:
+\begin{itemize}
+    \item Colors: \texttt{ThemeProvider.getColor("primary", "blue")}
+    \item Fonts: \texttt{ThemeProvider.getFont("body")}
+    \item Styles: \texttt{ThemeProvider.getStyle("button\_default")}
+    \item Catchphrases: \texttt{ThemeProvider.getCatchphrase("app\_title", "Default Title")}
+\end{itemize}
+
+\section{Google Earth Engine Setup}
+\label{sec:gee-setup}
+\subsection{Service Account Setup}
+\begin{enumerate}
+    \item Sign up for Earth Engine access: \url{https://signup.earthengine.google.com/}
+    \item Create a Google Cloud Project.
+    \item Enable the Earth Engine API.
+    \item Create a Service Account and assign the ``Earth Engine Resource Viewer'' role.
+    \item Download the JSON key file.
+    \item Launch Flutter Earth and provide the Project ID and key file path.
+\end{enumerate}
+\textbf{Important:} Treat your JSON key file as a password. Do not share or commit it.
+
+\section{Debugging and Troubleshooting}
+\subsection{Common Issues}
+\begin{itemize}
+    \item \textbf{QML not loading:} Check PySide6 installation and QML file paths.
+    \item \textbf{Bridge not working:} Ensure backend is registered in QML context.
+    \item \textbf{Styling issues:} Verify theme keys and QML bindings.
+    \item \textbf{File dialogs not working:} Check PySide6.QtWidgets import and dialog types.
+\end{itemize}
+
+\subsection{Debug Mode}
+\begin{lstlisting}[language=bash]
+python -u main.py 2>&1 | tee debug.log
+\end{lstlisting}
+
+\section{Development Guide}
+\subsection{Adding New Sensors}
+\begin{enumerate}
+    \item Add sensor metadata to \texttt{SATELLITE\_DETAILS} in \texttt{config.py}.
+    \item Implement unique processing in \texttt{processing.py} if needed.
+    \item The satellite info view will auto-update.
+\end{enumerate}
+
+\subsection{Modifying the UI}
+Edit QML files in \texttt{flutter\_earth\_pkg/flutter\_earth/qml/}. The Python backend is exposed to QML via the \texttt{AppBackend} class.
+
+\section{Advanced Features}
+\begin{itemize}
+    \item NDVI, EVI, SAVI, NDWI, and other vegetation indices
+    \item Batch processing and queue management
+    \item Real-time progress and status updates
+    \item Export results in GeoTIFF, JPEG, PNG, Shapefile, CSV
+\end{itemize}
+
+\section{Troubleshooting and Future Improvements}
+\begin{itemize}
+    \item Map integration for area selection
+    \item Shapefile parsing
+    \item More comprehensive input validation
+    \item Improved error handling and recovery
+    \item Accessibility improvements
+\end{itemize}
+
+\section{License}
+See the repository for license details.
+
+\end{document}
+'''
+
 class QmlGUILauncher(QObject):
     """
     Manages the setup and execution of the QML application.
@@ -1107,6 +1337,7 @@ class QmlGUILauncher(QObject):
         # Expose Python objects to the QML context
         self.engine.rootContext().setContextProperty("backend", self.backend)
         self.engine.rootContext().setContextProperty("satelliteData", self._prepare_satellite_data())
+        self.engine.rootContext().setContextProperty("latexDocProvider", LatexDocProvider())
         # Build the path to the main QML file
         qml_file = Path(__file__).parent / "qml" / "main.qml"
         print("[DEBUG] Loading QML file:", qml_file)
@@ -1125,6 +1356,17 @@ def add_auth_slot_to_appbackend():
         auth_manager = AuthManager()
         auth_manager.save_credentials(project_id, key_file)
         print(f"[DEBUG] Credentials saved: {key_file}, {project_id}")
-        # Optionally, re-initialize Earth Engine here
+        # Try to re-initialize Earth Engine without emitting auth_missing signal
+        try:
+            if self.earth_engine.initialize(force=True):  # Force re-initialization
+                self.connectionStatusChanged.emit('online')
+                self.authSaved.emit("Credentials saved successfully!")
+            else:
+                self.connectionStatusChanged.emit('offline')
+                self.authSaved.emit("Credentials saved but Earth Engine initialization failed. Please check your credentials.")
+        except Exception as e:
+            print(f"[ERROR] Failed to re-initialize Earth Engine: {e}")
+            self.connectionStatusChanged.emit('offline')
+            self.authSaved.emit("Credentials saved but Earth Engine initialization failed. Please check your credentials.")
     AppBackend.setAuthCredentials = Slot(str, str)(setAuthCredentials)
 add_auth_slot_to_appbackend() 

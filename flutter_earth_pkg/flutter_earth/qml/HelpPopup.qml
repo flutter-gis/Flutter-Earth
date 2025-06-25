@@ -334,5 +334,52 @@ Dialog {
                 }
             }
         }
+
+        // Add a new section for LaTeX documentation
+        Rectangle {
+            id: latexDocSection
+            width: parent.width
+            height: 400
+            color: ThemeProvider.getColor("widget_bg", "#fff")
+            border.color: ThemeProvider.getColor("widget_border", "#ccc")
+            radius: 8
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.topMargin: 16
+            Column {
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 8
+                Text {
+                    text: "LaTeX Documentation (copy/paste or export)"
+                    font.pixelSize: 18
+                    font.bold: true
+                    color: ThemeProvider.getColor("text", "#222")
+                }
+                Flickable {
+                    width: parent.width
+                    height: 340
+                    contentWidth: parent.width
+                    contentHeight: latexDocText.implicitHeight
+                    clip: true
+                    TextArea {
+                        id: latexDocText
+                        width: parent.width
+                        height: implicitHeight
+                        readOnly: true
+                        wrapMode: TextArea.WrapAnywhere
+                        text: latexDocProvider.getLatexDoc()
+                        font.family: "monospace"
+                        font.pixelSize: 13
+                        color: ThemeProvider.getColor("text", "#222")
+                        background: Rectangle {
+                            color: "#f8f8f8"
+                            border.color: "#ccc"
+                            radius: 4
+                        }
+                    }
+                }
+            }
+        }
     }
 } 

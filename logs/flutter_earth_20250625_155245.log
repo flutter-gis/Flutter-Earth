@@ -1,0 +1,20 @@
+2025-06-25 15:52:45,415 - root - INFO - === Flutter Earth Application Started ===
+2025-06-25 15:52:45,415 - root - INFO - Log file: logs\flutter_earth_20250625_155245.log
+2025-06-25 15:52:45,472 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-25 15:52:45,545 - root - INFO - Flutter Earth QML GUI modules imported successfully
+2025-06-25 15:52:45,545 - root - INFO - Initializing QApplication...
+2025-06-25 15:52:45,573 - root - INFO - Starting Flutter Earth QML GUI application...
+2025-06-25 15:52:45,578 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-25 15:52:45,580 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-25 15:52:45,580 - flutter_earth_pkg.flutter_earth.themes - INFO - ThemeManager initialized with theme: Starlight Glimmer
+2025-06-25 15:52:47,086 - root - INFO - Earth Engine initialized successfully with stored credentials.
+2025-06-25 15:53:00,464 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-25 15:53:00,483 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Fluttershy
+2025-06-25 15:53:08,253 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-25 15:53:08,260 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Fluttershy
+2025-06-25 15:53:09,507 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-25 15:53:09,527 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Pinkie Pie
+2025-06-25 15:53:10,670 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-25 15:53:10,689 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Fluttershy
+2025-06-25 15:53:12,260 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-25 15:53:12,263 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Fluttershy

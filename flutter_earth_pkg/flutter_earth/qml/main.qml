@@ -11,10 +11,13 @@ ApplicationWindow {
     width: 1200
     height: 800
     title: ThemeProvider.getCatchphrase("app_title", "Flutter Earth")
-    color: ThemeProvider.getColor("background", "#FFFFFF")
+    color: ThemeProvider.getColor("background", "#f0f0f0")
 
     // Current view to show in the main area
     property string currentView: "welcome"
+    property string connectionStatus: "offline"
+    property string statusBarColor: ThemeProvider.getColor("widget_bg", "#f0f0f0")
+    property string statusBarText: "Initializing..."
 
     // Splash screen overlay
     SplashScreen {
@@ -129,6 +132,7 @@ ApplicationWindow {
                 if (appWindow.currentView === "indexAnalysis") return indexAnalysisComponent;
                 if (appWindow.currentView === "vectorDownload") return vectorDownloadComponent;
                 if (appWindow.currentView === "dataViewer") return dataViewerComponent;
+                if (appWindow.currentView === "download") return downloadComponent;
                 // Add more as needed
                 return welcomeComponent;
             }
@@ -170,16 +174,25 @@ ApplicationWindow {
         Component { id: indexAnalysisComponent; IndexAnalysisView { anchors.fill: parent } }
         Component { id: vectorDownloadComponent; VectorDownloadView { anchors.fill: parent } }
         Component { id: dataViewerComponent; DataViewerView { anchors.fill: parent } }
+        Component { id: downloadComponent; DownloadView { anchors.fill: parent } }
     }
 
     // Auth dialog/modal logic remains as before
     AuthDialog {
         id: authDialog
-        visible: false
+        visible: false // Only show when authentication is missing
         onHelpRequested: helpPopup.open()
         onCredentialsEntered: function(keyFile, projectId) {
             backend.setAuthCredentials(keyFile, projectId)
             authDialog.visible = false
+        }
+    }
+
+    Connections {
+        target: backend
+        function onAuth_missing() {
+            console.log("AuthDialog signal received"); // DEBUG
+            authDialog.visible = true
         }
     }
 
@@ -192,7 +205,7 @@ ApplicationWindow {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: 28
-        color: ThemeProvider.getColor("widget_bg", "#f5f5f5")
+        color: statusBarColor
         border.color: ThemeProvider.getColor("widget_border", "#e0e0e0")
         border.width: 1
         z: 10
@@ -203,11 +216,11 @@ ApplicationWindow {
             Item { Layout.fillWidth: true }
             Text {
                 id: connectionStatusText
-                text: backend && backend.isGeeInitialized() ? ThemeProvider.getCatchphrase("status_connected", "Connected to Earth Engine") : ThemeProvider.getCatchphrase("status_not_connected", "Not Connected")
+                text: "Status: " + statusBarText
                 font.family: ThemeProvider.getFont("body").family
                 font.pixelSize: ThemeProvider.getFont("body").pixelSize
                 font.bold: true
-                color: backend && backend.isGeeInitialized() ? ThemeProvider.getColor("success", "#388e3c") : ThemeProvider.getColor("error", "#b71c1c")
+                color: connectionStatus === "online" ? ThemeProvider.getColor("success", "#388e3c") : ThemeProvider.getColor("error", "#b71c1c")
                 verticalAlignment: Text.AlignVCenter
             }
         }
@@ -219,6 +232,56 @@ ApplicationWindow {
         function onThemeChanged(themeName, themeData) {
             ThemeProvider.updateThemeData();
             console.log("ThemeProvider: Theme changed to", themeName);
+        }
+    }
+
+    Connections {
+        target: backend
+        function onAuthSaved(message) {
+            console.log("Auth saved message: " + message); // DEBUG
+            savedPopup.text = message;
+            savedPopup.open();
+        }
+    }
+
+    Connections {
+        target: backend
+        function onConnectionStatusChanged(status) {
+            connectionStatus = status;
+            if (status === "online") {
+                statusBarColor = ThemeProvider.getColor("success", "#d4ffd4");
+                statusBarText = "Online";
+            } else {
+                statusBarColor = ThemeProvider.getColor("error", "#ffd4d4");
+                statusBarText = "Offline";
+            }
+        }
+    }
+
+    Popup {
+        id: savedPopup
+        width: 300
+        height: 60
+        modal: false
+        focus: false
+        x: (parent ? parent.width : Screen.width) / 2 - width / 2
+        y: 60
+        property string text: ""
+        background: Rectangle {
+            color: ThemeProvider.getColor("notification_success_bg", ThemeProvider.getColor("accent", "#e0ffe0"))
+            border.color: ThemeProvider.getColor("notification_success_border", ThemeProvider.getColor("accent", "#00cc00"))
+            radius: 8
+        }
+        Column {
+            anchors.centerIn: parent
+            Text {
+                text: savedPopup.text
+                color: ThemeProvider.getColor("notification_success_text", ThemeProvider.getColor("text", "#222"))
+                font.pixelSize: 18
+            }
+        }
+        onOpened: {
+            Qt.callLater(function() { savedPopup.close(); }, 2000);
         }
     }
 } 

@@ -80,6 +80,23 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
         }
+        // Add a changelog section
+        GroupBox {
+            title: qsTr("Recent Changes (Changelog)")
+            Layout.fillWidth: true
+            Layout.preferredHeight: 180
+            font: ThemeProvider.getFont("body")
+            ScrollView {
+                anchors.fill: parent
+                clip: true
+                TextArea {
+                    readOnly: true
+                    wrapMode: TextEdit.WordWrap
+                    font: ThemeProvider.getFont("monospace")
+                    text: backend.getChangelog ? backend.getChangelog() : "See CHANGELOG.md for details."
+                }
+            }
+        }
     }
 
     Dialog { // Name input dialog
