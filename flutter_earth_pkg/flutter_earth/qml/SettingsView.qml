@@ -86,9 +86,21 @@ Rectangle {
 
     Component.onCompleted: {
         console.log("SettingsView: Component.onCompleted");
-        console.log("SettingsView: allSettings =", JSON.stringify(allSettings));
-        console.log("SettingsView: currentThemeData =", JSON.stringify(currentThemeData));
-        console.log("SettingsView: availableThemesModel =", JSON.stringify(availableThemesModel));
+        if (typeof allSettings === 'undefined' || allSettings === null) {
+            console.error("SettingsView: allSettings is undefined or null!");
+        } else {
+            console.log("SettingsView: allSettings =", JSON.stringify(allSettings));
+        }
+        if (typeof currentThemeData === 'undefined' || currentThemeData === null) {
+            console.error("SettingsView: currentThemeData is undefined or null!");
+        } else {
+            console.log("SettingsView: currentThemeData =", JSON.stringify(currentThemeData));
+        }
+        if (typeof availableThemesModel === 'undefined' || availableThemesModel === null) {
+            console.error("SettingsView: availableThemesModel is undefined or null!");
+        } else {
+            console.log("SettingsView: availableThemesModel =", JSON.stringify(availableThemesModel));
+        }
         buildThemeCategories();
     }
 
@@ -125,7 +137,6 @@ Rectangle {
                     Layout.fillWidth: true
                     font.family: ThemeProvider.getFont("body").family
                     font.pixelSize: ThemeProvider.getFont("body").pixelSize
-                    color: ThemeProvider.getColor("widget_bg")
                     background: Rectangle {
                         color: ThemeProvider.getColor("widget_bg")
                         border.color: ThemeProvider.getColor("widget_border")

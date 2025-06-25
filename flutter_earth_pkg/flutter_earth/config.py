@@ -1779,8 +1779,15 @@ class ConfigManager(QObject):
         return theme_data.get('colors', {}) # Return colors sub-dictionary
 
     def get_current_theme_data(self) -> Dict[str, Any]:
-        """Get the full data dictionary for the current theme."""
-        return THEMES.get(self.config.theme, copy.deepcopy(THEMES['Default (Dark)'])) # Return a copy
+        theme_data = self.get('theme', None)
+        if not theme_data or theme_data not in THEMES:
+            theme_data = 'Default (Dark)'
+        data = copy.deepcopy(THEMES.get(theme_data, THEMES['Default (Dark)']))
+        if not isinstance(data, dict):
+            logging.error(f"get_current_theme_data: theme data for '{theme_data}' is not a dict! Returning empty dict.")
+            return {}
+        logging.debug(f"get_current_theme_data: returning {data}")
+        return data
 
     def get_theme_data(self, theme_name: str) -> Optional[Dict[str, Any]]:
         """Get the full data dictionary for a specific theme by name."""
@@ -1788,16 +1795,15 @@ class ConfigManager(QObject):
         return copy.deepcopy(theme_info) if theme_info else None # Return a copy
 
     def get_available_themes(self) -> List[Dict[str, Any]]:
-        """Get a list of available theme metadata (display_name, category, name)."""
-        # Returns a list of dicts: [{'name': internal_name, 'display': display_name, 'category': category}, ...]
         available = []
         for name, data in THEMES.items():
             meta = data.get('metadata', {})
             available.append({
-                'name': name, # Internal name used for setting the theme
+                'name': name,
                 'display_name': meta.get('display_name', name),
                 'category': meta.get('category', 'Uncategorized')
             })
+        logging.debug(f"get_available_themes: returning {available}")
         return available
 
     def update(self, updates: Dict[str, Any]) -> None:
@@ -1833,6 +1839,30 @@ class ConfigManager(QObject):
     def to_dict(self) -> Dict[str, Any]:
         """Convert the config dataclass to a dictionary."""
         return {field.name: getattr(self.config, field.name) for field in fields(self.config)}
+
+    def getAllSettings(self) -> Dict[str, Any]:
+        # Return a dict with all expected config keys, filling with defaults if missing
+        keys = ['output_dir', 'tile_size', 'max_workers', 'cloud_mask', 'max_cloud_cover', 'sensor_priority', 'recent_directories', 'theme']
+        settings = {k: self.get(k, None) for k in keys}
+        # Fill with defaults if any are missing
+        for k in keys:
+            if settings[k] is None:
+                if k == 'sensor_priority' or k == 'recent_directories':
+                    settings[k] = []
+                elif k == 'cloud_mask':
+                    settings[k] = False
+                elif k == 'tile_size':
+                    settings[k] = 1.0
+                elif k == 'max_workers':
+                    settings[k] = 4
+                elif k == 'max_cloud_cover':
+                    settings[k] = 100
+                elif k == 'theme':
+                    settings[k] = 'Default (Dark)'
+                else:
+                    settings[k] = ''
+        logging.debug(f"getAllSettings: returning {settings}")
+        return settings
 
 # Singleton instance for global access
 config_manager = ConfigManager() 

@@ -1,0 +1,41 @@
+2025-06-24 21:07:53,857 - root - INFO - === Flutter Earth Application Started ===
+2025-06-24 21:07:53,858 - root - INFO - Log file: logs\flutter_earth_20250624_210753.log
+2025-06-24 21:07:53,933 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-24 21:07:54,026 - root - INFO - Flutter Earth QML GUI modules imported successfully
+2025-06-24 21:07:54,027 - root - INFO - Initializing QApplication...
+2025-06-24 21:07:54,055 - root - INFO - Starting Flutter Earth QML GUI application...
+2025-06-24 21:07:54,061 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-24 21:07:54,062 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-24 21:07:54,063 - flutter_earth_pkg.flutter_earth.themes - INFO - ThemeManager initialized with theme: Default (Dark)
+2025-06-24 21:07:55,086 - googleapiclient.http - WARNING - Encountered 403 Forbidden with reason "PERMISSION_DENIED"
+2025-06-24 21:07:55,086 - root - WARNING - High-volume EE initialization failed: ee.Initialize: no project found. Call with project= or see http://goo.gle/ee-auth.. Trying default endpoint.
+2025-06-24 21:07:55,905 - googleapiclient.http - WARNING - Encountered 403 Forbidden with reason "PERMISSION_DENIED"
+2025-06-24 21:07:55,905 - root - ERROR - Earth Engine initialization failed: ee.Initialize: no project found. Call with project= or see http://goo.gle/ee-auth.
+2025-06-24 21:07:55,906 - root - ERROR - Earth Engine project not found. Please:
+1. Create a Google Cloud project with Earth Engine API enabled
+2. Set up service account authentication using the setup dialog
+3. Or set environment variable: EARTHENGINE_PROJECT=your-project-id
+4. Visit https://developers.google.com/earth-engine/guides/access to sign up
+2025-06-24 21:08:07,658 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:08:07,660 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Applejack
+2025-06-24 21:08:09,364 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:08:09,364 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Derpy Hooves
+2025-06-24 21:08:09,904 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:08:09,905 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Trixie
+2025-06-24 21:08:10,369 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:08:10,370 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Rarity
+2025-06-24 21:08:10,907 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:08:10,908 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Fluttershy
+2025-06-24 21:08:11,412 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:08:11,412 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Pinkie Pie
+2025-06-24 21:08:11,829 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:08:11,830 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Twilight Sparkle
+2025-06-24 21:08:12,273 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:08:12,274 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Rainbow Dash
+2025-06-24 21:08:12,849 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:08:12,850 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Princess Celestia
+2025-06-24 21:08:13,307 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:08:13,307 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Starlight Glimmer
+2025-06-24 21:08:13,803 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:08:13,803 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Derpy Hooves
+2025-06-24 21:08:19,874 - root - INFO - Configuration loaded from flutter_earth_config.json

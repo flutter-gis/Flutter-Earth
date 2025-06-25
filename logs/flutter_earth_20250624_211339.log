@@ -1,0 +1,76 @@
+2025-06-24 21:13:39,795 - root - INFO - === Flutter Earth Application Started ===
+2025-06-24 21:13:39,796 - root - INFO - Log file: logs\flutter_earth_20250624_211339.log
+2025-06-24 21:13:39,885 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-24 21:13:39,994 - root - INFO - Flutter Earth QML GUI modules imported successfully
+2025-06-24 21:13:39,994 - root - INFO - Initializing QApplication...
+2025-06-24 21:13:40,019 - root - INFO - Starting Flutter Earth QML GUI application...
+2025-06-24 21:13:40,025 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-24 21:13:40,026 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-24 21:13:40,027 - flutter_earth_pkg.flutter_earth.themes - INFO - ThemeManager initialized with theme: Light
+2025-06-24 21:13:40,788 - googleapiclient.http - WARNING - Encountered 403 Forbidden with reason "PERMISSION_DENIED"
+2025-06-24 21:13:40,788 - root - WARNING - High-volume EE initialization failed: ee.Initialize: no project found. Call with project= or see http://goo.gle/ee-auth.. Trying default endpoint.
+2025-06-24 21:13:41,588 - googleapiclient.http - WARNING - Encountered 403 Forbidden with reason "PERMISSION_DENIED"
+2025-06-24 21:13:41,588 - root - ERROR - Earth Engine initialization failed: ee.Initialize: no project found. Call with project= or see http://goo.gle/ee-auth.
+2025-06-24 21:13:41,588 - root - ERROR - Earth Engine project not found. Please:
+1. Create a Google Cloud project with Earth Engine API enabled
+2. Set up service account authentication using the setup dialog
+3. Or set environment variable: EARTHENGINE_PROJECT=your-project-id
+4. Visit https://developers.google.com/earth-engine/guides/access to sign up
+2025-06-24 21:13:53,038 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:13:53,041 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Default (Dark)
+2025-06-24 21:13:54,082 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:13:54,086 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Default (Dark)
+2025-06-24 21:13:55,844 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:13:55,848 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Default (Dark)
+2025-06-24 21:13:57,749 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:13:57,763 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Sanofi
+2025-06-24 21:14:03,089 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:03,100 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Twilight Sparkle
+2025-06-24 21:14:05,418 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:05,428 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Pinkie Pie
+2025-06-24 21:14:06,433 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:06,443 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Fluttershy
+2025-06-24 21:14:08,551 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:08,555 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Twilight Sparkle
+2025-06-24 21:14:10,245 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:10,253 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Pinkie Pie
+2025-06-24 21:14:11,940 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:11,949 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Rainbow Dash
+2025-06-24 21:14:14,908 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:14,915 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Applejack
+2025-06-24 21:14:16,620 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:16,626 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Rarity
+2025-06-24 21:14:19,197 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:19,200 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Princess Celestia
+2025-06-24 21:14:20,924 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:20,928 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Princess Luna
+2025-06-24 21:14:23,520 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:23,527 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Trixie
+2025-06-24 21:14:28,965 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:28,973 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Starlight Glimmer
+2025-06-24 21:14:32,177 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:32,184 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Derpy Hooves
+2025-06-24 21:14:40,112 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:40,122 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Steve
+2025-06-24 21:14:42,555 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:42,559 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Alex (Minecraft)
+2025-06-24 21:14:44,073 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:44,077 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Creeper (Minecraft)
+2025-06-24 21:14:45,655 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:45,660 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Enderman (Minecraft)
+2025-06-24 21:14:47,672 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:14:47,676 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Zombie (Minecraft)
+2025-06-24 21:15:59,986 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:15:59,994 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Sanofi
+2025-06-24 21:16:04,695 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:16:04,703 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Default (Dark)
+2025-06-24 21:16:10,863 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:16:10,870 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Creeper (Minecraft)
+2025-06-24 21:16:33,578 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:16:33,586 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Derpy Hooves
+2025-06-24 21:16:35,798 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:16:35,807 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Fluttershy
+2025-06-24 21:16:47,179 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:16:47,186 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Default (Dark)
+2025-06-24 21:17:02,929 - root - INFO - Configuration saved to flutter_earth_config.json
+2025-06-24 21:17:02,939 - flutter_earth_pkg.flutter_earth.themes - INFO - Theme changed to: Pinkie Pie

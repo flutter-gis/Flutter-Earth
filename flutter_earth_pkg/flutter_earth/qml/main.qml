@@ -137,4 +137,11 @@ ApplicationWindow {
             }
         }
     }
+    Connections {
+        target: backend
+        function onThemeChanged(themeName, themeData) {
+            ThemeProvider.updateThemeData();
+            console.log("ThemeProvider: Theme changed to", themeName);
+        }
+    }
 } 

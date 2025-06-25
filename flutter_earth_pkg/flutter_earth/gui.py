@@ -170,7 +170,10 @@ class AppBackend(QObject):
     def getCurrentThemeData(self):
         """Get current theme data."""
         theme_data = self.theme_manager.get_current_theme_data()
-        print(f"[DEBUG] getCurrentThemeData: returning theme data with keys: {list(theme_data.keys()) if theme_data else 'None'}")
+        print(f"[DEBUG] AppBackend.getCurrentThemeData: {theme_data}")
+        if not isinstance(theme_data, dict):
+            print("[ERROR] getCurrentThemeData did not return a dict!")
+            return {}
         return theme_data
 
     @Slot(result=str)
@@ -181,7 +184,10 @@ class AppBackend(QObject):
     def getAvailableThemes(self):
         """Get list of available themes from ThemeManager."""
         themes = self.theme_manager.get_available_themes_meta()
-        print(f"[DEBUG] getAvailableThemes: returning {len(themes)} themes: {themes}")
+        print(f"[DEBUG] AppBackend.getAvailableThemes: {themes}")
+        if not isinstance(themes, list):
+            print("[ERROR] getAvailableThemes did not return a list!")
+            return []
         return themes
 
     @Slot(str, result=bool)
@@ -415,8 +421,11 @@ class AppBackend(QObject):
     @Slot(result=dict)
     def getAllSettings(self):
         """Get the full settings/config as a dict."""
-        settings = self.config_manager.to_dict()
-        print(f"[DEBUG] getAllSettings: returning settings with keys: {list(settings.keys()) if settings else 'None'}")
+        settings = self.config_manager.getAllSettings()
+        print(f"[DEBUG] AppBackend.getAllSettings: {settings}")
+        if not isinstance(settings, dict):
+            print("[ERROR] getAllSettings did not return a dict!")
+            return {}
         return settings
 
     # --- Index Analysis Methods ---

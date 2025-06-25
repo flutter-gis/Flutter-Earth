@@ -92,6 +92,8 @@ except ImportError as e:
     logging.error("Please ensure all required modules are in the correct directory structure and PySide6 is installed.")
     sys.exit(1)
 
+os.environ["QT_QUICK_CONTROLS_STYLE"] = "Fusion"
+
 def main():
     """Main entry point for Flutter Earth QML application."""
     try:
