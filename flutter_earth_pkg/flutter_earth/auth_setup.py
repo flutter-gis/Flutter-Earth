@@ -114,4 +114,33 @@ class AuthManager(QObject):
         return {
             'project_id': self._project_id,
             'key_file': self._key_file
-        } 
+        }
+
+    def setup_credentials(self, parent=None):
+        """Interactive setup of credentials. Returns credentials dict if successful, None otherwise."""
+        try:
+            # For now, just return existing credentials if they exist
+            if self.has_credentials():
+                return self.get_credentials()
+            
+            # If no credentials exist, return None to allow the app to continue
+            # In a full implementation, this would show a dialog for credential setup
+            self.logger.warning("No credentials found. Please set up Earth Engine authentication manually.")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error in setup_credentials: {e}")
+            return None
+
+    def initialize_earth_engine(self, parent=None):
+        """Initialize Earth Engine with current credentials. Returns True if successful."""
+        try:
+            if not self.has_credentials():
+                return False
+            
+            import ee
+            credentials = ee.ServiceAccountCredentials('', self._key_file)
+            ee.Initialize(credentials, project=self._project_id)
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to initialize Earth Engine: {e}")
+            return False 

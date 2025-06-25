@@ -1,16 +1,21 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import "." // For ThemeProvider
+import Qt5Compat.GraphicalEffects
+import "./" // For ThemeProvider
 
-Rectangle { // Changed from Item to Rectangle
+Rectangle {
     id: satelliteInfoView
     color: ThemeProvider.getColor("background", "white")
     anchors.fill: parent
 
+    property var satelliteCategories: backend.getSatelliteCategories ? backend.getSatelliteCategories() : {}
+    property string selectedSensor: ""
+
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 10
+        anchors.margins: 20
+        spacing: 20
 
         Label {
             text: ThemeProvider.getCatchphrase("view_SatelliteInfoView", "Satellite Information")
@@ -20,7 +25,7 @@ Rectangle { // Changed from Item to Rectangle
         }
 
         Label {
-            text: ThemeProvider.getCatchphrase("desc_SatelliteInfoView", "Detailed information about various satellites and their sensors will be displayed here.")
+            text: "Browse available satellites and their capabilities. Learn about different sensors and their resolutions."
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
             font: ThemeProvider.getFont("body")
@@ -30,119 +35,286 @@ Rectangle { // Changed from Item to Rectangle
         RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 10
+            spacing: 20
 
-            // TreeView for satellite categories and sensors
-            TreeView {
-                id: satelliteTree
+            // Satellite Categories and Sensors List
+            GroupBox {
+                title: "Satellites & Sensors"
                 Layout.fillWidth: true
                 Layout.preferredWidth: parent.width * 0.4
                 Layout.fillHeight: true
-                clip: true
-                model: backend.satelliteData // TODO: Wrap this in a proper QAbstractItemModel for full functionality
+                font: ThemeProvider.getFont("body")
 
+                ColumnLayout {
+                    width: parent.width
+                    spacing: 10
+
+                    // Category Selection
+                    ComboBox {
+                        id: categoryCombo
+                        model: Object.keys(satelliteCategories)
+                        currentIndex: 0
+                        onCurrentIndexChanged: {
+                            if (currentIndex >= 0) {
+                                var categoryName = model[currentIndex]
+                                sensorList.model = satelliteCategories[categoryName] || []
+                            }
+                        }
+                        font: ThemeProvider.getFont("body")
                 background: Rectangle {
-                    color: ThemeProvider.getColor("entry_bg")
+                            color: ThemeProvider.getColor(ThemeProvider.styles.text_input.backgroundColorKey)
+                            border.color: ThemeProvider.getColor(ThemeProvider.styles.text_input.borderColorKey)
+                            radius: ThemeProvider.getStyle("text_input").radius
+                        }
+                        popup.background: Rectangle {
+                            color: ThemeProvider.getColor("list_bg")
                     border.color: ThemeProvider.getColor("widget_border")
                 }
+                    }
 
-                delegate: TreeViewDelegate {
-                    text: model.display
-                    font: ThemeProvider.getFont("body")
-                    // TODO: Indentation, expand/collapse icons styling
-                    background: Rectangle {
-                         color: model.selected ? ThemeProvider.getColor("list_selected_bg") : "transparent"
-                    }
-                    Label { // Using Label to easily set text color
-                        text: parent.text
-                        color: model.selected ? ThemeProvider.getColor("list_selected_fg") : ThemeProvider.getColor("list_fg")
-                        elide: Text.ElideRight
-                        leftPadding: 10 + parent.indentation // Manual indentation based on depth
-                    }
-                }
+                    // Sensor List
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        color: ThemeProvider.getColor("entry_bg")
+                        border.color: ThemeProvider.getColor("widget_border")
+                        radius: ThemeProvider.getStyle("text_input").radius || 3
 
-                TableViewColumn {
-                    title: ThemeProvider.getCatchphrase("header_satellite_category", "Satellite / Category")
-                    role: "name"
-                    resizable: true
-                    delegate: Text { // Styling for header text
-                        text: title
-                        font: ThemeProvider.getFont("button") // Using button font for header
-                        font.bold: true
-                        color: ThemeProvider.getColor("text")
-                        elide: Text.ElideRight
-                    }
-                }
-                TableViewColumn {
-                    title: ThemeProvider.getCatchphrase("header_type", "Type")
-                    role: "type"
-                    resizable: true
-                     delegate: Text { // Styling for header text
-                        text: title
-                        font: ThemeProvider.getFont("button")
-                        font.bold: true
-                        color: ThemeProvider.getColor("text")
-                        elide: Text.ElideRight
+                        ScrollView {
+                            anchors.fill: parent
+                            anchors.margins: 5
+                            clip: true
+
+                            ListView {
+                                id: sensorList
+                                model: []
+                                delegate: Rectangle {
+                                    width: parent.width
+                                    height: 50
+                                    color: ListView.isCurrentItem ? ThemeProvider.getColor("list_selected_bg") : 
+                                          index % 2 === 0 ? ThemeProvider.getColor("entry_bg") : ThemeProvider.getColor("alternate_bg", ThemeProvider.getColor("entry_bg"))
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 10
+                                        spacing: 10
+
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 2
+
+                                            Text {
+                                                text: modelData.id || "Unknown Sensor"
+                                                font: ThemeProvider.getFont("body")
+                                                font.bold: true
+                                                color: ThemeProvider.getColor("text")
+                                            }
+
+                                            Text {
+                                                text: modelData.type || "Unknown Type"
+                                                font: ThemeProvider.getFont("body")
+                                                font.pixelSize: ThemeProvider.getFont("body").pixelSize - 2
+                                                color: ThemeProvider.getColor("text_subtle")
+                                            }
+                                        }
+
+                                        Text {
+                                            text: modelData.resolution ? modelData.resolution + "m" : "N/A"
+                                            font: ThemeProvider.getFont("body")
+                                            color: ThemeProvider.getColor("text_subtle")
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: {
+                                            sensorList.currentIndex = index
+                                            selectedSensor = modelData.id
+                                            loadSensorDetails(modelData.id)
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            // Details display area
-            TextArea {
-                id: detailsDisplay
+            // Sensor Details Display
+            GroupBox {
+                title: "Sensor Details"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                readOnly: true
-                placeholderText: ThemeProvider.getCatchphrase("placeholder_select_satellite", "Select a satellite to see details.")
-                textFormat: TextArea.RichText
                 font: ThemeProvider.getFont("body")
-                color: ThemeProvider.getColor(ThemeProvider.styles.text_input.textColorKey, "black")
-                background: Rectangle {
-                    color: ThemeProvider.getColor(ThemeProvider.styles.text_input.backgroundColorKey, "white")
-                    border.color: ThemeProvider.getColor(ThemeProvider.styles.text_input.borderColorKey, "gray")
-                    radius: ThemeProvider.getStyle("text_input").radius || 2
-                }
 
-                // Example connection if satelliteTree selection changes
-                // Connections {
-                //     target: satelliteTree.selection
-                //     function onCurrentIndexChanged() {
-                //         var selectedNode = satelliteTree.model.get(satelliteTree.currentIndex)
-                //         if (selectedNode && selectedNode.isSensor) { // isSensor is a hypothetical property
-                //             detailsDisplay.text = backend.getSatelliteDetailsAsHtml(selectedNode.id)
-                //         } else {
-                //             detailsDisplay.text = "Select a sensor."
-                //         }
-                //     }
-                // }
+                ScrollView {
+                    anchors.fill: parent
+                    clip: true
+
+                    ColumnLayout {
+                        width: parent.width
+                        spacing: 15
+
+                        // Sensor Overview
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 200
+                            color: ThemeProvider.getColor("entry_bg")
+                            border.color: ThemeProvider.getColor("widget_border")
+                            radius: ThemeProvider.getStyle("text_input").radius || 3
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 15
+                                spacing: 10
+
+                                Text {
+                                    id: sensorName
+                                    text: "Select a sensor to view details"
+                                    font: ThemeProvider.getFont("title")
+                                    color: ThemeProvider.getColor("primary")
+                                    Layout.fillWidth: true
+                                    wrapMode: Text.WordWrap
+                                }
+
+                                GridLayout {
+                                    columns: 2
+                                    columnSpacing: 20
+                                    rowSpacing: 8
+                                    Layout.fillWidth: true
+
+                                    Text { id: typeLabel; text: "Type:"; font: ThemeProvider.getFont("body"); color: ThemeProvider.getColor("text"); font.bold: true }
+                                    Text { id: typeValue; text: ""; font: ThemeProvider.getFont("body"); color: ThemeProvider.getColor("text") }
+
+                                    Text { id: resolutionLabel; text: "Resolution:"; font: ThemeProvider.getFont("body"); color: ThemeProvider.getColor("text"); font.bold: true }
+                                    Text { id: resolutionValue; text: ""; font: ThemeProvider.getFont("body"); color: ThemeProvider.getColor("text") }
+
+                                    Text { id: bandsLabel; text: "Bands:"; font: ThemeProvider.getFont("body"); color: ThemeProvider.getColor("text"); font.bold: true }
+                                    Text { id: bandsValue; text: ""; font: ThemeProvider.getFont("body"); color: ThemeProvider.getColor("text"); wrapMode: Text.WordWrap }
+
+                                    Text { id: coverageLabel; text: "Coverage:"; font: ThemeProvider.getFont("body"); color: ThemeProvider.getColor("text"); font.bold: true }
+                                    Text { id: coverageValue; text: ""; font: ThemeProvider.getFont("body"); color: ThemeProvider.getColor("text") }
+
+                                    Text { id: launchLabel; text: "Launch Date:"; font: ThemeProvider.getFont("body"); color: ThemeProvider.getColor("text"); font.bold: true }
+                                    Text { id: launchValue; text: ""; font: ThemeProvider.getFont("body"); color: ThemeProvider.getColor("text") }
+
+                                    Text { id: statusLabel; text: "Status:"; font: ThemeProvider.getFont("body"); color: ThemeProvider.getColor("text"); font.bold: true }
+                                    Text { id: statusValue; text: ""; font: ThemeProvider.getFont("body"); color: ThemeProvider.getColor("text") }
+                                }
+                            }
+                        }
+
+                        // Band Information
+                        GroupBox {
+                            title: "Band Information"
+                            Layout.fillWidth: true
+                            font: ThemeProvider.getFont("body")
+
+                            ColumnLayout {
+                                width: parent.width
+                                spacing: 10
+
+                                Repeater {
+                                    id: bandRepeater
+                                    model: []
+                                    delegate: Rectangle {
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: 40
+                                        color: index % 2 === 0 ? ThemeProvider.getColor("entry_bg") : ThemeProvider.getColor("alternate_bg", ThemeProvider.getColor("entry_bg"))
+                                        radius: 3
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 10
+                                            spacing: 15
+
+                                            Text {
+                                                text: "Band " + (index + 1)
+                                                font: ThemeProvider.getFont("body")
+                                                font.bold: true
+                                                color: ThemeProvider.getColor("text")
+                                                Layout.preferredWidth: 60
+                                            }
+
+                                            Text {
+                                                text: modelData.name || "Unknown"
+                                                font: ThemeProvider.getFont("body")
+                                                color: ThemeProvider.getColor("text")
+                                                Layout.fillWidth: true
+                                            }
+
+                                            Text {
+                                                text: modelData.wavelength ? modelData.wavelength + " nm" : "N/A"
+                                                font: ThemeProvider.getFont("body")
+                                                color: ThemeProvider.getColor("text_subtle")
+                                                Layout.preferredWidth: 100
+                                            }
+
+                                            Text {
+                                                text: modelData.resolution ? modelData.resolution + "m" : "N/A"
+                                                font: ThemeProvider.getFont("body")
+                                                color: ThemeProvider.getColor("text_subtle")
+                                                Layout.preferredWidth: 80
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    text: "No band information available"
+                                    visible: bandRepeater.model.length === 0
+                                    font: ThemeProvider.getFont("body")
+                                    color: ThemeProvider.getColor("text_subtle")
+                                    Layout.alignment: Qt.AlignHCenter
+                                }
+                            }
+                        }
+
+                        // Applications
+                        GroupBox {
+                            title: "Applications"
+                            Layout.fillWidth: true
+                            font: ThemeProvider.getFont("body")
+
+                            Text {
+                                id: applicationsText
+                                text: "Select a sensor to see its applications"
+                                font: ThemeProvider.getFont("body")
+                                color: ThemeProvider.getColor("text")
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
-    Component.onCompleted: {
-        // Temporary: Populate detailsDisplay with some info about the satelliteData structure
-        // This is for debugging until the TreeView model and delegate are fully functional.
-        var data = backend.satelliteData; // This is an array of categories
-        var tempDetails = "Satellite Categories and Sensors (Raw Structure):\n\n";
-        if (data && data.length > 0) {
-            for (var i = 0; i < data.length; i++) {
-                tempDetails += "Category: " + data[i].name + "\n";
-                if (data[i].sensors && data[i].sensors.length > 0) {
-                    for (var j = 0; j < data[i].sensors.length; j++) {
-                        tempDetails += "  - Sensor: " + data[i].sensors[j].id + " (" + data[i].sensors[j].type + ")\n";
-                    }
-                }
-                tempDetails += "\n";
-            }
-        } else {
-            tempDetails = "No satellite data available from backend or backend.satelliteData is not structured as expected.";
-        }
-        detailsDisplay.text = tempDetails;
+    // Functions
+    function loadSensorDetails(sensorId) {
+        var details = backend.getSatelliteDetails ? backend.getSatelliteDetails(sensorId) : {}
+        
+        // Update sensor overview
+        sensorName.text = details.name || sensorId
+        typeValue.text = details.type || "N/A"
+        resolutionValue.text = details.resolution ? details.resolution + "m" : "N/A"
+        bandsValue.text = details.bands ? details.bands.join(", ") : "N/A"
+        coverageValue.text = details.coverage || "N/A"
+        launchValue.text = details.launch_date || "N/A"
+        statusValue.text = details.status || "N/A"
 
-        // Check if backend.satelliteData is suitable for TreeView
-        // A proper model would be QAbstractItemModel based.
-        // For now, this will likely not work as TreeView expects a model.
-        // We will need to adapt or wrap backend.satelliteData.
-        console.log("Satellite Data from backend for TreeView:", JSON.stringify(backend.satelliteData))
+        // Update band information
+        bandRepeater.model = details.band_info || []
+
+        // Update applications
+        applicationsText.text = details.applications || "No application information available"
+    }
+
+    Component.onCompleted: {
+        // Initialize with first category if available
+        if (Object.keys(satelliteCategories).length > 0) {
+            categoryCombo.currentIndex = 0
+        }
     }
 }

@@ -1,34 +1,14 @@
 {
-    "output_dir": "C:\\Users\\J. Newman/Downloads/flutter_earth",
-    "tile_size": 1.0,
-    "max_workers": 4,
-    "cloud_mask": true,
-    "max_cloud_cover": 20.0,
-    "recent_directories": [],
-    "theme": "Fluttershy",
-    "theme_suboptions": {
-        "catchphrases": false,
-        "special_icons": false,
-        "animated_background": false
-    },
-    "sensor_priority_order": [
-        "LANDSAT_9",
-        "SENTINEL2",
-        "LANDSAT_8",
-        "LANDSAT_7",
-        "LANDSAT_5",
-        "LANDSAT_4",
-        "ERA5_TEMP",
-        "VIIRS",
-        "MODIS"
-    ],
-    "use_best_resolution": false,
-    "cleanup_tiles": true,
-    "tiling_method": "degree",
-    "num_subsections": 100,
-    "target_resolution": 30,
-    "start_date": "2024-12-20",
-    "end_date": "2025-06-20",
-    "overwrite": false,
-    "bbox_str": "35.2,30.5,35.8,32.0"
+  "output_dir": "C:\\Users\\J. Newman/Downloads/flutter_earth",
+  "tile_size": 1.0,
+  "max_workers": 4,
+  "cloud_mask": true,
+  "max_cloud_cover": 20.0,
+  "sensor_priority": [
+    "LANDSAT_9",
+    "SENTINEL_2",
+    "LANDSAT_8"
+  ],
+  "recent_directories": [],
+  "theme": "Steve"
 }

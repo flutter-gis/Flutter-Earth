@@ -9,7 +9,7 @@ import subprocess
 # List of all required packages (as used in this script)
 REQUIRED_PACKAGES = [
     'numpy', 'rasterio', 'shapefile', 'folium', 'webview', 'requests',
-    'dateutil', 'ee', 'PySide6', 'tempfile', 'shutil', 'zipfile',
+    'dateutil', 'ee', 'PySide6', 'PySide6-Addons', 'tempfile', 'shutil', 'zipfile',
     'hashlib', 'concurrent.futures', 'warnings', 'contextlib', 'logging',
     'json', 'queue', 'threading', 'pathlib'
 ]

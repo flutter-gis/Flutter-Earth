@@ -1,7 +1,9 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import "." // For ThemeProvider
+import Qt5Compat.GraphicalEffects
+import Qt.labs.platform 1.1
+import "./" // For ThemeProvider
 
 Rectangle {
     id: downloadView
@@ -173,9 +175,8 @@ Rectangle {
         FileDialog {
             id: outputDirDialog
             title: "Select Output Directory"
-            selectFolder: true
             onAccepted: {
-                var selectedPath = fileUrl.toString().replace(/^(file:\/{2,3})/, "");
+                var selectedPath = file.toString().replace(/^(file:\/{2,3})/, "");
                 if (Qt.platform.os === "windows" && selectedPath.startsWith("/")) {
                     selectedPath = selectedPath.substring(1);
                 }
@@ -347,19 +348,25 @@ Rectangle {
         }
     }
 
-    MessageDialog {
+    Dialog {
         id: messageDialog
         title: ThemeProvider.getCatchphrase("dialog_title_info", "Download Info")
-        text: "" // Set by calling code
-        visible: false
-        onAccepted: visible = false
-        background: Rectangle { color: ThemeProvider.getColor("widget_bg"); border.color: ThemeProvider.getColor("widget_border") }
-        contentItem: Text {
-            text: messageDialog.text
-            font: ThemeProvider.getFont("body")
-            color: ThemeProvider.getColor("text")
-            wrapMode: Text.WordWrap
+        modal: true
+        standardButtons: Dialog.Ok
+        width: 500
+        height: 300
+
+        property string text: ""
+
+        ScrollView {
+            anchors.fill: parent
+            anchors.margins: 10
+            Text {
+                text: messageDialog.text
+                font: ThemeProvider.getFont("body")
+                color: ThemeProvider.getColor("text")
+                wrapMode: Text.WordWrap
+            }
         }
-        // StandardButtons can also be styled if needed by accessing their contentItem/background
     }
 }

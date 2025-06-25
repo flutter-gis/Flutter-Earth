@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Particles 2.15 // Added for particle effects
-import "." // For ThemeProvider
+import "./" // For ThemeProvider singleton registration
 
 ApplicationWindow {
     id: appWindow
@@ -29,7 +29,7 @@ ApplicationWindow {
         anchors.right: parent.right
         z: 2
     }
-    Sidebar {
+    SideBar {
         id: sidebar
         anchors.top: topBar.bottom
         anchors.left: parent.left
@@ -111,4 +111,30 @@ ApplicationWindow {
         }
     }
     // --- End Thematic Particle Effects ---
+
+    AuthDialog {
+        id: authDialog
+        visible: false
+        onHelpRequested: helpPopup.open()
+        onCredentialsEntered: function(keyFile, projectId) {
+            backend.setAuthCredentials(keyFile, projectId)
+            authDialog.visible = false
+        }
+    }
+    HelpPopup { id: helpPopup }
+    Component.onCompleted: {
+        // Connect to the auth_missing signal from backend
+        if (backend) {
+            backend.auth_missing.connect(function() { 
+                console.log("Authentication missing - showing dialog")
+                authDialog.visible = true 
+            })
+            
+            // Check if authentication is missing immediately
+            if (!backend.isGeeInitialized()) {
+                console.log("GEE not initialized - showing auth dialog immediately")
+                authDialog.visible = true
+            }
+        }
+    }
 } 

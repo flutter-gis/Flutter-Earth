@@ -1,6 +1,8 @@
 """Progress tracking for Flutter Earth."""
 import logging
-from typing import Optional, Dict, Any, Callable
+import json
+import os
+from typing import Optional, Dict, Any, Callable, List
 from datetime import datetime, timedelta
 
 class ProgressTracker:
@@ -16,6 +18,65 @@ class ProgressTracker:
         self.callback: Optional[Callable] = None
         self.status = "idle"
         self.error: Optional[str] = None
+        self.history_file = os.path.join(os.path.expanduser("~"), ".cache", "flutter_earth", "download_history.json")
+        self.download_history: List[Dict[str, Any]] = []
+        self._load_history()
+    
+    def _load_history(self) -> None:
+        """Load download history from file."""
+        try:
+            os.makedirs(os.path.dirname(self.history_file), exist_ok=True)
+            if os.path.exists(self.history_file):
+                with open(self.history_file, 'r') as f:
+                    self.download_history = json.load(f)
+        except Exception as e:
+            self.logger.warning(f"Could not load download history: {e}")
+            self.download_history = []
+    
+    def _save_history(self) -> None:
+        """Save download history to file."""
+        try:
+            os.makedirs(os.path.dirname(self.history_file), exist_ok=True)
+            with open(self.history_file, 'w') as f:
+                json.dump(self.download_history, f, indent=2, default=str)
+        except Exception as e:
+            self.logger.warning(f"Could not save download history: {e}")
+    
+    def add_to_history(self, operation_name: str, success: bool, details: Dict[str, Any]) -> None:
+        """Add an operation to the download history.
+        
+        Args:
+            operation_name: Name of the operation.
+            success: Whether the operation was successful.
+            details: Additional details about the operation.
+        """
+        history_entry = {
+            'name': operation_name,
+            'date': datetime.now().isoformat(),
+            'status': 'Completed' if success else 'Failed',
+            'details': details
+        }
+        
+        self.download_history.append(history_entry)
+        
+        # Keep only the last 100 entries
+        if len(self.download_history) > 100:
+            self.download_history = self.download_history[-100:]
+        
+        self._save_history()
+    
+    def get_history(self) -> List[Dict[str, Any]]:
+        """Get the download history.
+        
+        Returns:
+            List of download history entries.
+        """
+        return self.download_history
+    
+    def clear_history(self) -> None:
+        """Clear the download history."""
+        self.download_history = []
+        self._save_history()
     
     def initialize(self) -> None:
         """Initialize or reset the tracker."""
