@@ -12,6 +12,7 @@ import tempfile
 import folium
 import shutil
 import glob
+import logging
 
 from PySide6.QtCore import QObject, Slot, QUrl, Signal
 from PySide6.QtWidgets import QApplication, QMessageBox
@@ -26,6 +27,7 @@ from .download_manager import DownloadManager
 from .progress_tracker import ProgressTracker
 from .satellite_info import SatelliteInfoManager, SATELLITE_DETAILS, SATELLITE_CATEGORIES
 from .themes import ThemeManager # Import ThemeManager
+from .advanced_gis import AdvancedGISManager # Import AdvancedGISManager
 
 class AppBackend(QObject):
     """
@@ -50,6 +52,7 @@ class AppBackend(QObject):
         self.progress_tracker = progress_tracker
         self.satellite_manager = SatelliteInfoManager()
         self.theme_manager = ThemeManager() # Instantiate ThemeManager
+        self.advanced_gis = AdvancedGISManager(config_manager, earth_engine, download_manager, progress_tracker) # Instantiate AdvancedGISManager
 
         # Connect error signals for user feedback
         self.download_manager.error_occurred.connect(self.onDownloadError)
@@ -62,6 +65,17 @@ class AppBackend(QObject):
         # Theme signal
         self.theme_manager.theme_changed.connect(self.onThemeManagerThemeChanged)
 
+        # Advanced GIS signals
+        self.advanced_gis.panelStateChanged.connect(self.onPanelStateChanged)
+        self.advanced_gis.mapViewStateChanged.connect(self.onMapViewStateChanged)
+        self.advanced_gis.layerStateChanged.connect(self.onLayerStateChanged)
+        self.advanced_gis.workspaceLayoutChanged.connect(self.onWorkspaceLayoutChanged)
+        self.advanced_gis.bookmarkAdded.connect(self.onBookmarkAdded)
+        self.advanced_gis.measurementCompleted.connect(self.onMeasurementCompleted)
+        self.advanced_gis.notificationAdded.connect(self.onNotificationAdded)
+        self.advanced_gis.taskProgressUpdated.connect(self.onTaskProgressUpdated)
+        self.advanced_gis.toolActivated.connect(self.onToolActivated)
+        self.advanced_gis.searchResultFound.connect(self.onSearchResultFound)
 
         # If you have a sample_manager, connect its progress here (pseudo-code):
         # self.sample_manager.sample_download_progress.connect(self.onSampleDownloadProgress)
@@ -813,11 +827,240 @@ class AppBackend(QObject):
 
     @Slot(str, str)
     def setAuthCredentials(self, key_file, project_id):
-        from .auth_setup import AuthManager
-        auth_manager = AuthManager()
-        auth_manager.save_credentials(project_id, key_file)
-        print(f"[DEBUG] Credentials saved: {key_file}, {project_id}")
-        # Optionally, re-initialize Earth Engine here
+        """Set authentication credentials for Earth Engine."""
+        try:
+            self.earth_engine.set_auth_credentials(key_file, project_id)
+            return True
+        except Exception as e:
+            logging.error(f"Error setting auth credentials: {e}")
+            return False
+
+    # Advanced GIS Methods
+    @Slot(result=dict)
+    def getAdvancedGISState(self):
+        """Get complete advanced GIS state"""
+        return self.advanced_gis.get_current_state()
+    
+    @Slot(str, result=dict)
+    def getPanelState(self, panel_type):
+        """Get panel state"""
+        return self.advanced_gis.get_panel_state(panel_type)
+    
+    @Slot(str, dict)
+    def setPanelState(self, panel_type, state):
+        """Set panel state"""
+        self.advanced_gis.set_panel_state(panel_type, state)
+    
+    @Slot(str)
+    def togglePanelVisibility(self, panel_type):
+        """Toggle panel visibility"""
+        self.advanced_gis.toggle_panel_visibility(panel_type)
+    
+    @Slot(str)
+    def undockPanel(self, panel_type):
+        """Undock a panel"""
+        self.advanced_gis.undock_panel(panel_type)
+    
+    @Slot(str, str)
+    def dockPanel(self, panel_type, position):
+        """Dock a panel"""
+        self.advanced_gis.dock_panel(panel_type, position)
+    
+    @Slot(str, result=dict)
+    def getMapViewState(self, view_id):
+        """Get map view state"""
+        return self.advanced_gis.get_map_view_state(view_id)
+    
+    @Slot(str, dict)
+    def setMapViewState(self, view_id, state):
+        """Set map view state"""
+        self.advanced_gis.set_map_view_state(view_id, state)
+    
+    @Slot(str, str, result=str)
+    def createMapView(self, view_type, title):
+        """Create a new map view"""
+        return self.advanced_gis.create_map_view(view_type, title)
+    
+    @Slot(str)
+    def removeMapView(self, view_id):
+        """Remove a map view"""
+        self.advanced_gis.remove_map_view(view_id)
+    
+    @Slot(list)
+    def synchronizeMapViews(self, view_ids):
+        """Synchronize map views"""
+        self.advanced_gis.synchronize_map_views(view_ids)
+    
+    @Slot(dict, result=str)
+    def addLayer(self, layer_info):
+        """Add a new layer"""
+        return self.advanced_gis.add_layer(layer_info)
+    
+    @Slot(str)
+    def removeLayer(self, layer_id):
+        """Remove a layer"""
+        self.advanced_gis.remove_layer(layer_id)
+    
+    @Slot(str, bool)
+    def updateLayerVisibility(self, layer_id, visible):
+        """Update layer visibility"""
+        self.advanced_gis.update_layer_visibility(layer_id, visible)
+    
+    @Slot(str, float)
+    def updateLayerOpacity(self, layer_id, opacity):
+        """Update layer opacity"""
+        self.advanced_gis.update_layer_opacity(layer_id, opacity)
+    
+    @Slot(list, str)
+    def groupLayers(self, layer_ids, group_name):
+        """Group layers"""
+        self.advanced_gis.group_layers(layer_ids, group_name)
+    
+    @Slot(str)
+    def isolateLayer(self, layer_id):
+        """Isolate a layer"""
+        self.advanced_gis.isolate_layer(layer_id)
+    
+    @Slot(str, str, list, float, list)
+    def addBookmark(self, name, description, center, zoom_level, tags):
+        """Add a bookmark"""
+        self.advanced_gis.add_bookmark(name, description, center, zoom_level, tags)
+    
+    @Slot(str)
+    def removeBookmark(self, name):
+        """Remove a bookmark"""
+        self.advanced_gis.remove_bookmark(name)
+    
+    @Slot(result=list)
+    def getBookmarks(self):
+        """Get all bookmarks"""
+        return self.advanced_gis.get_bookmarks()
+    
+    @Slot(str)
+    def startMeasurement(self, measurement_type):
+        """Start measurement"""
+        self.advanced_gis.start_measurement(measurement_type)
+    
+    @Slot(str, list, result=dict)
+    def completeMeasurement(self, measurement_type, coordinates):
+        """Complete measurement"""
+        return self.advanced_gis.complete_measurement(measurement_type, coordinates)
+    
+    @Slot(str, str)
+    def saveWorkspaceLayout(self, name, description):
+        """Save workspace layout"""
+        self.advanced_gis.save_workspace_layout(name, description)
+    
+    @Slot(str)
+    def loadWorkspaceLayout(self, name):
+        """Load workspace layout"""
+        self.advanced_gis.load_workspace_layout(name)
+    
+    @Slot(result=list)
+    def getWorkspaceLayouts(self):
+        """Get workspace layouts"""
+        return self.advanced_gis.get_workspace_layouts()
+    
+    @Slot(str)
+    def deleteWorkspaceLayout(self, name):
+        """Delete workspace layout"""
+        self.advanced_gis.delete_workspace_layout(name)
+    
+    @Slot()
+    def toggleZenMode(self):
+        """Toggle zen mode"""
+        self.advanced_gis.toggle_zen_mode()
+    
+    @Slot(str, result=list)
+    def search(self, query):
+        """Global search"""
+        return self.advanced_gis.search(query)
+    
+    @Slot(str, str, str)
+    def addNotification(self, notification_type, title, message):
+        """Add notification"""
+        self.advanced_gis.add_notification(notification_type, title, message)
+    
+    @Slot()
+    def clearNotifications(self):
+        """Clear notifications"""
+        self.advanced_gis.clear_notifications()
+    
+    @Slot(str, str)
+    def addTask(self, task_id, description):
+        """Add task"""
+        self.advanced_gis.add_task(task_id, description)
+    
+    @Slot(str, int, str)
+    def updateTaskProgress(self, task_id, progress, status):
+        """Update task progress"""
+        self.advanced_gis.update_task_progress(task_id, progress, status)
+    
+    @Slot(str)
+    def removeTask(self, task_id):
+        """Remove task"""
+        self.advanced_gis.remove_task(task_id)
+    
+    # Advanced GIS Signal Handlers
+    @Slot(str, dict)
+    def onPanelStateChanged(self, panel_type, state):
+        """Handle panel state change"""
+        # This will be handled by QML
+        pass
+    
+    @Slot(str, dict)
+    def onMapViewStateChanged(self, view_id, state):
+        """Handle map view state change"""
+        # This will be handled by QML
+        pass
+    
+    @Slot(str, dict)
+    def onLayerStateChanged(self, layer_id, state):
+        """Handle layer state change"""
+        # This will be handled by QML
+        pass
+    
+    @Slot(str)
+    def onWorkspaceLayoutChanged(self, layout_name):
+        """Handle workspace layout change"""
+        # This will be handled by QML
+        pass
+    
+    @Slot(dict)
+    def onBookmarkAdded(self, bookmark):
+        """Handle bookmark added"""
+        # This will be handled by QML
+        pass
+    
+    @Slot(dict)
+    def onMeasurementCompleted(self, measurement):
+        """Handle measurement completed"""
+        # This will be handled by QML
+        pass
+    
+    @Slot(str, str, str)
+    def onNotificationAdded(self, notification_type, title, message):
+        """Handle notification added"""
+        # This will be handled by QML
+        pass
+    
+    @Slot(str, int, str)
+    def onTaskProgressUpdated(self, task_id, progress, status):
+        """Handle task progress update"""
+        # This will be handled by QML
+        pass
+    
+    @Slot(str)
+    def onToolActivated(self, tool_type):
+        """Handle tool activation"""
+        # This will be handled by QML
+        pass
+    
+    @Slot(str, dict)
+    def onSearchResultFound(self, query, result):
+        """Handle search result"""
+        # This will be handled by QML
+        pass
 
 class QmlGUILauncher(QObject):
     """

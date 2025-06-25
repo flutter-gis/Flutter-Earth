@@ -1,0 +1,18 @@
+2025-06-25 06:35:43,869 - root - INFO - === Flutter Earth Application Started ===
+2025-06-25 06:35:43,870 - root - INFO - Log file: logs\flutter_earth_20250625_063543.log
+2025-06-25 06:35:43,928 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-25 06:35:44,006 - root - INFO - Flutter Earth QML GUI modules imported successfully
+2025-06-25 06:35:44,006 - root - INFO - Initializing QApplication...
+2025-06-25 06:35:44,027 - root - INFO - Starting Flutter Earth QML GUI application...
+2025-06-25 06:35:44,032 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-25 06:35:44,033 - root - INFO - Configuration loaded from flutter_earth_config.json
+2025-06-25 06:35:44,126 - flutter_earth_pkg.flutter_earth.themes - INFO - ThemeManager initialized with theme: Princess Luna
+2025-06-25 06:35:45,119 - googleapiclient.http - WARNING - Encountered 403 Forbidden with reason "PERMISSION_DENIED"
+2025-06-25 06:35:45,120 - root - WARNING - High-volume EE initialization failed: ee.Initialize: no project found. Call with project= or see http://goo.gle/ee-auth.. Trying default endpoint.
+2025-06-25 06:35:45,827 - googleapiclient.http - WARNING - Encountered 403 Forbidden with reason "PERMISSION_DENIED"
+2025-06-25 06:35:45,828 - root - ERROR - Earth Engine initialization failed: ee.Initialize: no project found. Call with project= or see http://goo.gle/ee-auth.
+2025-06-25 06:35:45,828 - root - ERROR - Earth Engine project not found. Please:
+1. Create a Google Cloud project with Earth Engine API enabled
+2. Set up service account authentication using the setup dialog
+3. Or set environment variable: EARTHENGINE_PROJECT=your-project-id
+4. Visit https://developers.google.com/earth-engine/guides/access to sign up

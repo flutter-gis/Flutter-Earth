@@ -1,8 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import QtLocation 5.15
-import QtPositioning 5.15
 import "./" // For ThemeProvider
 
 Rectangle {
@@ -12,16 +10,22 @@ Rectangle {
 
     property string mapType: "Street"
     property var mapTypes: [
-        { label: "Street", value: Map.StreetMap },
-        { label: "Satellite", value: Map.SatelliteMapDay },
-        { label: "Terrain", value: Map.TerrainMap },
-        { label: "Hybrid", value: Map.HybridMap },
-        { label: "Night", value: Map.NightMap },
-        { label: "Light", value: Map.LightMap }
+        { label: "Street", value: "street" },
+        { label: "Satellite", value: "satellite" },
+        { label: "Terrain", value: "terrain" },
+        { label: "Hybrid", value: "hybrid" },
+        { label: "Night", value: "night" },
+        { label: "Light", value: "light" }
     ]
     property var aoiCoords: [] // [minLon, minLat, maxLon, maxLat]
     property bool drawingAOI: false
     property var firstCorner: null
+    property string viewId: ""
+    property var mapCenter: [0, 0]
+    property int zoomLevel: 10
+    property real rotation: 0
+    property real tilt: 0
+    property bool synchronized: false
 
     ColumnLayout {
         anchors.fill: parent
@@ -35,28 +39,31 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
         }
 
-        // Map with selectable type and AOI drawing
+        // Map placeholder with selectable type and AOI drawing
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             border.color: ThemeProvider.getColor("widget_border")
             border.width: 1
-            radius: ThemeProvider.getStyle("text_input").radius || 3
+            radius: 3
+            color: ThemeProvider.getColor("widget_bg")
 
-            Map {
-                id: map
+            // Placeholder for map
+            Rectangle {
+                id: mapPlaceholder
                 anchors.fill: parent
                 anchors.margins: 5
-                plugin: Plugin { 
-                    name: "osm"
-                    PluginParameter {
-                        name: "osm.useragent"
-                        value: "Flutter Earth Application"
-                    }
+                color: ThemeProvider.getColor("background")
+                border.color: ThemeProvider.getColor("widget_border")
+                border.width: 1
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "Map View\n(Interactive map will be implemented here)"
+                    font: ThemeProvider.getFont("body")
+                    color: ThemeProvider.getColor("text_subtle")
+                    horizontalAlignment: Text.AlignHCenter
                 }
-                center: QtPositioning.coordinate(37.7749, -122.4194) // Default: San Francisco
-                zoomLevel: 6
-                activeMapType: mapTypes[mapTypeCombo.currentIndex].value
 
                 MouseArea {
                     anchors.fill: parent
@@ -64,32 +71,34 @@ Rectangle {
                     onPressed: {
                         if (!drawingAOI) {
                             // Start AOI selection
-                            firstCorner = map.toCoordinate(Qt.point(mouse.x, mouse.y));
-                            drawingAOI = true;
-                            aoiCoords = [];
+                            firstCorner = Qt.point(mouse.x, mouse.y)
+                            drawingAOI = true
+                            aoiCoords = []
                         } else {
                             // Finish AOI selection
-                            var secondCorner = map.toCoordinate(Qt.point(mouse.x, mouse.y));
-                            var minLat = Math.min(firstCorner.latitude, secondCorner.latitude);
-                            var maxLat = Math.max(firstCorner.latitude, secondCorner.latitude);
-                            var minLon = Math.min(firstCorner.longitude, secondCorner.longitude);
-                            var maxLon = Math.max(firstCorner.longitude, secondCorner.longitude);
-                            aoiCoords = [minLon, minLat, maxLon, maxLat];
-                            drawingAOI = false;
+                            var secondCorner = Qt.point(mouse.x, mouse.y)
+                            var minX = Math.min(firstCorner.x, secondCorner.x)
+                            var maxX = Math.max(firstCorner.x, secondCorner.x)
+                            var minY = Math.min(firstCorner.y, secondCorner.y)
+                            var maxY = Math.max(firstCorner.y, secondCorner.y)
+                            aoiCoords = [minX, minY, maxX, maxY]
+                            drawingAOI = false
                         }
                     }
                 }
 
                 // AOI Rectangle overlay
-                MapRectangle {
+                Rectangle {
                     id: aoiOverlay
                     visible: aoiCoords.length === 4
                     color: ThemeProvider.getColor("accent", "#0288d1")
                     opacity: 0.3
                     border.color: ThemeProvider.getColor("accent", "#0288d1")
                     border.width: 2
-                    topLeft: aoiCoords.length === 4 ? QtPositioning.coordinate(aoiCoords[1], aoiCoords[0]) : QtPositioning.coordinate(0,0)
-                    bottomRight: aoiCoords.length === 4 ? QtPositioning.coordinate(aoiCoords[3], aoiCoords[2]) : QtPositioning.coordinate(0,0)
+                    x: aoiCoords.length === 4 ? aoiCoords[0] : 0
+                    y: aoiCoords.length === 4 ? aoiCoords[1] : 0
+                    width: aoiCoords.length === 4 ? (aoiCoords[2] - aoiCoords[0]) : 0
+                    height: aoiCoords.length === 4 ? (aoiCoords[3] - aoiCoords[1]) : 0
                 }
             }
         }
@@ -114,9 +123,9 @@ Rectangle {
                     onCurrentIndexChanged: mapType = model[currentIndex].label
                     font: ThemeProvider.getFont("body")
                     background: Rectangle { 
-                        color: ThemeProvider.getColor(ThemeProvider.styles.text_input.backgroundColorKey); 
-                        border.color: ThemeProvider.getColor(ThemeProvider.styles.text_input.borderColorKey); 
-                        radius: ThemeProvider.getStyle("text_input").radius 
+                        color: ThemeProvider.getColor("entry_bg"); 
+                        border.color: ThemeProvider.getColor("entry_border"); 
+                        radius: 3
                     }
                     popup.background: Rectangle { 
                         color: ThemeProvider.getColor("list_bg"); 
@@ -138,13 +147,13 @@ Rectangle {
                     }
                     font: ThemeProvider.getFont("button")
                     background: Rectangle { 
-                        color: enabled ? ThemeProvider.getColor(ThemeProvider.styles.button_primary.backgroundColorKey, ThemeProvider.colors.accent) : ThemeProvider.getColor("disabled");
-                        radius: ThemeProvider.getStyle("button_primary").radius;
-                        border.color: enabled ? ThemeProvider.getColor(ThemeProvider.styles.button_primary.borderColorKey, ThemeProvider.colors.accent) : ThemeProvider.getColor("disabled")
+                        color: enabled ? ThemeProvider.getColor("accent") : ThemeProvider.getColor("disabled");
+                        radius: 3;
+                        border.color: enabled ? ThemeProvider.getColor("accent") : ThemeProvider.getColor("disabled")
                     }
                     contentItem: Text { 
                         text: parent.text; 
-                        color: enabled ? ThemeProvider.getColor(ThemeProvider.styles.button_primary.textColorKey, "white") : ThemeProvider.getColor("text_disabled");
+                        color: enabled ? "white" : ThemeProvider.getColor("text_disabled");
                         horizontalAlignment: Text.AlignHCenter;
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -158,13 +167,13 @@ Rectangle {
                     }
                     font: ThemeProvider.getFont("button")
                     background: Rectangle { 
-                        color: ThemeProvider.getColor(ThemeProvider.styles.button_default.backgroundColorKey);
-                        radius: ThemeProvider.getStyle("button_default").radius;
-                        border.color: ThemeProvider.getColor(ThemeProvider.styles.button_default.borderColorKey)
+                        color: ThemeProvider.getColor("button_bg");
+                        radius: 3;
+                        border.color: ThemeProvider.getColor("button_border")
                     }
                     contentItem: Text { 
                         text: parent.text; 
-                        color: ThemeProvider.getColor(ThemeProvider.styles.button_default.textColorKey);
+                        color: ThemeProvider.getColor("button_text");
                         horizontalAlignment: Text.AlignHCenter;
                         verticalAlignment: Text.AlignVCenter
                     }

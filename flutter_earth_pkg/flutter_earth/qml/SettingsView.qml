@@ -57,9 +57,9 @@ Rectangle {
             buildThemeCategories(); // Rebuild categories when themes change
             // Update checkboxes for theme sub-options
             var currentThemeOptions = currentThemeData.options || {};
-            useCharacterCatchphrasesBox.checked = currentThemeOptions.use_character_catchphrases || false;
-            showSpecialIconsBox.checked = currentThemeOptions.show_special_icons || false;
-            enableAnimatedBackgroundBox.checked = currentThemeOptions.enable_animated_background || false;
+            useCharacterCatchphrasesBox.checked = currentThemeOptions.use_character_catchphrases !== undefined ? currentThemeOptions.use_character_catchphrases : false;
+            showSpecialIconsBox.checked = currentThemeOptions.show_special_icons !== undefined ? currentThemeOptions.show_special_icons : false;
+            enableAnimatedBackgroundBox.checked = currentThemeOptions.enable_animated_background !== undefined ? currentThemeOptions.enable_animated_background : false;
         }
         function onSettingChanged(key, value) {
             console.log("SettingsView: Setting changed, key =", key, "value =", value);
@@ -67,9 +67,9 @@ Rectangle {
                 buildThemeCategories(); // Rebuild categories when theme changes
                 currentThemeData = backend.getCurrentThemeData(); // Update after theme name changes
                  var currentThemeOptions = currentThemeData.options || {};
-                useCharacterCatchphrasesBox.checked = currentThemeOptions.use_character_catchphrases || false;
-                showSpecialIconsBox.checked = currentThemeOptions.show_special_icons || false;
-                enableAnimatedBackgroundBox.checked = currentThemeOptions.enable_animated_background || false;
+                useCharacterCatchphrasesBox.checked = currentThemeOptions.use_character_catchphrases !== undefined ? currentThemeOptions.use_character_catchphrases : false;
+                showSpecialIconsBox.checked = currentThemeOptions.show_special_icons !== undefined ? currentThemeOptions.show_special_icons : false;
+                enableAnimatedBackgroundBox.checked = currentThemeOptions.enable_animated_background !== undefined ? currentThemeOptions.enable_animated_background : false;
             }
             if (key === "output_dir") {
                 outputDirField.text = value;
@@ -77,9 +77,9 @@ Rectangle {
             if (key === "theme_suboptions") { // If suboptions are saved as one dict
                  var newOpts = value;
                  if (typeof value === 'string') { try { newOpts = JSON.parse(value); } catch (e) { return; } }
-                 useCharacterCatchphrasesBox.checked = newOpts.use_character_catchphrases || false;
-                 showSpecialIconsBox.checked = newOpts.show_special_icons || false;
-                 enableAnimatedBackgroundBox.checked = newOpts.enable_animated_background || false;
+                 useCharacterCatchphrasesBox.checked = newOpts.use_character_catchphrases !== undefined ? newOpts.use_character_catchphrases : false;
+                 showSpecialIconsBox.checked = newOpts.show_special_icons !== undefined ? newOpts.show_special_icons : false;
+                 enableAnimatedBackgroundBox.checked = newOpts.enable_animated_background !== undefined ? newOpts.enable_animated_background : false;
             }
         }
     }
@@ -239,7 +239,7 @@ Rectangle {
                 CheckBox {
                     id: useCharacterCatchphrasesBox
                     text: ThemeProvider.getCatchphrase("settings_opt_catchphrases", "Use Character Catchphrases")
-                    checked: currentThemeData.options ? currentThemeData.options.use_character_catchphrases : false
+                    checked: currentThemeData.options && currentThemeData.options.use_character_catchphrases !== undefined ? currentThemeData.options.use_character_catchphrases : false
                     font.family: ThemeProvider.getFont("body").family
                     font.pixelSize: ThemeProvider.getFont("body").pixelSize
                     indicator: Rectangle {
@@ -259,7 +259,7 @@ Rectangle {
                 CheckBox {
                     id: showSpecialIconsBox
                     text: ThemeProvider.getCatchphrase("settings_opt_icons", "Show Special Icons")
-                    checked: currentThemeData.options ? currentThemeData.options.show_special_icons : false
+                    checked: currentThemeData.options && currentThemeData.options.show_special_icons !== undefined ? currentThemeData.options.show_special_icons : false
                     font.family: ThemeProvider.getFont("body").family
                     font.pixelSize: ThemeProvider.getFont("body").pixelSize
                     indicator: Rectangle {
@@ -279,7 +279,7 @@ Rectangle {
                 CheckBox {
                     id: enableAnimatedBackgroundBox
                     text: ThemeProvider.getCatchphrase("settings_opt_animations", "Enable Animated Backgrounds")
-                    checked: currentThemeData.options ? currentThemeData.options.enable_animated_background : false
+                    checked: currentThemeData.options && currentThemeData.options.enable_animated_background !== undefined ? currentThemeData.options.enable_animated_background : false
                     font.family: ThemeProvider.getFont("body").family
                     font.pixelSize: ThemeProvider.getFont("body").pixelSize
                     indicator: Rectangle {
@@ -443,12 +443,12 @@ Rectangle {
     }
 
     function saveThemeSubOptions() {
-        // Save theme suboptions as a single object
+        // Save theme suboptions as a single object with proper type conversion
         var subOptions = {
-            use_character_catchphrases: useCharacterCatchphrasesBox.checked,
-            show_special_icons: showSpecialIconsBox.checked,
-            enable_animated_background: enableAnimatedBackgroundBox.checked
+            use_character_catchphrases: Boolean(useCharacterCatchphrasesBox.checked),
+            show_special_icons: Boolean(showSpecialIconsBox.checked),
+            enable_animated_background: Boolean(enableAnimatedBackgroundBox.checked)
         };
-        backend.setSetting("theme_suboptions", subOptions);
+        backend.setSetting("theme_suboptions", JSON.stringify(subOptions));
     }
 }
