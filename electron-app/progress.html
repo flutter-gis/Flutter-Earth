@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Task Progress & History - Flutter Earth</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="progress.css">
+</head>
+<body>
+    <div class="container progress-container">
+        <h2>Current Task Status</h2>
+        <div id="currentTaskStatusArea">
+            <p>Status: <span id="currentTaskStatus">Idle</span></p>
+            <p>Message: <span id="currentTaskMessage">-</span></p>
+            <div class="progress-bar-container">
+                <progress id="currentTaskProgressBar" value="0" max="100"></progress>
+            </div>
+        </div>
+
+        <h2>Task History</h2>
+        <div class="history-actions">
+            <button id="refreshHistoryButton">Refresh History</button>
+            <button id="clearHistoryButton">Clear History</button>
+        </div>
+        <div id="taskHistoryTableContainer">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Task ID</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="taskHistoryBody">
+                    <!-- History items will be populated here -->
+                </tbody>
+            </table>
+            <p id="noHistoryMessage" style="display: none;">No task history available.</p>
+        </div>
+    </div>
+    <script src="progress.js"></script>
+</body>
+</html>

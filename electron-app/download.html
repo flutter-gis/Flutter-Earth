@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Download Satellite Data - Flutter Earth</title>
+    <link rel="stylesheet" href="style.css"> <!-- General styles -->
+    <link rel="stylesheet" href="download.css"> <!-- Download specific styles -->
+</head>
+<body>
+    <div class="container download-container">
+        <!-- Form elements will be structured similarly to QML with fieldsets for GroupBox -->
+        <form id="downloadForm">
+
+            <fieldset>
+                <legend>Area of Interest</legend>
+                <div class="form-group">
+                    <label for="aoiField">Enter coordinates or GeoJSON:</label>
+                    <input type="text" id="aoiField" name="aoi" placeholder="[minLon, minLat, maxLon, maxLat] or GeoJSON" required>
+                </div>
+            </fieldset>
+
+            <div class="grid-container">
+                <fieldset>
+                    <legend>Date Range</legend>
+                    <div class="form-group">
+                        <label for="startDateField">Start Date:</label>
+                        <input type="date" id="startDateField" name="startDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDateField">End Date:</label>
+                        <input type="date" id="endDateField" name="endDate" required>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Sensor</legend>
+                    <div class="form-group">
+                        <label for="sensorCombo">Select Sensor:</label>
+                        <select id="sensorCombo" name="sensor" required></select>
+                    </div>
+                </fieldset>
+
+                <fieldset class="full-width"> <!-- Spans across grid if needed, or style normally -->
+                    <legend>Output Directory</legend>
+                    <div class="form-group output-dir-group">
+                        <input type="text" id="outputDirField" name="outputDir" required readonly>
+                        <button type="button" id="browseOutputDirButton">Browse...</button>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Cloud Settings</legend>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="cloudMaskBox" name="cloudMask">
+                            Apply Cloud Mask
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="maxCloudSpin">Max Cloud Cover (%):</label>
+                        <input type="number" id="maxCloudSpin" name="maxCloudCover" min="0" max="100" step="1" value="20">
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Resolution Settings</legend>
+                     <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="useBestResolutionBox" name="useBestResolution">
+                            Use Highest Resolution
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="targetResolutionSpin">Target Res (m):</label>
+                        <input type="number" id="targetResolutionSpin" name="targetResolution" min="1" max="1000" step="1" value="30" disabled>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Tiling Settings</legend>
+                    <div class="form-group">
+                        <label for="tilingMethodCombo">Method:</label>
+                        <select id="tilingMethodCombo" name="tilingMethod">
+                            <option value="degree">Degree</option>
+                            <option value="pixel">Pixel</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="numSubsectionsSpin">Subsections:</label>
+                        <input type="number" id="numSubsectionsSpin" name="numSubsections" min="1" max="1000" step="1" value="100" disabled>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Processing Options</legend>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="overwriteBox" name="overwriteExisting">
+                            Overwrite Existing Files
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="cleanupTilesBox" name="cleanupTiles">
+                            Cleanup Intermediate Tiles
+                        </label>
+                    </div>
+                </fieldset>
+            </div>
+
+
+            <fieldset class="full-width">
+                <legend>Download Controls</legend>
+                <div class="form-actions">
+                    <button type="submit" id="startDownloadButton">Start Download</button>
+                    <button type="button" id="cancelDownloadButton">Cancel Download</button>
+                </div>
+                <div class="progress-section">
+                    <label for="downloadProgressBar">Progress:</label>
+                    <progress id="downloadProgressBar" value="0" max="100"></progress>
+                    <p id="downloadStatusText">Waiting to start...</p>
+                </div>
+            </fieldset>
+
+            <fieldset class="full-width">
+                <legend>Download Log</legend>
+                <textarea id="downloadLogArea" readonly placeholder="Download logs will appear here..."></textarea>
+            </fieldset>
+        </form>
+    </div>
+    <script src="download.js"></script>
+</body>
+</html>

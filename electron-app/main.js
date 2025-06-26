@@ -193,6 +193,99 @@ app.whenReady().then(() => {
     return callPython('get_download_status');
   });
 
+  ipcMain.handle('get-all-sensors', async () => {
+    return callPython('get_all_sensors');
+  });
+
+  ipcMain.handle('start-download-with-params', async (event, params) => {
+    return callPython('start_download_with_params', params);
+  });
+
+  ipcMain.handle('cancel-download', async () => {
+    return callPython('cancel_download');
+  });
+
+  ipcMain.handle('get-download-history', async () => {
+    return callPython('get_download_history');
+  });
+
+  ipcMain.handle('clear-download-history', async () => {
+    return callPython('clear_download_history');
+  });
+
+  ipcMain.handle('get-available-indices', async () => {
+    return callPython('get_available_indices');
+  });
+
+  ipcMain.handle('start-index-analysis', async (event, params) => {
+    return callPython('start_index_analysis', params);
+  });
+
+  ipcMain.handle('select-raster-files-dialog', async () => {
+    const focusedWindow = BrowserWindow.getFocusedWindow() || mainWindow;
+    if (!focusedWindow) {
+        const allWindows = BrowserWindow.getAllWindows();
+        if (allWindows.length > 0) {
+            return dialog.showOpenDialog(allWindows[0], {
+                properties: ['openFile', 'multiSelections'],
+                filters: [
+                    { name: 'GeoTIFF Files', extensions: ['tif', 'tiff'] },
+                    { name: 'All Files', extensions: ['*'] }
+                ]
+            });
+        }
+        return Promise.reject(new Error("No window available for dialog."));
+    }
+    return dialog.showOpenDialog(focusedWindow, {
+        properties: ['openFile', 'multiSelections'],
+        filters: [
+            { name: 'GeoTIFF Files', extensions: ['tif', 'tiff'] },
+            { name: 'All Files', extensions: ['*'] }
+        ]
+    });
+  });
+
+  ipcMain.handle('get-vector-data-sources', async () => {
+    return callPython('get_vector_data_sources');
+  });
+
+  ipcMain.handle('get-vector-output-formats', async () => {
+    return callPython('get_vector_output_formats');
+  });
+
+  // get-current-aoi handler should already exist if map integration was planned
+  // If not, it's:
+  // ipcMain.handle('get-current-aoi', async () => {
+  //   return callPython('get_current_aoi');
+  // });
+
+  ipcMain.handle('start-vector-download', async (event, params) => {
+    return callPython('start_vector_download', params);
+  });
+
+  ipcMain.handle('select-file-dialog', async (event, options) => {
+    const focusedWindow = BrowserWindow.getFocusedWindow() || mainWindow;
+    const dialogOptions = {
+        title: options?.title || 'Select File',
+        properties: ['openFile'],
+        filters: options?.filters || [{ name: 'All Files', extensions: ['*'] }]
+    };
+    if (!focusedWindow) {
+        const allWindows = BrowserWindow.getAllWindows();
+        if (allWindows.length > 0) return dialog.showOpenDialog(allWindows[0], dialogOptions);
+        return Promise.reject(new Error("No window available for dialog."));
+    }
+    return dialog.showOpenDialog(focusedWindow, dialogOptions);
+  });
+
+  ipcMain.handle('load-raster-data', async (event, filePath) => {
+    return callPython('load_raster_data', { file_path: filePath });
+  });
+
+  ipcMain.handle('load-vector-data', async (event, filePath) => {
+    return callPython('load_vector_data', { file_path: filePath });
+  });
+
   // Example: Simulate fetching connection and download status periodically
   // In a real app, Python might push updates, or this polling could be more intelligent.
   setInterval(async () => {

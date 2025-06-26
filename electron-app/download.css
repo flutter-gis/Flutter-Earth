@@ -1,0 +1,136 @@
+/* Download specific styles */
+.download-container {
+    padding: 20px;
+    max-width: 900px; /* Allow a bit more width for forms */
+    margin: auto;
+}
+
+#downloadForm fieldset {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #fdfdfd;
+}
+
+#downloadForm legend {
+    font-weight: bold;
+    padding: 0 5px;
+    color: #337ab7; /* Bootstrap primary blue as an example */
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive grid */
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.grid-container fieldset {
+    margin-bottom: 0; /* Remove bottom margin as gap handles it */
+}
+
+.full-width {
+    grid-column: 1 / -1; /* Make fieldset span all columns in grid */
+}
+
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group label.checkbox-label {
+    font-weight: normal;
+    display: flex;
+    align-items: center;
+}
+.form-group label.checkbox-label input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+
+.form-group input[type="text"],
+.form-group input[type="date"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 0.95em;
+}
+
+.form-group input[readonly] {
+    background-color: #eee;
+}
+
+
+.output-dir-group {
+    display: flex;
+    gap: 10px;
+}
+.output-dir-group input[type="text"] {
+    flex-grow: 1;
+}
+.output-dir-group button {
+    flex-shrink: 0;
+}
+
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-actions button {
+    padding: 10px 20px;
+    font-size: 1em;
+}
+#startDownloadButton {
+    background-color: #28a745; /* Green */
+}
+#startDownloadButton:hover {
+    background-color: #218838;
+}
+#cancelDownloadButton {
+    background-color: #dc3545; /* Red */
+}
+#cancelDownloadButton:hover {
+    background-color: #c82333;
+}
+
+
+.progress-section {
+    margin-top: 10px;
+}
+.progress-section label {
+    display: block;
+    margin-bottom: 5px;
+}
+.progress-section progress {
+    width: 100%;
+    height: 20px;
+    margin-bottom: 5px;
+}
+.progress-section #downloadStatusText {
+    font-size: 0.9em;
+    color: #555;
+}
+
+#downloadLogArea {
+    height: 150px;
+    font-family: monospace;
+    font-size: 0.9em;
+    background-color: #f8f9fa;
+    color: #212529;
+    resize: vertical;
+}

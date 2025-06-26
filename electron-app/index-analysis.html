@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Index Analysis - Flutter Earth</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="index-analysis.css">
+</head>
+<body>
+    <div class="container index-analysis-container">
+        <h2>Index Analysis</h2>
+
+        <form id="indexAnalysisForm">
+            <fieldset>
+                <legend>Input Raster Files</legend>
+                <div class="form-group">
+                    <button type="button" id="addRasterFilesButton">Add Raster Files...</button>
+                    <button type="button" id="clearRasterFilesButton" disabled>Clear All</button>
+                </div>
+                <div class="file-list-container">
+                    <ul id="selectedFilesList">
+                        <!-- Selected files will be listed here -->
+                    </ul>
+                    <p id="noFilesSelected" style="display: block;">No files selected.</p>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Select Indices to Calculate</legend>
+                <div id="indicesSelectionArea" class="checkbox-group">
+                    <!-- Checkboxes for indices will be populated here -->
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Band Mapping (Standard Order)</legend>
+                <div class="info-text">
+                    <p>For Landsat: Band 1=Blue, Band 2=Green, Band 3=Red, Band 4=NIR, Band 5=SWIR1, Band 6=SWIR2</p>
+                    <p>For Sentinel-2: Band 2=Blue, Band 3=Green, Band 4=Red, Band 8=NIR, Band 11=SWIR1, Band 12=SWIR2</p>
+                    <p><em>Note: The analysis will use a simplified standard band mapping. Ensure your rasters generally follow these conventions or pre-process them accordingly.</em></p>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Output Settings</legend>
+                <div class="form-group output-dir-group">
+                    <label for="outputDirFieldIA">Output Directory:</label>
+                    <input type="text" id="outputDirFieldIA" name="outputDirIA" required readonly>
+                    <button type="button" id="browseOutputDirButtonIA">Browse...</button>
+                </div>
+            </fieldset>
+
+            <div class="form-actions">
+                <button type="submit" id="startIndexAnalysisButton" disabled>Start Index Analysis</button>
+            </div>
+
+            <div id="analysisStatusArea">
+                <p>Status: <span id="analysisStatusText">Idle</span></p>
+            </div>
+        </form>
+    </div>
+    <script src="index-analysis.js"></script>
+</body>
+</html>

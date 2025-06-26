@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Data Viewer - Flutter Earth</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="data-viewer.css">
+</head>
+<body>
+    <div class="container data-viewer-container">
+        <h2>Data Viewer</h2>
+
+        <div class="controls-area">
+            <button type="button" id="loadRasterButton">Load Raster...</button>
+            <button type="button" id="loadVectorButton">Load Vector...</button>
+            <button type="button" id="clearAllDataButton" disabled>Clear All Displayed Data</button>
+        </div>
+
+        <div class="display-area">
+            <div id="rasterDataSection" class="data-section" style="display: none;">
+                <h3>Raster Data Information</h3>
+                <p><strong>File:</strong> <span id="rasterFilePath"></span></p>
+                <table>
+                    <tr><td>Dimensions:</td><td id="rasterDimensions"></td></tr>
+                    <tr><td>Bands:</td><td id="rasterBands"></td></tr>
+                    <tr><td>CRS:</td><td id="rasterCRS"></td></tr>
+                    <tr><td>Data Type:</td><td id="rasterDataType"></td></tr>
+                    <tr><td>NoData Value:</td><td id="rasterNoData"></td></tr>
+                    <tr><td>Bounds:</td><td id="rasterBounds"></td></tr>
+                </table>
+            </div>
+
+            <div id="vectorDataSection" class="data-section" style="display: none;">
+                <h3>Vector Data Information</h3>
+                <p><strong>File:</strong> <span id="vectorFilePath"></span></p>
+                <table>
+                    <tr><td>Feature Count:</td><td id="vectorFeatureCount"></td></tr>
+                    <tr><td>Geometry Types:</td><td id="vectorGeomTypes"></td></tr>
+                    <tr><td>CRS:</td><td id="vectorCRS"></td></tr>
+                    <tr><td>Bounds:</td><td id="vectorBounds"></td></tr>
+                    <tr><td>Attributes:</td><td id="vectorAttributes"></td></tr>
+                </table>
+            </div>
+
+            <p id="noDataLoadedMessage" style="display: block;">
+                No data loaded. Use the buttons above to load raster or vector files to view their metadata.
+            </p>
+        </div>
+    </div>
+    <script src="data-viewer.js"></script>
+</body>
+</html>

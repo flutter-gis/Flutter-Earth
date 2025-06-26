@@ -7,6 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const homeButton = document.getElementById('home-button');
     const settingsButton = document.getElementById('settings-button');
     const aboutButton = document.getElementById('about-button');
+    const downloadButton = document.getElementById('download-button');
+    const progressButton = document.getElementById('progress-button');
+    const indexAnalysisButton = document.getElementById('index-analysis-button');
+    const vectorDownloadButton = document.getElementById('vector-download-button');
+    const dataViewerButton = document.getElementById('data-viewer-button'); // Added Data Viewer Button
 
     // Status Bar Elements
     const statusBarTextElement = document.getElementById('status-text');
@@ -85,6 +90,41 @@ document.addEventListener('DOMContentLoaded', () => {
         aboutButton.addEventListener('click', () => {
             loadView('about', 'about.js', 'About - Flutter Earth');
             updateStatusText("Viewing About Information.");
+        });
+    }
+
+    if (downloadButton) {
+        downloadButton.addEventListener('click', () => {
+            loadView('download', 'download.js', 'Download Satellite Data');
+            updateStatusText("Open Download View.");
+        });
+    }
+
+    if (progressButton) {
+        progressButton.addEventListener('click', () => {
+            loadView('progress', 'progress.js', 'Task Progress & History');
+            updateStatusText("Viewing Task Progress and History.");
+        });
+    }
+
+    if (indexAnalysisButton) {
+        indexAnalysisButton.addEventListener('click', () => {
+            loadView('index-analysis', 'index-analysis.js', 'Index Analysis');
+            updateStatusText("Open Index Analysis View.");
+        });
+    }
+
+    if (vectorDownloadButton) {
+        vectorDownloadButton.addEventListener('click', () => {
+            loadView('vector-download', 'vector-download.js', 'Vector Data Download');
+            updateStatusText("Open Vector Data Download View.");
+        });
+    }
+
+    if (dataViewerButton) {
+        dataViewerButton.addEventListener('click', () => {
+            loadView('data-viewer', 'data-viewer.js', 'Data Viewer');
+            updateStatusText("Open Data Viewer.");
         });
     }
 

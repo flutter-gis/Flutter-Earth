@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Vector Data Download - Flutter Earth</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="vector-download.css">
+</head>
+<body>
+    <div class="container vector-download-container">
+        <h2>Vector Data Download</h2>
+
+        <form id="vectorDownloadForm">
+            <fieldset>
+                <legend>Data Source</legend>
+                <div class="form-group">
+                    <label for="dataSourceCombo">Select Data Source:</label>
+                    <select id="dataSourceCombo" name="dataSource"></select>
+                    <p id="dataSourceDescription" class="description-text"></p>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Query</legend>
+                <div class="form-group">
+                    <label for="queryArea">Query or URL:</label>
+                    <textarea id="queryArea" name="query" rows="5" placeholder="Enter query or URL..."></textarea>
+                </div>
+                <div class="form-group button-group">
+                    <button type="button" id="loadExampleQueryButton">Load Example Query</button>
+                    <button type="button" id="clearQueryButton">Clear Query</button>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Area of Interest (Optional)</legend>
+                <div class="form-group">
+                    <label for="aoiFieldVD">Coordinates or GeoJSON Polygon (e.g., [minLon,minLat,maxLon,maxLat]):</label>
+                    <div class="input-group">
+                        <input type="text" id="aoiFieldVD" name="aoiVD" placeholder="Leave empty for global (if supported)">
+                        <button type="button" id="selectOnMapButtonVD" title="Functionality depends on map view integration">Select on Map</button>
+                    </div>
+                    <p class="description-text">Leave empty to download data for the entire world (not recommended for large queries that don't inherently define an area).</p>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Output Settings</legend>
+                <div class="form-group output-dir-group">
+                    <label for="outputDirFieldVD">Output Directory:</label>
+                    <input type="text" id="outputDirFieldVD" name="outputDirVD" required readonly>
+                    <button type="button" id="browseOutputDirButtonVD">Browse...</button>
+                </div>
+                <div class="form-group">
+                    <label for="outputFormatCombo">Output Format:</label>
+                    <select id="outputFormatCombo" name="outputFormat"></select>
+                </div>
+            </fieldset>
+
+            <div class="form-actions">
+                <button type="submit" id="startVectorDownloadButton" disabled>Start Vector Download</button>
+            </div>
+
+            <div id="vectorDownloadStatusArea">
+                <p>Status: <span id="vectorDownloadStatusText">Idle</span></p>
+            </div>
+        </form>
+    </div>
+    <script src="vector-download.js"></script>
+</body>
+</html>
