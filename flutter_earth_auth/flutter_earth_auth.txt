@@ -1,0 +1,2 @@
+project_id=ee-jakobnewmandead
+key_file=C:/Users/U1060469/Downloads/ee-jakobnewmandead-0b8c5b7eb091.json

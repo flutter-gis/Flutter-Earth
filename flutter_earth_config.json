@@ -1,0 +1,14 @@
+{
+  "output_dir": "C:\\Users\\J. Newman/Downloads/flutter_earth",
+  "tile_size": 1.0,
+  "max_workers": 4,
+  "cloud_mask": true,
+  "max_cloud_cover": 20.0,
+  "sensor_priority": [
+    "LANDSAT_9",
+    "SENTINEL_2",
+    "LANDSAT_8"
+  ],
+  "recent_directories": [],
+  "theme": "Fluttershy"
+}
