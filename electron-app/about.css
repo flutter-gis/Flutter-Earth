@@ -1,0 +1,129 @@
+/* About specific styles */
+.about-container {
+    text-align: center;
+    padding-top: 30px;
+}
+
+.about-container h2 {
+    color: #333; /* Example color, theming would adjust this */
+    margin-bottom: 10px;
+}
+
+.about-container p {
+    color: #555; /* Example color */
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+#versionText {
+    font-size: 0.9em;
+    color: #777;
+}
+
+#visitWebsiteButton {
+    margin-top: 15px;
+    margin-bottom: 30px;
+    padding: 12px 25px;
+    background-color: #007bff; /* Example */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+#visitWebsiteButton:hover {
+    background-color: #0056b3; /* Example */
+}
+
+.changelog-section {
+    margin-top: 20px;
+    text-align: left;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 8px;
+}
+
+.changelog-section h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #444;
+}
+
+#changelogTextArea {
+    width: 100%;
+    height: 180px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-family: monospace;
+    background-color: #fff;
+    color: #333;
+    resize: vertical;
+}
+
+/* Modal styles */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1000; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+    max-width: 400px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    text-align: left;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+}
+
+.modal-content input[type="text"] {
+    width: calc(100% - 22px); /* Full width minus padding and border */
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.modal-content button {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.modal-content button:hover {
+    background-color: #0056b3;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}

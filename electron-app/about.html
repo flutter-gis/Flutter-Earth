@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>About - Flutter Earth</title>
+    <link rel="stylesheet" href="style.css"> <!-- General styles -->
+    <link rel="stylesheet" href="about.css"> <!-- About specific styles -->
+</head>
+<body>
+    <div class="container about-container">
+        <h1 id="greetingText">Hello!</h1>
+        <h2>About Flutter Earth</h2>
+        <p id="versionText">Version 1.0.0</p>
+        <p>Developed by Jakob Newman and contributors.</p>
+        <button id="visitWebsiteButton">Visit Project Website</button>
+
+        <div class="changelog-section">
+            <h3>Recent Changes (Changelog)</h3>
+            <textarea id="changelogTextArea" readonly></textarea>
+        </div>
+    </div>
+
+    <!-- Name input dialog/modal (initially hidden) -->
+    <div id="nameDialogModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-button" id="closeNameDialog">&times;</span>
+            <h3>Welcome!</h3>
+            <p>Please enter your name:</p>
+            <input type="text" id="nameField" placeholder="Your name">
+            <button id="saveNameButton">Save</button>
+        </div>
+    </div>
+
+    <script src="about.js"></script>
+</body>
+</html>

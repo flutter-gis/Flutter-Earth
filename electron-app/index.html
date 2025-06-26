@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Flutter Earth</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <nav class="main-nav">
+            <button id="home-button">Home</button>
+            <button id="settings-button">Settings</button>
+            <button id="about-button">About</button>
+            <!-- Add other main navigation buttons here -->
+        </nav>
+        <div class="main-content-area">
+            <h1 id="main-heading">Welcome to Flutter Earth (Electron Edition)</h1>
+            <p id="main-welcome-message">This is the main window. Select a view from the navigation.</p>
+            <div id="content">
+                <!-- Content from other HTML files will be loaded here -->
+            </div>
+        </div>
+        <div id="status-bar">
+            <span id="status-text">Initializing...</span>
+            <span id="download-status-text"></span>
+            <span id="connection-status">Offline</span>
+        </div>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+</html>
