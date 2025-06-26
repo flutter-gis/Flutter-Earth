@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fluttershy's Gentle Earth Explorer</title>
+    <link rel="stylesheet" href="app.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Top Bar -->
+        <header id="top-bar">
+            <div class="logo">
+                <h1>Fluttershy's Gentle Earth Explorer</h1>
+                <span class="version">v1.0.0</span>
+            </div>
+            <div class="top-controls">
+                <div class="search-box">
+                    <input type="text" id="global-search" placeholder="Search satellites, data...">
+                    <button id="search-btn">🔍</button>
+                </div>
+                <div class="status-indicator">
+                    <span id="connection-status">🟢 Online</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <!-- Sidebar Navigation -->
+            <nav id="sidebar">
+                <div class="nav-section">
+                    <h3>Main</h3>
+                    <a href="#home" class="nav-item active" data-view="home">
+                        <span class="icon">🏠</span>
+                        <span class="label">Home</span>
+                    </a>
+                    <a href="#map" class="nav-item" data-view="map">
+                        <span class="icon">🗺️</span>
+                        <span class="label">Map View</span>
+                    </a>
+                    <a href="#satellite" class="nav-item" data-view="satellite">
+                        <span class="icon">🛰️</span>
+                        <span class="label">Satellite Info</span>
+                    </a>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>Data</h3>
+                    <a href="#data-viewer" class="nav-item" data-view="data-viewer">
+                        <span class="icon">📊</span>
+                        <span class="label">Data Viewer</span>
+                    </a>
+                    <a href="#download" class="nav-item" data-view="download">
+                        <span class="icon">⬇️</span>
+                        <span class="label">Download</span>
+                    </a>
+                    <a href="#progress" class="nav-item" data-view="progress">
+                        <span class="icon">📈</span>
+                        <span class="label">Progress</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Tools</h3>
+                    <a href="#analysis" class="nav-item" data-view="analysis">
+                        <span class="icon">🔬</span>
+                        <span class="label">Analysis</span>
+                    </a>
+                    <a href="#bookmarks" class="nav-item" data-view="bookmarks">
+                        <span class="icon">🔖</span>
+                        <span class="label">Bookmarks</span>
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <h3>System</h3>
+                    <a href="#settings" class="nav-item" data-view="settings">
+                        <span class="icon">⚙️</span>
+                        <span class="label">Settings</span>
+                    </a>
+                    <a href="#about" class="nav-item" data-view="about">
+                        <span class="icon">ℹ️</span>
+                        <span class="label">About</span>
+                    </a>
+                </div>
+            </nav>
+
+            <!-- Main Content Area -->
+            <main id="main-content">
+                <!-- Home View -->
+                <div id="home-view" class="view active">
+                    <div class="view-header">
+                        <h2>Welcome to Fluttershy's Gentle Earth Explorer</h2>
+                        <p>Your friendly companion for satellite data exploration and analysis</p>
+                    </div>
+                    
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <h3>Quick Actions</h3>
+                            <div class="quick-actions">
+                                <button class="action-btn" data-action="new-download">New Download</button>
+                                <button class="action-btn" data-action="view-map">View Map</button>
+                                <button class="action-btn" data-action="browse-data">Browse Data</button>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <h3>Recent Downloads</h3>
+                            <div id="recent-downloads" class="recent-list">
+                                <div class="recent-item">
+                                    <span class="item-name">Sentinel-2 Scene</span>
+                                    <span class="item-date">2024-01-15</span>
+                                </div>
+                                <div class="recent-item">
+                                    <span class="item-name">Landsat-8 Collection</span>
+                                    <span class="item-date">2024-01-10</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <h3>System Status</h3>
+                            <div class="status-grid">
+                                <div class="status-item">
+                                    <span class="status-label">Backend:</span>
+                                    <span class="status-value" id="backend-status">Connected</span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-label">Storage:</span>
+                                    <span class="status-value" id="storage-status">2.3 GB free</span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-label">Active Downloads:</span>
+                                    <span class="status-value" id="active-downloads">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map View -->
+                <div id="map-view" class="view">
+                    <div class="view-header">
+                        <h2>Satellite Map Viewer</h2>
+                        <div class="map-controls">
+                            <select id="map-satellite-select">
+                                <option value="sentinel-2">Sentinel-2</option>
+                                <option value="landsat-8">Landsat-8</option>
+                                <option value="landsat-9">Landsat-9</option>
+                            </select>
+                            <input type="date" id="map-date-select">
+                            <button id="map-refresh-btn">Refresh</button>
+                        </div>
+                    </div>
+                    <div id="map-container" class="map-container">
+                        <div id="satellite-map"></div>
+                        <div class="map-overlay">
+                            <div class="map-info">
+                                <span id="map-coords">Lat: 0, Lon: 0</span>
+                                <span id="map-zoom">Zoom: 2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Satellite Info View -->
+                <div id="satellite-view" class="view">
+                    <div class="view-header">
+                        <h2>Satellite Information</h2>
+                    </div>
+                    <div class="satellite-grid">
+                        <div class="satellite-card">
+                            <h3>Sentinel-2</h3>
+                            <div class="satellite-details">
+                                <p><strong>Launch Date:</strong> 2015-2017</p>
+                                <p><strong>Orbit:</strong> 786 km, Sun-synchronous</p>
+                                <p><strong>Resolution:</strong> 10m (visible), 20m (SWIR)</p>
+                                <p><strong>Revisit:</strong> 5 days</p>
+                                <p><strong>Coverage:</strong> Global</p>
+                            </div>
+                            <div class="satellite-bands">
+                                <h4>Bands</h4>
+                                <div class="band-list">
+                                    <span class="band">B2 (Blue)</span>
+                                    <span class="band">B3 (Green)</span>
+                                    <span class="band">B4 (Red)</span>
+                                    <span class="band">B8 (NIR)</span>
+                                    <span class="band">B11 (SWIR)</span>
+                                    <span class="band">B12 (SWIR)</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="satellite-card">
+                            <h3>Landsat-8</h3>
+                            <div class="satellite-details">
+                                <p><strong>Launch Date:</strong> 2013</p>
+                                <p><strong>Orbit:</strong> 705 km, Sun-synchronous</p>
+                                <p><strong>Resolution:</strong> 15m (pan), 30m (multispectral)</p>
+                                <p><strong>Revisit:</strong> 16 days</p>
+                                <p><strong>Coverage:</strong> Global</p>
+                            </div>
+                            <div class="satellite-bands">
+                                <h4>Bands</h4>
+                                <div class="band-list">
+                                    <span class="band">B2 (Blue)</span>
+                                    <span class="band">B3 (Green)</span>
+                                    <span class="band">B4 (Red)</span>
+                                    <span class="band">B5 (NIR)</span>
+                                    <span class="band">B6 (SWIR1)</span>
+                                    <span class="band">B7 (SWIR2)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Viewer -->
+                <div id="data-viewer-view" class="view">
+                    <div class="view-header">
+                        <h2>Data Viewer</h2>
+                        <div class="viewer-controls">
+                            <select id="data-type-select">
+                                <option value="attribute">Attribute Table</option>
+                                <option value="chart">Charts</option>
+                                <option value="metadata">Metadata</option>
+                            </select>
+                            <button id="export-data-btn">Export</button>
+                        </div>
+                    </div>
+                    <div class="data-content">
+                        <div id="attribute-table" class="data-panel active">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Date</th>
+                                        <th>Cloud Cover</th>
+                                        <th>Quality</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-body">
+                                    <tr>
+                                        <td>1</td>
+                                        <td>2024-01-15</td>
+                                        <td>5%</td>
+                                        <td>Excellent</td>
+                                        <td><button class="action-btn small">View</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download View (from index.html) -->
+                <div id="download-view" class="view">
+                    <div class="view-header">
+                        <h2>Download Satellite Data</h2>
+                    </div>
+                    <div class="download-grid">
+                        <div class="download-card">
+                            <h3>Area of Interest</h3>
+                            <label for="aoi-input">Enter coordinates or GeoJSON:</label>
+                            <div class="input-row">
+                                <input id="aoi-input" type="text" placeholder="[minLon, minLat, maxLon, maxLat] or GeoJSON">
+                                <button id="map-btn" title="Open map selector">🗺️</button>
+                            </div>
+                            <div id="aoi-summary"></div>
+                        </div>
+
+                        <div class="download-card">
+                            <h3>Date Range</h3>
+                            <div class="input-row">
+                                <label for="start-date">Start Date:</label>
+                                <input id="start-date" type="text" placeholder="YYYY-MM-DD">
+                                <button class="calendar-btn" data-target="#start-date" title="Pick a date">📅</button>
+                            </div>
+                            <div class="input-row">
+                                <label for="end-date">End Date:</label>
+                                <input id="end-date" type="text" placeholder="YYYY-MM-DD">
+                                <button class="calendar-btn" data-target="#end-date" title="Pick a date">📅</button>
+                            </div>
+                        </div>
+
+                        <div class="download-card">
+                            <h3>Sensor</h3>
+                            <label for="sensor-select">Select Sensor:</label>
+                            <select id="sensor-select"></select>
+                        </div>
+
+                        <div class="download-card">
+                            <h3>Output Directory</h3>
+                            <div class="input-row">
+                                <input id="output-dir" type="text" placeholder="Choose output directory">
+                                <button id="browse-btn">Browse...</button>
+                            </div>
+                        </div>
+
+                        <div class="download-card">
+                            <h3>Cloud Settings</h3>
+                            <div class="input-row">
+                                <input type="checkbox" id="cloud-mask">
+                                <label for="cloud-mask">Apply Cloud Mask</label>
+                            </div>
+                            <div class="input-row">
+                                <label for="cloud-cover">Max Cloud Cover (%):</label>
+                                <input id="cloud-cover" type="number" min="0" max="100" value="20">
+                            </div>
+                        </div>
+
+                        <div class="download-card">
+                            <h3>Resolution Settings</h3>
+                            <div class="input-row">
+                                <input type="checkbox" id="best-res">
+                                <label for="best-res">Use Highest Resolution</label>
+                            </div>
+                            <div class="input-row">
+                                <label for="target-res">Target Res (m):</label>
+                                <input id="target-res" type="number" min="1" max="1000" value="30">
+                            </div>
+                        </div>
+
+                        <div class="download-card">
+                            <h3>Tiling Settings</h3>
+                            <div class="input-row">
+                                <label for="tiling-method">Method:</label>
+                                <select id="tiling-method">
+                                    <option value="degree">degree</option>
+                                    <option value="tile">tile</option>
+                                    <option value="scene">scene</option>
+                                </select>
+                            </div>
+                            <div class="input-row">
+                                <label for="subsections">Subsections:</label>
+                                <input id="subsections" type="number" min="1" max="1000" value="100">
+                            </div>
+                        </div>
+
+                        <div class="download-card">
+                            <h3>Processing Options</h3>
+                            <div class="input-row">
+                                <input type="checkbox" id="overwrite">
+                                <label for="overwrite">Overwrite Existing Files</label>
+                            </div>
+                            <div class="input-row">
+                                <input type="checkbox" id="cleanup">
+                                <label for="cleanup">Cleanup Intermediate Tiles</label>
+                            </div>
+                        </div>
+
+                        <div class="download-card">
+                            <h3>Download Controls</h3>
+                            <button id="start-download">Start Download</button>
+                            <button id="cancel-download">Cancel Download</button>
+                            <div id="download-status"></div>
+                        </div>
+
+                        <div class="download-card">
+                            <h3>Multi-Satellite Order</h3>
+                            <div id="multi-sat-list"></div>
+                            <button id="add-sat">Add Satellite</button>
+                            <div id="multi-sat-summary"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress View -->
+                <div id="progress-view" class="view">
+                    <div class="view-header">
+                        <h2>Download Progress</h2>
+                        <button id="clear-completed">Clear Completed</button>
+                    </div>
+                    <div class="progress-list">
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <span class="progress-name">Sentinel-2 Scene Download</span>
+                                <span class="progress-status">In Progress</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 65%"></div>
+                            </div>
+                            <div class="progress-details">
+                                <span>65% Complete</span>
+                                <span>2.3 GB / 3.5 GB</span>
+                                <span>ETA: 5 min</span>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-item completed">
+                            <div class="progress-header">
+                                <span class="progress-name">Landsat-8 Collection</span>
+                                <span class="progress-status">Completed</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 100%"></div>
+                            </div>
+                            <div class="progress-details">
+                                <span>100% Complete</span>
+                                <span>1.8 GB downloaded</span>
+                                <span>Completed 2 hours ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings View -->
+                <div id="settings-view" class="view">
+                    <div class="view-header">
+                        <h2>Settings</h2>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="settings-card">
+                            <h3>General</h3>
+                            <div class="setting-item">
+                                <label for="default-output">Default Output Directory:</label>
+                                <input type="text" id="default-output" value="C:\Downloads\SatelliteData">
+                            </div>
+                            <div class="setting-item">
+                                <label for="max-concurrent">Max Concurrent Downloads:</label>
+                                <input type="number" id="max-concurrent" value="3" min="1" max="10">
+                            </div>
+                            <div class="setting-item">
+                                <label for="auto-cleanup">Auto Cleanup Temporary Files:</label>
+                                <input type="checkbox" id="auto-cleanup" checked>
+                            </div>
+                        </div>
+
+                        <div class="settings-card">
+                            <h3>Display</h3>
+                            <div class="setting-item">
+                                <label for="theme-select">Theme:</label>
+                                <select id="theme-select">
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="auto">Auto</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label for="font-size">Font Size:</label>
+                                <select id="font-size">
+                                    <option value="small">Small</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="large">Large</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-card">
+                            <h3>Advanced</h3>
+                            <div class="setting-item">
+                                <label for="api-key">Earth Engine API Key:</label>
+                                <input type="password" id="api-key" placeholder="Enter your API key">
+                            </div>
+                            <div class="setting-item">
+                                <label for="debug-mode">Debug Mode:</label>
+                                <input type="checkbox" id="debug-mode">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- About View -->
+                <div id="about-view" class="view">
+                    <div class="view-header">
+                        <h2>About Fluttershy's Gentle Earth Explorer</h2>
+                    </div>
+                    <div class="about-content">
+                        <div class="about-card">
+                            <h3>About</h3>
+                            <p>Fluttershy's Gentle Earth Explorer is a friendly and powerful tool for exploring and downloading satellite data from Google Earth Engine. Built with care and attention to detail, it provides an intuitive interface for both beginners and advanced users.</p>
+                            
+                            <h4>Features</h4>
+                            <ul>
+                                <li>🌍 Multi-satellite data access (Sentinel-2, Landsat-8/9)</li>
+                                <li>🗺️ Interactive map selection with multiple basemaps</li>
+                                <li>📅 Flexible date range selection</li>
+                                <li>☁️ Cloud masking and filtering</li>
+                                <li>⚡ Multi-resolution downloads</li>
+                                <li>📊 Data visualization and analysis tools</li>
+                                <li>💾 Local storage management</li>
+                                <li>🔄 Progress tracking and resume capability</li>
+                            </ul>
+                        </div>
+
+                        <div class="about-card">
+                            <h3>Version Information</h3>
+                            <div class="version-info">
+                                <p><strong>Version:</strong> 1.0.0</p>
+                                <p><strong>Build Date:</strong> January 2024</p>
+                                <p><strong>Python Backend:</strong> 3.8+</p>
+                                <p><strong>Frontend:</strong> HTML5, CSS3, JavaScript</p>
+                            </div>
+                        </div>
+
+                        <div class="about-card">
+                            <h3>Support</h3>
+                            <p>For support, bug reports, or feature requests, please visit our GitHub repository or contact the development team.</p>
+                            <div class="support-links">
+                                <a href="#" class="support-link">📖 Documentation</a>
+                                <a href="#" class="support-link">🐛 Report Bug</a>
+                                <a href="#" class="support-link">💡 Feature Request</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Modals -->
+        <div id="calendar-modal" class="modal" style="display:none;"></div>
+        <div id="map-modal" class="modal" style="display:none;"></div>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,39 @@
+[2025-06-26 14:06:15] === Fluttershy's Gentle Earth Explorer Installer ===
+
+[2025-06-26 14:06:15] Enabling corepack (for advanced package management)...
+[2025-06-26 14:06:15] >>> Running: C:\FE Repo\node-v22.17.0-win-x64\corepack.cmd enable (in C:\FE Repo)
+[2025-06-26 14:06:16] Setting npm config strict-ssl false to bypass self-signed certificate errors...
+[2025-06-26 14:06:16] >>> Running: C:\FE Repo\node-v22.17.0-win-x64\npm.cmd config set strict-ssl false (in C:\FE Repo)
+[2025-06-26 14:06:17] No requirements.txt found, skipping Python dependencies.
+[2025-06-26 14:06:17] Installing Node.js/Electron dependencies...
+[2025-06-26 14:06:17] >>> Running: C:\FE Repo\node-v22.17.0-win-x64\npm.cmd install (in C:\FE Repo\Flutter-Earth)
+(node:32296) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+up to date, audited 313 packages in 1s
+
+48 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+[2025-06-26 14:06:19] Launching Electron desktop app...
+[2025-06-26 14:06:19] >>> Running: C:\FE Repo\node-v22.17.0-win-x64\npm.cmd start (in C:\FE Repo\Flutter-Earth)
+
+> flutter-earth-desktop@1.0.0 start
+> electron .
+
+
+(node:28368) electron: Failed to load URL: file:///C:/FE%20Repo/Flutter-Earth/frontend/app.html with error: ERR_FILE_NOT_FOUND
+(Use `electron --trace-warnings ...` to show where the warning was created)
+Starting Python backend...
+Uncaught Exception: Error: spawn C:\FE Repo\Flutter-Earth\backend\flutter_earth_backend.exe ENOENT
+    at ChildProcess._handle.onexit (node:internal/child_process:284:19)
+    at onErrorNT (node:internal/child_process:477:16)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'spawn C:\\FE Repo\\Flutter-Earth\\backend\\flutter_earth_backend.exe',
+  path: 'C:\\FE Repo\\Flutter-Earth\\backend\\flutter_earth_backend.exe',
+  spawnargs: []
+}
+^C^C

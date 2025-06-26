@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Map Selector</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    <style>
+        html, body { height: 100%; margin: 0; }
+        #map { width: 100vw; height: 80vh; }
+        #controls { margin: 0.5em; }
+        #file-input { margin-left: 1em; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label for="basemap">Basemap:</label>
+        <select id="basemap">
+            <option value="osm">OpenStreetMap</option>
+            <option value="sat">Esri Satellite</option>
+            <option value="toner">Stamen Toner</option>
+            <option value="terrain">Stamen Terrain</option>
+            <option value="watercolor">Stamen Watercolor</option>
+            <option value="carto">CartoDB Voyager</option>
+        </select>
+        <input type="file" id="file-input" accept=".geojson,.kml,.json,.zip" />
+        <button id="send-aoi">Send AOI</button>
+    </div>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="https://unpkg.com/togeojson@0.16.0/dist/togeojson.js"></script>
+    <script src="https://unpkg.com/shpjs@4.1.2/dist/shp.min.js"></script>
+    <script>
+    // Basemaps
+    const providers = {
+        osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }),
+        sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' }),
+        toner: L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png', { attribution: '© Stamen' }),
+        terrain: L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg', { attribution: '© Stamen' }),
+        watercolor: L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg', { attribution: '© Stamen' }),
+        carto: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '© CartoDB' })
+    };
+    const map = L.map('map', { center: [20, 0], zoom: 2, layers: [providers.osm] });
+    let drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+    // Draw controls
+    const drawControl = new L.Control.Draw({
+        edit: { featureGroup: drawnItems },
+        draw: {
+            polygon: true,
+            rectangle: true,
+            polyline: false,
+            circle: false,
+            marker: true,
+            circlemarker: false
+        }
+    });
+    map.addControl(drawControl);
+    map.on(L.Draw.Event.CREATED, function (e) {
+        drawnItems.addLayer(e.layer);
+    });
+    // Basemap switching
+    document.getElementById('basemap').addEventListener('change', function() {
+        Object.values(providers).forEach(p => map.removeLayer(p));
+        providers[this.value].addTo(map);
+    });
+    // File upload
+    document.getElementById('file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const ext = file.name.split('.').pop().toLowerCase();
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            let geojson = null;
+            if (ext === 'geojson' || ext === 'json') {
+                geojson = JSON.parse(evt.target.result);
+            } else if (ext === 'kml') {
+                const parser = new DOMParser();
+                const kml = parser.parseFromString(evt.target.result, 'text/xml');
+                geojson = toGeoJSON.kml(kml);
+            } else if (ext === 'zip') {
+                shp(evt.target.result).then(function(geojsonData) {
+                    L.geoJSON(geojsonData).addTo(drawnItems);
+                });
+                return;
+            }
+            if (geojson) {
+                L.geoJSON(geojson).addTo(drawnItems);
+            }
+        };
+        if (ext === 'zip') {
+            reader.readAsArrayBuffer(file);
+        } else {
+            reader.readAsText(file);
+        }
+    });
+    // Send AOI
+    document.getElementById('send-aoi').addEventListener('click', function() {
+        const geojson = drawnItems.toGeoJSON();
+        // For QML: window.qt.webChannelTransport.send(JSON.stringify(geojson));
+        // For JS parent:
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({type:'aoi', geojson}, '*');
+        } else {
+            alert('AOI GeoJSON: ' + JSON.stringify(geojson));
+        }
+    });
+    </script>
+</body>
+</html> 

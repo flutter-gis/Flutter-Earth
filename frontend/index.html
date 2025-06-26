@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fluttershy's Gentle Earth Explorer</title>
+    <link rel="stylesheet" href="main.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="main.js" defer></script>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Fluttershy's Gentle Earth Explorer</h1>
+            <span class="version">v1.0.0 - Ready</span>
+        </header>
+        <main>
+            <section id="aoi-section" class="card">
+                <h2>Area of Interest</h2>
+                <label for="aoi-input">Enter coordinates or GeoJSON:</label>
+                <div class="input-row">
+                    <input id="aoi-input" type="text" placeholder="[minLon, minLat, maxLon, maxLat] or GeoJSON">
+                    <button id="map-btn" title="Open map selector">🗺️</button>
+                </div>
+                <div id="aoi-summary"></div>
+            </section>
+            <section id="date-section" class="card">
+                <h2>Date Range</h2>
+                <div class="input-row">
+                    <label for="start-date">Start Date:</label>
+                    <input id="start-date" type="text" placeholder="YYYY-MM-DD">
+                    <button class="calendar-btn" data-target="#start-date" title="Pick a date">📅</button>
+                </div>
+                <div class="input-row">
+                    <label for="end-date">End Date:</label>
+                    <input id="end-date" type="text" placeholder="YYYY-MM-DD">
+                    <button class="calendar-btn" data-target="#end-date" title="Pick a date">📅</button>
+                </div>
+            </section>
+            <section id="sensor-section" class="card">
+                <h2>Sensor</h2>
+                <label for="sensor-select">Select Sensor:</label>
+                <select id="sensor-select"></select>
+            </section>
+            <section id="output-section" class="card">
+                <h2>Output Directory</h2>
+                <div class="input-row">
+                    <input id="output-dir" type="text" placeholder="Choose output directory">
+                    <button id="browse-btn">Browse...</button>
+                </div>
+            </section>
+            <section id="cloud-section" class="card">
+                <h2>Cloud Settings</h2>
+                <div class="input-row">
+                    <input type="checkbox" id="cloud-mask">
+                    <label for="cloud-mask">Apply Cloud Mask</label>
+                </div>
+                <div class="input-row">
+                    <label for="cloud-cover">Max Cloud Cover (%):</label>
+                    <input id="cloud-cover" type="number" min="0" max="100" value="20">
+                </div>
+            </section>
+            <section id="resolution-section" class="card">
+                <h2>Resolution Settings</h2>
+                <div class="input-row">
+                    <input type="checkbox" id="best-res">
+                    <label for="best-res">Use Highest Resolution</label>
+                </div>
+                <div class="input-row">
+                    <label for="target-res">Target Res (m):</label>
+                    <input id="target-res" type="number" min="1" max="1000" value="30">
+                </div>
+            </section>
+            <section id="tiling-section" class="card">
+                <h2>Tiling Settings</h2>
+                <div class="input-row">
+                    <label for="tiling-method">Method:</label>
+                    <select id="tiling-method">
+                        <option value="degree">degree</option>
+                        <option value="tile">tile</option>
+                        <option value="scene">scene</option>
+                    </select>
+                </div>
+                <div class="input-row">
+                    <label for="subsections">Subsections:</label>
+                    <input id="subsections" type="number" min="1" max="1000" value="100">
+                </div>
+            </section>
+            <section id="processing-section" class="card">
+                <h2>Processing Options</h2>
+                <div class="input-row">
+                    <input type="checkbox" id="overwrite">
+                    <label for="overwrite">Overwrite Existing Files</label>
+                </div>
+                <div class="input-row">
+                    <input type="checkbox" id="cleanup">
+                    <label for="cleanup">Cleanup Intermediate Tiles</label>
+                </div>
+            </section>
+            <section id="download-controls" class="card">
+                <h2>Download Controls</h2>
+                <button id="start-download">Start Download</button>
+                <button id="cancel-download">Cancel Download</button>
+                <div id="download-status"></div>
+            </section>
+            <section id="multi-sat-section" class="card">
+                <h2>Multi-Satellite Order</h2>
+                <div id="multi-sat-list"></div>
+                <button id="add-sat">Add Satellite</button>
+                <div id="multi-sat-summary"></div>
+            </section>
+        </main>
+        <!-- Calendar Modal -->
+        <div id="calendar-modal" class="modal" style="display:none;"></div>
+        <!-- Map Selector Modal -->
+        <div id="map-modal" class="modal" style="display:none;"></div>
+    </div>
+</body>
+</html> 
