@@ -1,0 +1,12 @@
+{
+  "name": "flutter-earth-electron",
+  "version": "1.0.0",
+  "description": "Flutter Earth Desktop App (Electron)",
+  "main": "main_electron.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^29.3.1"
+  }
+} 

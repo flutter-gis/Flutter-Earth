@@ -114,3 +114,125 @@ For issues and questions:
 ---
 
 **Flutter Earth** - Making satellite imagery accessible to everyone 🌍✨
+
+# Flutter Earth Desktop (Electron + Python)
+
+A modern desktop application for downloading and processing satellite imagery using Google Earth Engine.
+
+## Architecture
+
+- **Frontend**: Electron app with HTML/CSS/JS interface (converted from QML)
+- **Backend**: Python scripts called directly by Electron (no HTTP server)
+- **Communication**: Electron ↔ Python via child processes (stdin/stdout)
+- **Offline**: Fully offline except for actual satellite data downloads
+
+## Requirements
+
+- **Python 3.8+** with required packages (see requirements.txt)
+- **Node.js 18+** and npm
+- **Google Earth Engine** account and credentials
+
+## Installation
+
+1. **Install Python dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Install Node.js dependencies** (when you first run the app):
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+## How to Run
+
+### Option 1: Using the Launcher (Recommended)
+```bash
+run_desktop.bat
+```
+
+### Option 2: Manual Start
+```bash
+cd frontend
+npm start
+```
+
+## Features
+
+### Converted from QML to HTML/JS
+- ✅ **Sidebar Navigation** - All navigation items with icons and labels
+- ✅ **Download Manager** - Complete download form with validation
+- ✅ **Settings View** - Theme selection and configuration
+- ✅ **Progress Tracking** - Real-time download progress
+- ✅ **Authentication** - Google Earth Engine credentials setup
+- ✅ **Help System** - Documentation and help information
+- ✅ **Responsive Design** - Works on different screen sizes
+
+### Python Backend Integration
+- **Earth Engine Initialization** - Automatic setup and authentication
+- **Download Management** - Start, monitor, and cancel downloads
+- **Progress Tracking** - Real-time progress updates
+- **Error Handling** - Comprehensive error reporting
+
+## Project Structure
+
+```
+Flutter-Earth/
+├── frontend/                    # Electron app
+│   ├── flutter_earth.html      # Main HTML interface
+│   ├── flutter_earth.css       # Styling and themes
+│   ├── flutter_earth.js        # Frontend logic
+│   ├── main_electron.js        # Electron main process
+│   ├── preload.js              # IPC bridge
+│   └── package.json            # Node.js dependencies
+├── backend/
+│   └── earth_engine_processor.py  # Python backend script
+├── flutter_earth_pkg/          # Original Python package
+├── logs/                       # Application logs
+├── run_desktop.bat            # Launcher script
+└── requirements.txt           # Python dependencies
+```
+
+## Development
+
+### Frontend (HTML/CSS/JS)
+- Edit `frontend/flutter_earth.html` for UI structure
+- Edit `frontend/flutter_earth.css` for styling
+- Edit `frontend/flutter_earth.js` for functionality
+
+### Backend (Python)
+- Edit `backend/earth_engine_processor.py` for Earth Engine operations
+- Add new commands by extending the `main()` function
+
+### Adding New Features
+1. **Frontend**: Add UI elements in HTML, style in CSS, add logic in JS
+2. **Backend**: Add new command in `earth_engine_processor.py`
+3. **Communication**: Add IPC handler in `main_electron.js` and expose in `preload.js`
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Electron won't start**
+   - Check Node.js installation: `node --version`
+   - Run `npm install` in frontend directory
+   - Check for missing dependencies
+
+2. **Python communication fails**
+   - Verify Python installation: `python --version`
+   - Install requirements: `pip install -r requirements.txt`
+   - Check Python path in `main_electron.js`
+
+3. **Earth Engine authentication**
+   - Ensure you have a Google Earth Engine account
+   - Download service account key file
+   - Use the authentication dialog in the app
+
+### Debug Mode
+
+Enable debug logging by checking the browser console (F12) in the Electron app.
+
+## License
+
+See the repository for license details.

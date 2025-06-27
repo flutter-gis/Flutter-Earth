@@ -188,13 +188,13 @@
                             <h3>Resolution Settings</h3>
                             <div class="input-group">
                                 <div class="checkbox-group">
-                                    <input type="checkbox" id="best-res">
+                                    <input type="checkbox" id="best-res" checked>
                                     <label for="best-res">Use Highest Resolution</label>
                                 </div>
                             </div>
                             <div class="input-group">
                                 <label for="target-res">Target Res (m):</label>
-                                <input id="target-res" type="number" min="1" max="1000" value="30">
+                                <input id="target-res" type="number" min="1" max="1000" value="30" disabled>
                             </div>
                         </div>
 
@@ -203,14 +203,13 @@
                             <div class="input-group">
                                 <label for="tiling-method">Method:</label>
                                 <select id="tiling-method">
-                                    <option value="degree">degree</option>
-                                    <option value="tile">tile</option>
-                                    <option value="scene">scene</option>
+                                    <option value="degree">Degree</option>
+                                    <option value="pixel">Pixel</option>
                                 </select>
                             </div>
                             <div class="input-group">
-                                <label for="subsections">Subsections:</label>
-                                <input id="subsections" type="number" min="1" max="1000" value="100">
+                                <label for="num-subsections">Subsections:</label>
+                                <input id="num-subsections" type="number" min="1" max="1000" value="100" disabled>
                             </div>
                         </div>
 
@@ -218,25 +217,37 @@
                             <h3>Processing Options</h3>
                             <div class="input-group">
                                 <div class="checkbox-group">
-                                    <input type="checkbox" id="overwrite">
-                                    <label for="overwrite">Overwrite Existing Files</label>
+                                    <input type="checkbox" id="overwrite-existing">
+                                    <label for="overwrite-existing">Overwrite Existing Files</label>
                                 </div>
                             </div>
                             <div class="input-group">
                                 <div class="checkbox-group">
-                                    <input type="checkbox" id="cleanup">
-                                    <label for="cleanup">Cleanup Intermediate Tiles</label>
+                                    <input type="checkbox" id="cleanup-tiles" checked>
+                                    <label for="cleanup-tiles">Cleanup Intermediate Tiles</label>
                                 </div>
                             </div>
                         </div>
 
                         <div class="form-section">
                             <h3>Download Controls</h3>
-                            <div class="button-group">
+                            <div class="download-controls">
                                 <button id="start-download" class="btn-primary">Start Download</button>
                                 <button id="cancel-download" class="btn-secondary">Cancel Download</button>
                             </div>
-                            <div id="download-status" class="download-status"></div>
+                            <div class="download-progress">
+                                <div class="progress-bar">
+                                    <div id="download-progress" class="progress-fill" style="width: 0%"></div>
+                                </div>
+                                <div id="download-status" class="download-status">Ready</div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3>Download Log</h3>
+                            <div class="download-log">
+                                <textarea id="download-log" readonly placeholder="Waiting for download..."></textarea>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -247,15 +258,64 @@
                 <div class="settings-container">
                     <h2>Settings</h2>
                     <div class="settings-form">
+                        <!-- Theme Selection -->
                         <div class="form-section">
-                            <h3>Theme</h3>
+                            <h3>Appearance</h3>
+                            <div class="theme-selection">
+                                <!-- Theme Categories -->
+                                <div class="theme-categories">
+                                    <div id="theme-tabs" class="theme-tabs">
+                                        <button class="theme-tab active" data-category="default">Default</button>
+                                        <button class="theme-tab" data-category="dark">Dark</button>
+                                        <button class="theme-tab" data-category="light">Light</button>
+                                        <button class="theme-tab" data-category="special">Special</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Theme Grid -->
+                                <div id="theme-grid" class="theme-grid">
+                                    <!-- Themes will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Theme Options -->
+                        <div class="form-section">
+                            <h3>Theme Options</h3>
+                            <div class="theme-options">
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="use-character-catchphrases">
+                                    <label for="use-character-catchphrases">Use Character Catchphrases</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="show-special-icons">
+                                    <label for="show-special-icons">Show Special Icons</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="enable-animated-background">
+                                    <label for="enable-animated-background">Enable Animated Backgrounds</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- General Settings -->
+                        <div class="form-section">
+                            <h3>General</h3>
                             <div class="input-group">
-                                <label for="theme-select">Select Theme:</label>
-                                <select id="theme-select">
-                                    <option value="default">Default</option>
-                                    <option value="dark">Dark</option>
-                                    <option value="light">Light</option>
-                                </select>
+                                <label for="settings-output-dir">Output Directory:</label>
+                                <div class="input-row">
+                                    <input id="settings-output-dir" type="text" placeholder="Choose output directory">
+                                    <button id="browse-settings-output" class="btn-secondary">Browse...</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="form-section">
+                            <h3>Actions</h3>
+                            <div class="action-buttons">
+                                <button id="reload-settings-btn" class="btn-secondary">Reload Settings</button>
+                                <button id="clear-cache-settings-btn" class="btn-secondary">Clear Cache and Logs</button>
                             </div>
                         </div>
                     </div>
@@ -265,11 +325,41 @@
             <!-- About View -->
             <div id="about-view" class="view-content">
                 <div class="about-container">
-                    <h2>About Flutter Earth</h2>
                     <div class="about-content">
-                        <p>Flutter Earth is a powerful Earth observation data management and analysis tool.</p>
-                        <p>Version: 1.0.0</p>
-                        <p>Built with modern web technologies for seamless data exploration.</p>
+                        <h2 id="about-greeting">Hello!</h2>
+                        <h1>About Flutter Earth</h1>
+                        <p class="version">Version 1.0.0</p>
+                        <p class="developer">Developed by Jakob Newman and contributors.</p>
+                        
+                        <div class="about-actions">
+                            <button id="visit-website-btn" class="btn-primary">Visit Project Website</button>
+                        </div>
+                        
+                        <div class="changelog-section">
+                            <h3>Recent Changes (Changelog)</h3>
+                            <div class="changelog-content">
+                                <div id="changelog-text">
+                                    <p><strong>Version 1.0.0</strong></p>
+                                    <ul>
+                                        <li>Initial release of Flutter Earth</li>
+                                        <li>Earth Engine integration for satellite data access</li>
+                                        <li>Multi-sensor support (Landsat, Sentinel, MODIS)</li>
+                                        <li>Vector data download capabilities</li>
+                                        <li>Index analysis tools (NDVI, NDWI, etc.)</li>
+                                        <li>Data viewer for raster and vector files</li>
+                                        <li>Theme system with multiple visual styles</li>
+                                        <li>Offline Electron application</li>
+                                    </ul>
+                                    <p><strong>Upcoming Features</strong></p>
+                                    <ul>
+                                        <li>Advanced GIS analysis tools</li>
+                                        <li>Real-time data processing</li>
+                                        <li>Cloud-based collaboration</li>
+                                        <li>Mobile application support</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -277,19 +367,41 @@
             <!-- Progress View -->
             <div id="progress-view" class="view-content">
                 <div class="progress-container">
-                    <h2>Progress</h2>
-                    <div class="progress-list">
-                        <div class="progress-item">
-                            <div class="progress-header">
-                                <span class="progress-title">Download Task 1</span>
-                                <span class="progress-status">Running</span>
-                            </div>
+                    <h2>Progress & Management</h2>
+                    
+                    <!-- Current Download Status -->
+                    <div class="form-section">
+                        <h3>Current Download Status</h3>
+                        <div class="current-status">
                             <div class="progress-bar">
-                                <div class="progress-fill" style="width: 45%"></div>
+                                <div id="current-progress" class="progress-fill" style="width: 0%"></div>
                             </div>
-                            <div class="progress-details">
-                                <span>45% Complete</span>
-                                <span>2.3 GB / 5.1 GB</span>
+                            <div id="current-status-text" class="status-text">No active downloads</div>
+                        </div>
+                        
+                        <!-- Control Buttons -->
+                        <div class="control-buttons">
+                            <button id="cancel-current-download" class="btn-secondary" disabled>Cancel Download</button>
+                            <button id="clear-cache-logs" class="btn-secondary">Clear Cache & Logs</button>
+                            <button id="reload-settings" class="btn-secondary">Reload Settings</button>
+                            <button id="clear-history" class="btn-secondary">Clear History</button>
+                        </div>
+                    </div>
+
+                    <!-- Download History -->
+                    <div class="form-section">
+                        <h3>Download History</h3>
+                        <div class="download-history">
+                            <div id="history-list" class="history-list">
+                                <div class="history-item">
+                                    <div class="history-header">
+                                        <span class="history-title">No download history</span>
+                                        <span class="history-status">-</span>
+                                    </div>
+                                    <div class="history-details">
+                                        <span>No downloads completed yet</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -301,15 +413,94 @@
                 <div class="index-analysis-container">
                     <h2>Index Analysis</h2>
                     <div class="analysis-form">
+                        <!-- Input Raster Selection -->
                         <div class="form-section">
-                            <h3>Analysis Parameters</h3>
+                            <h3>Input Raster Files</h3>
                             <div class="input-group">
-                                <label for="index-type">Index Type:</label>
-                                <select id="index-type">
-                                    <option value="ndvi">NDVI</option>
-                                    <option value="ndwi">NDWI</option>
-                                    <option value="ndbi">NDBI</option>
-                                </select>
+                                <div class="button-group">
+                                    <button id="add-raster-files" class="btn-secondary">Add Raster Files...</button>
+                                    <button id="clear-raster-files" class="btn-secondary" disabled>Clear All</button>
+                                </div>
+                            </div>
+                            <div class="file-list">
+                                <div id="raster-files-list" class="files-list">
+                                    <div class="no-files">No raster files selected</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Index Selection -->
+                        <div class="form-section">
+                            <h3>Select Indices to Calculate</h3>
+                            <div class="index-selection">
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="index-ndvi">
+                                    <label for="index-ndvi">NDVI - Normalized Difference Vegetation Index</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="index-ndwi">
+                                    <label for="index-ndwi">NDWI - Normalized Difference Water Index</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="index-ndbi">
+                                    <label for="index-ndbi">NDBI - Normalized Difference Built-up Index</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="index-evi">
+                                    <label for="index-evi">EVI - Enhanced Vegetation Index</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="index-savi">
+                                    <label for="index-savi">SAVI - Soil Adjusted Vegetation Index</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="index-ndmi">
+                                    <label for="index-ndmi">NDMI - Normalized Difference Moisture Index</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="index-nbr">
+                                    <label for="index-nbr">NBR - Normalized Burn Ratio</label>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="index-ndsi">
+                                    <label for="index-ndsi">NDSI - Normalized Difference Snow Index</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Band Mapping -->
+                        <div class="form-section">
+                            <h3>Band Mapping (Standard Order)</h3>
+                            <div class="band-mapping-info">
+                                <p><strong>For Landsat:</strong> Band 1=Blue, Band 2=Green, Band 3=Red, Band 4=NIR, Band 5=SWIR1, Band 6=SWIR2</p>
+                                <p><strong>For Sentinel-2:</strong> Band 2=Blue, Band 3=Green, Band 4=Red, Band 8=NIR, Band 11=SWIR1, Band 12=SWIR2</p>
+                            </div>
+                        </div>
+
+                        <!-- Output Settings -->
+                        <div class="form-section">
+                            <h3>Output Settings</h3>
+                            <div class="input-group">
+                                <label for="analysis-output-dir">Output Directory:</label>
+                                <div class="input-row">
+                                    <input id="analysis-output-dir" type="text" placeholder="Choose output directory">
+                                    <button id="browse-analysis-output" class="btn-secondary">Browse...</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Analysis Controls -->
+                        <div class="form-section">
+                            <h3>Analysis Controls</h3>
+                            <div class="analysis-controls">
+                                <button id="start-analysis" class="btn-primary" disabled>Start Analysis</button>
+                                <button id="cancel-analysis" class="btn-secondary" disabled>Cancel Analysis</button>
+                            </div>
+                            <div class="analysis-progress">
+                                <div class="progress-bar">
+                                    <div id="analysis-progress" class="progress-fill" style="width: 0%"></div>
+                                </div>
+                                <div id="analysis-status" class="analysis-status">Ready</div>
                             </div>
                         </div>
                     </div>
@@ -319,16 +510,85 @@
             <!-- Vector Download View -->
             <div id="vectorDownload-view" class="view-content">
                 <div class="vector-download-container">
-                    <h2>Vector Download</h2>
+                    <h2>Vector Data Download</h2>
                     <div class="vector-form">
+                        <!-- Data Source Selection -->
                         <div class="form-section">
-                            <h3>Vector Data Source</h3>
+                            <h3>Data Source</h3>
                             <div class="input-group">
-                                <label for="vector-source">Data Source:</label>
-                                <select id="vector-source">
+                                <label for="vector-data-source">Select Data Source:</label>
+                                <select id="vector-data-source">
+                                    <option value="overpass">Overpass API (OSM)</option>
+                                    <option value="natural-earth">Natural Earth</option>
                                     <option value="openstreetmap">OpenStreetMap</option>
-                                    <option value="naturalearth">Natural Earth</option>
+                                    <option value="custom">Custom API</option>
                                 </select>
+                            </div>
+                            <div id="data-source-description" class="description">
+                                Download vector data from OpenStreetMap using Overpass API queries.
+                            </div>
+                        </div>
+
+                        <!-- Query Input -->
+                        <div class="form-section">
+                            <h3>Query</h3>
+                            <div class="input-group">
+                                <label for="vector-query">Overpass Query:</label>
+                                <textarea id="vector-query" placeholder="Enter Overpass query or URL..." rows="6"></textarea>
+                            </div>
+                            <div class="button-group">
+                                <button id="load-example-query" class="btn-secondary">Load Example Query</button>
+                                <button id="clear-vector-query" class="btn-secondary">Clear Query</button>
+                            </div>
+                        </div>
+
+                        <!-- Area of Interest -->
+                        <div class="form-section">
+                            <h3>Area of Interest (Optional)</h3>
+                            <div class="input-group">
+                                <div class="input-row">
+                                    <input id="vector-aoi" type="text" placeholder="minLon,minLat,maxLon,maxLat or GeoJSON Polygon">
+                                    <button id="select-vector-aoi" class="btn-secondary">Select on Map</button>
+                                </div>
+                            </div>
+                            <div class="description">
+                                Leave empty to download data for the entire world (not recommended for large queries).
+                            </div>
+                        </div>
+
+                        <!-- Output Settings -->
+                        <div class="form-section">
+                            <h3>Output Settings</h3>
+                            <div class="input-group">
+                                <label for="vector-output-format">Output Format:</label>
+                                <select id="vector-output-format">
+                                    <option value="geojson">GeoJSON</option>
+                                    <option value="shapefile">Shapefile</option>
+                                    <option value="kml">KML</option>
+                                    <option value="gpx">GPX</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="vector-output-dir">Output Directory:</label>
+                                <div class="input-row">
+                                    <input id="vector-output-dir" type="text" placeholder="Choose output directory">
+                                    <button id="browse-vector-output" class="btn-secondary">Browse...</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Download Controls -->
+                        <div class="form-section">
+                            <h3>Download Controls</h3>
+                            <div class="download-controls">
+                                <button id="start-vector-download" class="btn-primary">Start Download</button>
+                                <button id="cancel-vector-download" class="btn-secondary" disabled>Cancel Download</button>
+                            </div>
+                            <div class="download-progress">
+                                <div class="progress-bar">
+                                    <div id="vector-download-progress" class="progress-fill" style="width: 0%"></div>
+                                </div>
+                                <div id="vector-download-status" class="download-status">Ready</div>
                             </div>
                         </div>
                     </div>
@@ -339,8 +599,88 @@
             <div id="dataViewer-view" class="view-content">
                 <div class="data-viewer-container">
                     <h2>Data Viewer</h2>
-                    <div class="viewer-content">
-                        <p>Data visualization and analysis tools will be available here.</p>
+                    <div class="data-viewer-content">
+                        <!-- Data Loading Controls -->
+                        <div class="form-section">
+                            <h3>Load Data</h3>
+                            <div class="button-group">
+                                <button id="load-raster-btn" class="btn-secondary">Load Raster...</button>
+                                <button id="load-vector-btn" class="btn-secondary">Load Vector...</button>
+                                <button id="clear-data-btn" class="btn-secondary" disabled>Clear All</button>
+                            </div>
+                        </div>
+
+                        <!-- Data Display Area -->
+                        <div class="data-display-area">
+                            <!-- Raster Data Information -->
+                            <div id="raster-data-section" class="data-section" style="display: none;">
+                                <h3>Raster Data</h3>
+                                <div class="data-info">
+                                    <div class="data-file">
+                                        <strong>File:</strong> <span id="raster-file-path">N/A</span>
+                                    </div>
+                                    <div class="data-grid">
+                                        <div class="data-row">
+                                            <span class="data-label">Dimensions:</span>
+                                            <span id="raster-dimensions" class="data-value">N/A</span>
+                                        </div>
+                                        <div class="data-row">
+                                            <span class="data-label">Bands:</span>
+                                            <span id="raster-bands" class="data-value">N/A</span>
+                                        </div>
+                                        <div class="data-row">
+                                            <span class="data-label">CRS:</span>
+                                            <span id="raster-crs" class="data-value">N/A</span>
+                                        </div>
+                                        <div class="data-row">
+                                            <span class="data-label">Data Type:</span>
+                                            <span id="raster-dtype" class="data-value">N/A</span>
+                                        </div>
+                                        <div class="data-row">
+                                            <span class="data-label">No Data Value:</span>
+                                            <span id="raster-nodata" class="data-value">N/A</span>
+                                        </div>
+                                        <div class="data-row">
+                                            <span class="data-label">Bounds:</span>
+                                            <span id="raster-bounds" class="data-value">N/A</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Vector Data Information -->
+                            <div id="vector-data-section" class="data-section" style="display: none;">
+                                <h3>Vector Data</h3>
+                                <div class="data-info">
+                                    <div class="data-file">
+                                        <strong>File:</strong> <span id="vector-file-path">N/A</span>
+                                    </div>
+                                    <div class="data-grid">
+                                        <div class="data-row">
+                                            <span class="data-label">Features:</span>
+                                            <span id="vector-features" class="data-value">N/A</span>
+                                        </div>
+                                        <div class="data-row">
+                                            <span class="data-label">Geometry Types:</span>
+                                            <span id="vector-geometry-types" class="data-value">N/A</span>
+                                        </div>
+                                        <div class="data-row">
+                                            <span class="data-label">CRS:</span>
+                                            <span id="vector-crs" class="data-value">N/A</span>
+                                        </div>
+                                        <div class="data-row">
+                                            <span class="data-label">Bounds:</span>
+                                            <span id="vector-bounds" class="data-value">N/A</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- No Data Message -->
+                            <div id="no-data-message" class="no-data-message">
+                                <p>No data loaded. Use the buttons above to load raster or vector data files.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -349,14 +689,83 @@
             <div id="satelliteInfo-view" class="view-content">
                 <div class="satellite-info-container">
                     <h2>Satellite Information</h2>
-                    <div class="satellite-list">
-                        <div class="satellite-item">
-                            <h3>Landsat 8</h3>
-                            <p>Operational Land Imager (OLI) and Thermal Infrared Sensor (TIRS)</p>
+                    <p class="description">Browse available satellites and their capabilities. Learn about different sensors and their resolutions.</p>
+                    
+                    <div class="satellite-content">
+                        <!-- Satellite Categories and Sensors List -->
+                        <div class="satellite-list-section">
+                            <h3>Satellites & Sensors</h3>
+                            <div class="satellite-controls">
+                                <div class="input-group">
+                                    <label for="satellite-category">Category:</label>
+                                    <select id="satellite-category">
+                                        <option value="optical">Optical</option>
+                                        <option value="radar">Radar</option>
+                                        <option value="thermal">Thermal</option>
+                                        <option value="multispectral">Multispectral</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="sensor-list">
+                                <div id="sensor-list-container">
+                                    <!-- Sensor list will be populated by JavaScript -->
+                                </div>
+                            </div>
                         </div>
-                        <div class="satellite-item">
-                            <h3>Sentinel-2</h3>
-                            <p>MultiSpectral Instrument (MSI)</p>
+
+                        <!-- Sensor Details Display -->
+                        <div class="sensor-details-section">
+                            <h3>Sensor Details</h3>
+                            <div class="sensor-details">
+                                <div class="sensor-overview">
+                                    <h4 id="sensor-name">Select a sensor to view details</h4>
+                                    <div class="sensor-info-grid">
+                                        <div class="sensor-info-row">
+                                            <span class="sensor-label">Type:</span>
+                                            <span id="sensor-type" class="sensor-value">-</span>
+                                        </div>
+                                        <div class="sensor-info-row">
+                                            <span class="sensor-label">Resolution:</span>
+                                            <span id="sensor-resolution" class="sensor-value">-</span>
+                                        </div>
+                                        <div class="sensor-info-row">
+                                            <span class="sensor-label">Swath Width:</span>
+                                            <span id="sensor-swath" class="sensor-value">-</span>
+                                        </div>
+                                        <div class="sensor-info-row">
+                                            <span class="sensor-label">Revisit Time:</span>
+                                            <span id="sensor-revisit" class="sensor-value">-</span>
+                                        </div>
+                                        <div class="sensor-info-row">
+                                            <span class="sensor-label">Launch Date:</span>
+                                            <span id="sensor-launch" class="sensor-value">-</span>
+                                        </div>
+                                        <div class="sensor-info-row">
+                                            <span class="sensor-label">Status:</span>
+                                            <span id="sensor-status" class="sensor-value">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="sensor-description">
+                                    <h4>Description</h4>
+                                    <p id="sensor-description">Select a sensor from the list to view its detailed description and capabilities.</p>
+                                </div>
+                                
+                                <div class="sensor-bands">
+                                    <h4>Available Bands</h4>
+                                    <div id="sensor-bands-list">
+                                        <p>No bands information available.</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="sensor-applications">
+                                    <h4>Applications</h4>
+                                    <div id="sensor-applications-list">
+                                        <p>No applications information available.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -379,34 +788,171 @@
                 <h3>Authentication Required</h3>
                 <div class="auth-form">
                     <div class="input-group">
-                        <label for="key-file">Key File:</label>
-                        <input id="key-file" type="file" accept=".json">
+                        <label for="auth-key-file">Key File:</label>
+                        <input id="auth-key-file" type="file" accept=".json">
                     </div>
                     <div class="input-group">
-                        <label for="project-id">Project ID:</label>
-                        <input id="project-id" type="text" placeholder="Enter project ID">
+                        <label for="auth-project-id">Project ID:</label>
+                        <input id="auth-project-id" type="text" placeholder="Enter project ID">
                     </div>
                     <div class="button-group">
                         <button id="auth-submit" class="btn-primary">Submit</button>
                         <button id="auth-help" class="btn-secondary">Help</button>
+                        <button id="auth-cancel" class="btn-secondary">Cancel</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="help-popup" class="modal" style="display: none;">
-            <div class="modal-content">
-                <h3>Help & Documentation</h3>
-                <div class="help-content">
-                    <p>Welcome to Flutter Earth! Here's how to get started:</p>
-                    <ul>
-                        <li><strong>Download:</strong> Download satellite imagery and data</li>
-                        <li><strong>Map:</strong> View and interact with maps</li>
-                        <li><strong>Analysis:</strong> Perform various analyses on your data</li>
-                        <li><strong>Settings:</strong> Configure the application</li>
-                    </ul>
+        <!-- Help Popup -->
+        <div id="help-popup" class="modal">
+            <div class="modal-content help-modal">
+                <div class="modal-header">
+                    <h2>Help & Documentation</h2>
+                    <button class="close-btn" onclick="app.hideHelpPopup()">&times;</button>
                 </div>
-                <button id="help-close" class="btn-primary">Close</button>
+                
+                <div class="help-content">
+                    <!-- Help Navigation -->
+                    <div class="help-nav">
+                        <button class="help-nav-btn active" data-tab="getting-started">Getting Started</button>
+                        <button class="help-nav-btn" data-tab="download-guide">Download Guide</button>
+                        <button class="help-nav-btn" data-tab="analysis-tools">Analysis Tools</button>
+                        <button class="help-nav-btn" data-tab="faq">FAQ</button>
+                    </div>
+                    
+                    <!-- Help Content Tabs -->
+                    <div class="help-tabs">
+                        <!-- Getting Started Tab -->
+                        <div id="getting-started" class="help-tab active">
+                            <h3>Welcome to Flutter Earth!</h3>
+                            <p>Flutter Earth is a powerful tool for downloading and analyzing satellite imagery using Google Earth Engine. Here's how to get started:</p>
+                            
+                            <div class="help-section">
+                                <h4>1. Authentication</h4>
+                                <ul>
+                                    <li>You'll need a Google Earth Engine account</li>
+                                    <li>Set up authentication in the Settings view</li>
+                                    <li>Provide your GCP project ID and service account key</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="help-section">
+                                <h4>2. Download Satellite Data</h4>
+                                <ul>
+                                    <li>Go to the Download view</li>
+                                    <li>Select your area of interest</li>
+                                    <li>Choose satellite sensor and date range</li>
+                                    <li>Configure processing options</li>
+                                    <li>Start the download</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="help-section">
+                                <h4>3. Analyze Your Data</h4>
+                                <ul>
+                                    <li>Use the Index Analysis view for vegetation indices</li>
+                                    <li>View your data in the Data Viewer</li>
+                                    <li>Export results in various formats</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Download Guide Tab -->
+                        <div id="download-guide" class="help-tab">
+                            <h3>Download Guide</h3>
+                            
+                            <div class="help-section">
+                                <h4>Area of Interest (AOI)</h4>
+                                <p>You can specify your AOI in several formats:</p>
+                                <ul>
+                                    <li><strong>Bounding Box:</strong> [minLon, minLat, maxLon, maxLat]</li>
+                                    <li><strong>GeoJSON Polygon:</strong> Paste a valid GeoJSON</li>
+                                    <li><strong>Map Selection:</strong> Use the Map view to draw and select areas</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="help-section">
+                                <h4>Satellite Sensors</h4>
+                                <p>Available sensors:</p>
+                                <ul>
+                                    <li><strong>Landsat 8/9:</strong> 30m resolution, good for land monitoring</li>
+                                    <li><strong>Sentinel-2:</strong> 10m resolution, excellent for agriculture</li>
+                                    <li><strong>Sentinel-1:</strong> Radar data, works in all weather</li>
+                                    <li><strong>MODIS:</strong> 250m resolution, good for large areas</li>
+                                    <li><strong>VIIRS:</strong> 375m resolution, environmental monitoring</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="help-section">
+                                <h4>Processing Options</h4>
+                                <ul>
+                                    <li><strong>Cloud Mask:</strong> Automatically remove cloudy pixels</li>
+                                    <li><strong>Max Cloud Cover:</strong> Set maximum allowed cloud coverage</li>
+                                    <li><strong>Resolution:</strong> Choose output resolution</li>
+                                    <li><strong>Tiling:</strong> Split large areas into manageable tiles</li>
+                                    <li><strong>Output Format:</strong> GeoTIFF, JPEG, or PNG</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Analysis Tools Tab -->
+                        <div id="analysis-tools" class="help-tab">
+                            <h3>Analysis Tools</h3>
+                            
+                            <div class="help-section">
+                                <h4>Index Analysis</h4>
+                                <p>Calculate various vegetation and water indices:</p>
+                                <ul>
+                                    <li><strong>NDVI (Normalized Difference Vegetation Index):</strong> Measures vegetation health</li>
+                                    <li><strong>NDWI (Normalized Difference Water Index):</strong> Identifies water bodies</li>
+                                    <li><strong>NDBI (Normalized Difference Built-up Index):</strong> Detects urban areas</li>
+                                    <li><strong>EVI (Enhanced Vegetation Index):</strong> Improved vegetation monitoring</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="help-section">
+                                <h4>Data Viewer</h4>
+                                <p>View and analyze your downloaded data:</p>
+                                <ul>
+                                    <li>Load raster and vector files</li>
+                                    <li>View metadata and statistics</li>
+                                    <li>Export data in various formats</li>
+                                    <li>Compare different datasets</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- FAQ Tab -->
+                        <div id="faq" class="help-tab">
+                            <h3>Frequently Asked Questions</h3>
+                            
+                            <div class="help-section">
+                                <h4>General Questions</h4>
+                                
+                                <div class="faq-item">
+                                    <h5>Q: What is Google Earth Engine?</h5>
+                                    <p>A: Google Earth Engine is a cloud-based platform for planetary-scale geospatial analysis that enables users to access and analyze satellite imagery and other geospatial data.</p>
+                                </div>
+                                
+                                <div class="faq-item">
+                                    <h5>Q: Do I need a Google account?</h5>
+                                    <p>A: Yes, you need a Google account with Earth Engine access. You can sign up for free at <a href="https://earthengine.google.com" target="_blank">earthengine.google.com</a>.</p>
+                                </div>
+                                
+                                <div class="faq-item">
+                                    <h5>Q: What file formats are supported?</h5>
+                                    <p>A: Flutter Earth supports GeoTIFF, JPEG, PNG for raster data, and GeoJSON, Shapefile, KML for vector data.</p>
+                                </div>
+                                
+                                <div class="faq-item">
+                                    <h5>Q: How much data can I download?</h5>
+                                    <p>A: The amount depends on your Earth Engine quota and the area size. Large areas may be automatically tiled for processing.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
