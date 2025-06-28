@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 
 # Other common ignores can be added here
+
+node_modules/
