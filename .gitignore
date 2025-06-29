@@ -5,3 +5,8 @@ __pycache__/
 # Other common ignores can be added here
 
 node_modules/
+logs/
+temp_flutter_earth/
+*.log
+*.tmp
+*.bak
