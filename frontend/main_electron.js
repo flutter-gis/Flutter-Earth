@@ -21,11 +21,22 @@ function createWindow() {
   
   mainWindow.setMenuBarVisibility(true);
   mainWindow.loadFile('flutter_earth.html');
+  
+  // Open developer tools for debugging
+  mainWindow.webContents.openDevTools();
 }
 
 // IPC handlers for Python communication
 ipcMain.handle('python-init', async () => {
-  return await callPythonScript('init');
+  console.log('Received python-init request');
+  try {
+    const result = await callPythonScript('init');
+    console.log('Python init result:', result);
+    return result;
+  } catch (error) {
+    console.error('Python init error:', error);
+    return { status: 'error', message: error.message };
+  }
 });
 
 ipcMain.handle('python-download', async (event, params) => {
