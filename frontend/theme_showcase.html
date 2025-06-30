@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flutter Earth - Theme Showcase</title>
+    <link rel="stylesheet" href="flutter_earth.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .showcase-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .showcase-header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .showcase-header p {
+            color: #666;
+            font-size: 1.1em;
+            margin: 0;
+        }
+        
+        .category-section {
+            margin-bottom: 40px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .category-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .category-emoji {
+            font-size: 1.2em;
+        }
+        
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .theme-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .theme-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+        
+        .theme-icon {
+            font-size: 3em;
+            margin-bottom: 12px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .theme-gradient {
+            height: 60px;
+            border-radius: 8px;
+            margin: 12px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .theme-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 4px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        .theme-category {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+        
+        .theme-description {
+            font-size: 0.8em;
+            opacity: 0.7;
+            font-style: italic;
+            line-height: 1.3;
+        }
+        
+        .theme-preview-btn {
+            background: #0078D7;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-preview-btn:hover {
+            background: #005a9e;
+            transform: translateY(-1px);
+        }
+        
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #0078D7;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .back-btn:hover {
+            background: #005a9e;
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 768px) {
+            .theme-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+            
+            .showcase-header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="back-btn" onclick="window.location.href='flutter_earth.html'">← Back to App</button>
+    
+    <div class="showcase-header">
+        <h1>🎨 Flutter Earth Theme Showcase</h1>
+        <p>Explore all available themes with their custom colors, splash screens, and special effects</p>
+    </div>
+    
+    <div id="theme-showcase"></div>
+    
+    <script>
+        // Theme definitions from the Python configuration
+        const availableThemes = [
+            {
+                name: 'default_dark',
+                display_name: 'Default (Dark)',
+                category: 'professional',
+                background: '#2E2E2E',
+                primary: '#5A9BD5',
+                emoji: '🌑',
+                icon: '🌑',
+                splashEffect: 'stars',
+                uiEffect: 'nightGlow',
+                welcomeMessage: 'Welcome to Flutter Earth',
+                splashText: 'Flutter Earth',
+                notificationMessage: 'Flutter Earth'
+            },
+            {
+                name: 'light',
+                display_name: 'Light',
+                category: 'professional',
+                background: '#F0F0F0',
+                primary: '#0078D7',
+                emoji: '🌞',
+                icon: '🌞',
+                splashEffect: 'sunbeams',
+                uiEffect: 'sunshine',
+                welcomeMessage: 'Welcome to Flutter Earth',
+                splashText: 'Flutter Earth',
+                notificationMessage: 'Flutter Earth'
+            },
+            {
+                name: 'sanofi',
+                display_name: 'Sanofi Inspired',
+                category: 'corporate',
+                background: '#FFFFFF',
+                primary: '#0064B4',
+                emoji: '🌍',
+                icon: '🌍',
+                splashEffect: 'fade',
+                uiEffect: 'none',
+                welcomeMessage: 'Welcome to the Platform',
+                splashText: 'Flutter Earth Platform',
+                notificationMessage: 'Flutter Earth Platform'
+            },
+            {
+                name: 'twilight_sparkle',
+                display_name: 'Twilight Sparkle',
+                category: 'mlp',
+                background: '#2c1a4d',
+                primary: '#6c4a8e',
+                emoji: '📚',
+                icon: '📚',
+                splashEffect: 'magic',
+                uiEffect: 'magicSparkle',
+                welcomeMessage: 'Greetings, Everypony!',
+                splashText: "Twilight's Flutter Earth Study",
+                notificationMessage: "Twilight's Flutter Earth Study"
+            },
+            {
+                name: 'pinkie_pie',
+                display_name: 'Pinkie Pie',
+                category: 'mlp',
+                background: '#ffe6f2',
+                primary: '#ff80c0',
+                emoji: '🎉',
+                icon: '🎉',
+                splashEffect: 'confetti',
+                uiEffect: 'partyConfetti',
+                welcomeMessage: 'Okie Dokie Lokie!',
+                splashText: "Pinkie Pie's Super Duper Party App!",
+                notificationMessage: "Pinkie Pie's Super Duper Party App!"
+            },
+            {
+                name: 'fluttershy',
+                display_name: 'Fluttershy',
+                category: 'mlp',
+                background: '#f3e5f5',
+                primary: '#ffb3d9',
+                emoji: '🦋',
+                icon: '🦋',
+                splashEffect: 'fade',
+                uiEffect: 'none',
+                welcomeMessage: 'Oh, hello there...',
+                splashText: "Fluttershy's Gentle Earth Explorer",
+                notificationMessage: "Fluttershy's Gentle Earth Explorer"
+            },
+            {
+                name: 'rainbow_dash',
+                display_name: 'Rainbow Dash',
+                category: 'mlp',
+                background: '#e3f2fd',
+                primary: '#2196f3',
+                emoji: '🌈',
+                icon: '🌈',
+                splashEffect: 'rainbow',
+                uiEffect: 'rainbowTrail',
+                welcomeMessage: 'Hey there!',
+                splashText: "Rainbow Dash's Awesome Earth Explorer",
+                notificationMessage: "Rainbow Dash's Awesome Earth Explorer"
+            },
+            {
+                name: 'applejack',
+                display_name: 'Applejack',
+                category: 'mlp',
+                background: '#fff3e0',
+                primary: '#ff9800',
+                emoji: '🍎',
+                icon: '🍎',
+                splashEffect: 'fade',
+                uiEffect: 'none',
+                welcomeMessage: 'Howdy!',
+                splashText: "Applejack's Honest Earth Explorer",
+                notificationMessage: "Applejack's Honest Earth Explorer"
+            },
+            {
+                name: 'rarity',
+                display_name: 'Rarity',
+                category: 'mlp',
+                background: '#f3e5f5',
+                primary: '#9c27b0',
+                emoji: '💎',
+                icon: '💎',
+                splashEffect: 'fade',
+                uiEffect: 'none',
+                welcomeMessage: 'Darling!',
+                splashText: "Rarity's Fabulous Earth Explorer",
+                notificationMessage: "Rarity's Fabulous Earth Explorer"
+            },
+            {
+                name: 'princess_celestia',
+                display_name: 'Princess Celestia',
+                category: 'mlp',
+                background: '#fff8e1',
+                primary: '#ffd54f',
+                emoji: '☀️',
+                icon: '☀️',
+                splashEffect: 'sunbeams',
+                uiEffect: 'sunshine',
+                welcomeMessage: 'Greetings, my little pony!',
+                splashText: "Celestia's Solar Surveyor",
+                notificationMessage: "Celestia's Solar Surveyor"
+            },
+            {
+                name: 'princess_luna',
+                display_name: 'Princess Luna',
+                category: 'mlp',
+                background: '#23213a',
+                primary: '#3949ab',
+                emoji: '🌙',
+                icon: '🌙',
+                splashEffect: 'stars',
+                uiEffect: 'nightGlow',
+                welcomeMessage: 'Good evening, dreamer!',
+                splashText: "Luna's Lunar Mapper",
+                notificationMessage: "Luna's Lunar Mapper"
+            },
+            {
+                name: 'trixie',
+                display_name: 'Trixie',
+                category: 'mlp',
+                background: '#e1bee7',
+                primary: '#7c43bd',
+                emoji: '🎩',
+                icon: '🎩',
+                splashEffect: 'fade',
+                uiEffect: 'none',
+                welcomeMessage: 'Behold, the Great and Powerful Trixie!',
+                splashText: "The Great and Powerful Trixie's Map!",
+                notificationMessage: "The Great and Powerful Trixie's Map!"
+            },
+            {
+                name: 'starlight_glimmer',
+                display_name: 'Starlight Glimmer',
+                category: 'mlp',
+                background: '#e0f7fa',
+                primary: '#ba68c8',
+                emoji: '⭐',
+                icon: '⭐',
+                splashEffect: 'sunbeams',
+                uiEffect: 'sunshine',
+                welcomeMessage: 'Welcome, friend!',
+                splashText: "Starlight's Equality Explorer",
+                notificationMessage: "Starlight's Equality Explorer"
+            },
+            {
+                name: 'derpy_hooves',
+                display_name: 'Derpy Hooves',
+                category: 'mlp',
+                background: '#e0e0e0',
+                primary: '#ffd600',
+                emoji: '🧁',
+                icon: '🧁',
+                splashEffect: 'fade',
+                uiEffect: 'none',
+                welcomeMessage: 'Muffins!',
+                splashText: "Derpy's Muffin Mapper",
+                notificationMessage: "Derpy's Muffin Mapper"
+            },
+            {
+                name: 'steve',
+                display_name: 'Steve',
+                category: 'minecraft',
+                background: '#7ec850',
+                primary: '#3c763d',
+                emoji: '🧑‍🌾',
+                icon: '⛏️',
+                splashEffect: 'blocky',
+                uiEffect: 'blockyOverlay',
+                welcomeMessage: "Let's Mine!",
+                splashText: 'Ready to build?',
+                notificationMessage: 'Ready to build?'
+            },
+            {
+                name: 'alex_minecraft',
+                display_name: 'Alex (Minecraft)',
+                category: 'minecraft',
+                background: '#f4e2d8',
+                primary: '#e67e22',
+                emoji: '🧑‍🦰',
+                icon: '🪓',
+                splashEffect: 'blocky',
+                uiEffect: 'blockyOverlay',
+                welcomeMessage: 'Adventure awaits!',
+                splashText: "Let's craft something new!",
+                notificationMessage: "Let's craft something new!"
+            },
+            {
+                name: 'creeper_minecraft',
+                display_name: 'Creeper (Minecraft)',
+                category: 'minecraft',
+                background: '#3fa63f',
+                primary: '#1a4d1a',
+                emoji: '💣',
+                icon: '💣',
+                splashEffect: 'explode',
+                uiEffect: 'creeperShake',
+                welcomeMessage: "That's a nice app you have...",
+                splashText: 'Sssss... Boom!',
+                notificationMessage: 'Sssss... Boom!'
+            },
+            {
+                name: 'zombie_minecraft',
+                display_name: 'Zombie (Minecraft)',
+                category: 'minecraft',
+                background: '#4caf50',
+                primary: '#1b5e20',
+                emoji: '🧟',
+                icon: '🧟',
+                splashEffect: 'blocky',
+                uiEffect: 'blockyOverlay',
+                welcomeMessage: 'Brains...',
+                splashText: 'Grrr! Stay safe!',
+                notificationMessage: 'Grrr! Stay safe!'
+            }
+        ];
+
+        // Category display names
+        const categoryNames = {
+            'professional': 'Professional',
+            'corporate': 'Corporate',
+            'mlp': 'My Little Pony',
+            'minecraft': 'Minecraft',
+            'pride': 'Pride'
+        };
+
+        // Category emojis
+        const categoryEmojis = {
+            'professional': '💼',
+            'corporate': '🏢',
+            'mlp': '🦄',
+            'minecraft': '⛏️',
+            'pride': '🏳️‍🌈'
+        };
+
+        function renderThemeShowcase() {
+            const showcase = document.getElementById('theme-showcase');
+            
+            // Group themes by category
+            const themesByCategory = {};
+            availableThemes.forEach(theme => {
+                if (!themesByCategory[theme.category]) {
+                    themesByCategory[theme.category] = [];
+                }
+                themesByCategory[theme.category].push(theme);
+            });
+            
+            // Render each category
+            Object.keys(themesByCategory).forEach(category => {
+                const categorySection = document.createElement('div');
+                categorySection.className = 'category-section';
+                
+                const categoryTitle = document.createElement('h2');
+                categoryTitle.className = 'category-title';
+                categoryTitle.innerHTML = `
+                    <span class="category-emoji">${categoryEmojis[category] || '🎨'}</span>
+                    ${categoryNames[category] || category}
+                `;
+                
+                const themeGrid = document.createElement('div');
+                themeGrid.className = 'theme-grid';
+                
+                themesByCategory[category].forEach(theme => {
+                    const themeCard = createThemeCard(theme);
+                    themeGrid.appendChild(themeCard);
+                });
+                
+                categorySection.appendChild(categoryTitle);
+                categorySection.appendChild(themeGrid);
+                showcase.appendChild(categorySection);
+            });
+        }
+
+        function createThemeCard(theme) {
+            const card = document.createElement('div');
+            card.className = 'theme-card';
+            
+            // Calculate text color based on background
+            function getContrastColor(hex) {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                return luminance > 0.5 ? '#333' : '#fff';
+            }
+            
+            const textColor = getContrastColor(theme.background);
+            
+            card.innerHTML = `
+                <div class="theme-icon" style="
+                    animation: ${theme.splashEffect === 'magic' ? 'pulse 2s infinite' : 
+                               theme.splashEffect === 'rainbow' ? 'rainbow 3s infinite' :
+                               theme.splashEffect === 'stars' ? 'twinkle 2s infinite' : 'none'};
+                ">${theme.icon}</div>
+                
+                <div class="theme-gradient" style="
+                    background: linear-gradient(135deg, ${theme.background} 0%, ${theme.primary} 100%);
+                "></div>
+                
+                <div class="theme-name" style="color: ${textColor};">${theme.display_name}</div>
+                <div class="theme-category" style="color: ${textColor};">${categoryNames[theme.category] || theme.category}</div>
+                <div class="theme-description" style="color: ${textColor};">${theme.welcomeMessage}</div>
+                
+                <button class="theme-preview-btn" onclick="previewTheme('${theme.name}')">
+                    Preview Theme
+                </button>
+            `;
+            
+            // Add hover effects
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-4px) scale(1.02)';
+                card.style.boxShadow = `0 8px 16px rgba(0,0,0,0.2), 0 0 20px ${theme.primary}40`;
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0) scale(1)';
+                card.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+            });
+            
+            return card;
+        }
+
+        function previewTheme(themeName) {
+            const theme = availableThemes.find(t => t.name === themeName);
+            if (!theme) return;
+            
+            // Create splash screen
+            const splash = document.createElement('div');
+            splash.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: linear-gradient(135deg, ${theme.background} 0%, ${theme.primary} 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                opacity: 0;
+                transition: all 0.5s ease;
+            `;
+            
+            splash.innerHTML = `
+                <div style="text-align: center; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                    <div style="font-size: 120px; margin-bottom: 20px; animation: bounce 1s ease infinite;">${theme.emoji}</div>
+                    <div style="font-size: 48px; font-weight: bold; margin-bottom: 16px;">${theme.display_name}</div>
+                    <div style="font-size: 24px; opacity: 0.9;">${theme.welcomeMessage}</div>
+                </div>
+            `;
+            
+            document.body.appendChild(splash);
+            
+            // Animate in
+            setTimeout(() => {
+                splash.style.opacity = '1';
+            }, 100);
+            
+            // Animate out after 3 seconds
+            setTimeout(() => {
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    if (splash.parentNode) {
+                        splash.parentNode.removeChild(splash);
+                    }
+                }, 500);
+            }, 3000);
+        }
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+            }
+            @keyframes rainbow {
+                0% { filter: hue-rotate(0deg); }
+                100% { filter: hue-rotate(360deg); }
+            }
+            @keyframes twinkle {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+            @keyframes bounce {
+                0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                40% { transform: translateY(-10px); }
+                60% { transform: translateY(-5px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize the showcase
+        renderThemeShowcase();
+    </script>
+</body>
+</html> 

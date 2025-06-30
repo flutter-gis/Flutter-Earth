@@ -17,6 +17,13 @@ class FlutterEarth {
     async init() {
         console.log('[DEBUG] FlutterEarth.init() started');
         
+        // Wait for DOM to be fully loaded
+        if (document.readyState === 'loading') {
+            await new Promise(resolve => {
+                document.addEventListener('DOMContentLoaded', resolve);
+            });
+        }
+        
         // Initialize views first - ensure welcome view is visible
         this.initializeViews();
         console.log('[DEBUG] Views initialized');
@@ -568,21 +575,26 @@ class FlutterEarth {
         console.log('[DEBUG] Setting up event listeners');
         
         // Sidebar navigation
-        document.querySelectorAll('.sidebar-item').forEach(item => {
+        const sidebarItems = document.querySelectorAll('.sidebar-item');
+        console.log(`[DEBUG] Found ${sidebarItems.length} sidebar items`);
+        
+        sidebarItems.forEach((item, index) => {
+            console.log(`[DEBUG] Setting up sidebar item ${index}:`, item.textContent.trim(), item.dataset);
+            
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 
                 try {
-                const view = item.dataset.view;
-                const panel = item.dataset.panel;
-                console.log(`[DEBUG] Sidebar item clicked:`, { view, panel, item: item.textContent.trim() });
-                
-                if (view) {
-                    this.switchView(view);
-                } else if (panel) {
-                    this.showPanel(panel);
-                }
+                    const view = item.dataset.view;
+                    const panel = item.dataset.panel;
+                    console.log(`[DEBUG] Sidebar item clicked:`, { view, panel, item: item.textContent.trim() });
+                    
+                    if (view) {
+                        this.switchView(view);
+                    } else if (panel) {
+                        this.showPanel(panel);
+                    }
                     
                     // Fun click effect
                     this.createClickEffect(e.clientX, e.clientY);
@@ -971,38 +983,38 @@ class FlutterEarth {
                 return;
             }
         
-        // Hide all views
+            // Hide all views
             const allViews = document.querySelectorAll('.view-content');
             console.log(`[DEBUG] Found ${allViews.length} view elements`);
             allViews.forEach(view => {
-            view.classList.remove('active');
-            view.style.display = 'none';
-        });
+                view.classList.remove('active');
+                view.style.display = 'none';
+            });
         
-        // Show selected view
-        const targetView = document.getElementById(`${viewName}-view`);
+            // Show selected view
+            const targetView = document.getElementById(`${viewName}-view`);
             console.log(`[DEBUG] Looking for view: ${viewName}-view, found:`, targetView);
-        if (targetView) {
-            targetView.classList.add('active');
+            if (targetView) {
                 targetView.style.display = 'block';
-            console.log(`[DEBUG] Successfully switched to ${viewName}-view`);
-        } else {
-            console.warn(`[DEBUG] View not found: ${viewName}-view`);
-            // Fallback: show welcome view if target missing
-            const fallback = document.getElementById('welcome-view');
-            if (fallback) {
-                fallback.classList.add('active');
+                targetView.classList.add('active');
+                console.log(`[DEBUG] Successfully switched to ${viewName}-view`);
+            } else {
+                console.warn(`[DEBUG] View not found: ${viewName}-view`);
+                // Fallback: show welcome view if target missing
+                const fallback = document.getElementById('welcome-view');
+                if (fallback) {
                     fallback.style.display = 'block';
-                console.log(`[DEBUG] Fallback to welcome-view`);
+                    fallback.classList.add('active');
+                    console.log(`[DEBUG] Fallback to welcome-view`);
                     viewName = 'welcome';
                 } else {
                     console.error('[DEBUG] Even welcome view not found!');
                     return;
+                }
             }
-        }
         
-        // Update sidebar active state
-        document.querySelectorAll('.sidebar-item').forEach(item => {
+            // Update sidebar active state
+            document.querySelectorAll('.sidebar-item').forEach(item => {
                 item.classList.remove('active');
             });
             
@@ -1014,8 +1026,8 @@ class FlutterEarth {
                 console.warn(`[DEBUG] Sidebar item not found for view: ${viewName}`);
             }
         
-        // Update current view tracking
-        this.currentView = viewName;
+            // Update current view tracking
+            this.currentView = viewName;
             
             // Update status bar
             this.updateStatusText(`View: ${this.getViewTitle(viewName)}`);
@@ -1023,9 +1035,10 @@ class FlutterEarth {
             // --- THEME TABS & GRID LOGIC ---
             if (viewName === 'settings') {
                 this.initSettings(true); // force re-init
+                this.initializeThemeGrid(); // ensure theme grid is properly initialized
                 // Set the correct theme tab active
-                const currentTheme = this.currentTheme || 'default';
-                let currentCategory = 'default';
+                const currentTheme = this.currentTheme || 'default_dark';
+                let currentCategory = 'professional';
                 const theme = this.availableThemes.find(t => t.name === currentTheme);
                 if (theme) currentCategory = theme.category;
                 document.querySelectorAll('.theme-tab').forEach(tab => {
@@ -1405,125 +1418,794 @@ class FlutterEarth {
         console.log('[DEBUG] Analysis progress simulated');
     }
 
-    // Theme Methods
+    // Theme Methods - Using generated themes from Python config
     availableThemes = [
-        { name: 'default', display_name: 'Default', category: 'default', background: '#f0f0f0', primary: '#e91e63', emoji: '🌍', icon: '🌍', splashEffect: 'fade', uiEffect: 'none', welcomeMessage: 'Welcome to Flutter Earth!', splashText: "Let's explore the world!" },
-        { name: 'dark', display_name: 'Dark Theme', category: 'dark', background: '#2d2d2d', primary: '#4fc3f7', emoji: '🌑', icon: '🌑', splashEffect: 'stars', uiEffect: 'nightGlow', welcomeMessage: 'Welcome to the Dark Side!', splashText: 'Embrace the night.' },
-        { name: 'light', display_name: 'Light Theme', category: 'light', background: '#ffffff', primary: '#2196f3', emoji: '🌞', icon: '🌞', splashEffect: 'sunbeams', uiEffect: 'sunshine', welcomeMessage: 'Bright and Light!', splashText: 'Shine bright!' },
-        { name: 'twilight_sparkle', display_name: 'Twilight Sparkle', category: 'mlp', background: '#f8c5f8', primary: '#9c27b0', emoji: '📚', icon: '🦄', splashEffect: 'magic', uiEffect: 'magicSparkle', welcomeMessage: 'Magic of Friendship!', splashText: 'Friendship is Magic!' },
-        { name: 'rainbow_dash', display_name: 'Rainbow Dash', category: 'mlp', background: '#e3f2fd', primary: '#00bcd4', emoji: '🌈', icon: '🌈', splashEffect: 'rainbow', uiEffect: 'rainbowTrail', welcomeMessage: '20% Cooler!', splashText: 'Speed and color!' },
-        { name: 'pinkie_pie', display_name: 'Pinkie Pie', category: 'mlp', background: '#ffe0f7', primary: '#ff69b4', emoji: '🎉', icon: '🎂', splashEffect: 'confetti', uiEffect: 'partyConfetti', welcomeMessage: 'Smile! Smile! Smile!', splashText: 'Party time!' },
-        { name: 'applejack', display_name: 'Applejack', category: 'mlp', background: '#ffe5b4', primary: '#ffb347', emoji: '🍏', icon: '🍎', splashEffect: 'sunbeams', uiEffect: 'sunshine', welcomeMessage: 'Honest and True!', splashText: 'Yeehaw!' },
-        { name: 'rarity', display_name: 'Rarity', category: 'mlp', background: '#f8f6ff', primary: '#b39ddb', emoji: '💎', icon: '💎', splashEffect: 'magic', uiEffect: 'magicSparkle', welcomeMessage: 'So fabulous!', splashText: 'Shine bright!' },
-        { name: 'fluttershy', display_name: 'Fluttershy', category: 'mlp', background: '#fffde4', primary: '#ffd6e0', emoji: '🦋', icon: '🐰', splashEffect: 'butterflies', uiEffect: 'sunshine', welcomeMessage: 'Kindness everywhere!', splashText: 'Be gentle.' },
-        { name: 'derpy', display_name: 'Derpy Hooves', category: 'mlp', background: '#e0e7ef', primary: '#b0c4de', emoji: '🧁', icon: '🦉', splashEffect: 'muffins', uiEffect: 'partyConfetti', welcomeMessage: 'Muffins!', splashText: 'Whoops! Something silly happened.' },
-        { name: 'luna', display_name: 'Princess Luna', category: 'mlp', background: '#232946', primary: '#5f6caf', emoji: '🌙', icon: '🌙', splashEffect: 'stars', uiEffect: 'nightGlow', welcomeMessage: 'Dreams and Night!', splashText: 'Good night, dreamer!' },
-        { name: 'celestia', display_name: 'Princess Celestia', category: 'mlp', background: '#fff8e1', primary: '#ffd54f', emoji: '☀️', icon: '👑', splashEffect: 'sunbeams', uiEffect: 'sunshine', welcomeMessage: 'Sunshine and Harmony!', splashText: 'Rise and shine, my little pony!' },
-        { name: 'cadence', display_name: 'Princess Cadence', category: 'mlp', background: '#ffe0f0', primary: '#f06292', emoji: '💖', icon: '👑', splashEffect: 'hearts', uiEffect: 'magicSparkle', welcomeMessage: 'Love and Light!', splashText: 'Spread love everywhere!' },
-        { name: 'sunset_shimmer', display_name: 'Sunset Shimmer', category: 'mlp', background: '#ffecb3', primary: '#ff7043', emoji: '🌅', icon: '🔥', splashEffect: 'sunset', uiEffect: 'sunshine', welcomeMessage: 'Shimmer and Shine!', splashText: 'Shine on, sunset style!' },
-        { name: 'starlight_glimmer', display_name: 'Starlight Glimmer', category: 'mlp', background: '#e1bee7', primary: '#ba68c8', emoji: '⭐', icon: '✨', splashEffect: 'magic', uiEffect: 'magicSparkle', welcomeMessage: 'Equality for all!', splashText: 'Shine bright, everypony!' },
-        { name: 'trixie', display_name: 'Trixie', category: 'mlp', background: '#b3e5fc', primary: '#0288d1', emoji: '🎩', icon: '🪄', splashEffect: 'fireworks', uiEffect: 'magicSparkle', welcomeMessage: 'The Great and Powerful!', splashText: 'Prepare to be amazed!' },
-        { name: 'steve', display_name: 'Steve', category: 'minecraft', background: '#7ec850', primary: '#3c763d', emoji: '🧑‍🌾', icon: '⛏️', splashEffect: 'blocky', uiEffect: 'blockyOverlay', welcomeMessage: "Let's Mine!", splashText: 'Ready to build?' },
-        { name: 'alex', display_name: 'Alex', category: 'minecraft', background: '#f4e2d8', primary: '#e67e22', emoji: '🧑‍🦰', icon: '🪓', splashEffect: 'blocky', uiEffect: 'blockyOverlay', welcomeMessage: 'Adventure awaits!', splashText: 'Let's craft something new!' },
-        { name: 'enderman', display_name: 'Enderman', category: 'minecraft', background: '#1a1a2e', primary: '#9d00ff', emoji: '👾', icon: '👾', splashEffect: 'portal', uiEffect: 'nightGlow', welcomeMessage: '... ... ...', splashText: 'Don't look directly at them!' },
-        { name: 'skeleton', display_name: 'Skeleton', category: 'minecraft', background: '#e0e0e0', primary: '#757575', emoji: '💀', icon: '🏹', splashEffect: 'arrows', uiEffect: 'nightGlow', welcomeMessage: 'Rattle rattle!', splashText: 'Watch your back!' },
-        { name: 'zombie', display_name: 'Zombie', category: 'minecraft', background: '#4caf50', primary: '#1b5e20', emoji: '🧟', icon: '🧟', splashEffect: 'blocky', uiEffect: 'blockyOverlay', welcomeMessage: 'Brains...', splashText: 'Grrr! Stay safe!' },
-        { name: 'creeper', display_name: 'Creeper', category: 'minecraft', background: '#3fa63f', primary: '#1a4d1a', emoji: '💣', icon: '💣', splashEffect: 'explode', uiEffect: 'creeperShake', welcomeMessage: "That's a nice app you have...", splashText: 'Sssss... Boom!' },
-        { name: 'wlw', display_name: 'WLW Pride', category: 'pride', background: '#d52d00', primary: '#a30262', emoji: '👭', icon: '👭', splashEffect: 'rainbow', uiEffect: 'rainbowTrail', welcomeMessage: 'WLW Pride!', splashText: 'Love wins! Celebrate love!' },
-        { name: 'mlm', display_name: 'MLM Pride', category: 'pride', background: '#078d70', primary: '#26ceaa', emoji: '👬', icon: '👬', splashEffect: 'rainbow', uiEffect: 'rainbowTrail', welcomeMessage: 'MLM Pride!', splashText: 'Love wins! Celebrate love!' },
-        { name: 'nonbinary', display_name: 'Nonbinary Pride', category: 'pride', background: '#fff430', primary: '#9c59d1', emoji: '⚧️', icon: '⚧️', splashEffect: 'trans', uiEffect: 'transWave', welcomeMessage: 'Nonbinary and proud!', splashText: 'Be you, be bright!' },
-        { name: 'genderqueer', display_name: 'Genderqueer Pride', category: 'pride', background: '#b57edc', primary: '#4a8123', emoji: '🏳️‍🌈', icon: '🏳️‍🌈', splashEffect: 'rainbow', uiEffect: 'rainbowTrail', welcomeMessage: 'Genderqueer and proud!', splashText: 'Be yourself, always!' },
-        { name: 'pan', display_name: 'Pan Pride', category: 'pride', background: '#ff218c', primary: '#ffd800', emoji: '💖💛💙', icon: '💖', splashEffect: 'rainbow', uiEffect: 'rainbowTrail', welcomeMessage: 'Pan and proud!', splashText: 'All the love, all the colors!' },
-        { name: 'ace', display_name: 'Ace Pride', category: 'pride', background: '#a3a3a3', primary: '#000000', emoji: '🖤', icon: '🤍', splashEffect: 'stars', uiEffect: 'nightGlow', welcomeMessage: 'Ace and proud!', splashText: 'You are valid and awesome!' },
-        { name: 'aro', display_name: 'Aro Pride', category: 'pride', background: '#3da542', primary: '#a8d47a', emoji: '💚', icon: '💚', splashEffect: 'rainbow', uiEffect: 'rainbowTrail', welcomeMessage: 'Aro and proud!', splashText: 'Aromantic joy for all!' },
-        { name: 'black_pride', display_name: 'Black Pride', category: 'pride', background: '#000000', primary: '#f9d71c', emoji: '✊🏿', icon: '✊🏿', splashEffect: 'fade', uiEffect: 'nightGlow', welcomeMessage: 'Black Pride!', splashText: 'Unity and strength always!' },
-        { name: 'unity', display_name: 'Unity Pride', category: 'pride', background: '#262626', primary: '#f9d71c', emoji: '🤝', icon: '🤝', splashEffect: 'rainbow', uiEffect: 'rainbowTrail', welcomeMessage: 'Unity for all!', splashText: 'Together we rise, together we shine!' },
+        {
+            name: 'default_dark',
+            display_name: 'Default (Dark)',
+            category: 'basic',
+            background: '#2E2E2E',
+            primary: '#5A9BD5',
+            emoji: '🌑',
+            icon: '🌑',
+            splashEffect: 'stars',
+            uiEffect: 'nightGlow',
+            iconAnimation: 'twinkle',
+            welcomeMessage: 'Welcome to Flutter Earth',
+            splashText: 'Flutter Earth',
+            notificationMessage: 'Flutter Earth'
+        },
+        {
+            name: 'light',
+            display_name: 'Light',
+            category: 'basic',
+            background: '#F0F0F0',
+            primary: '#0078D7',
+            emoji: '🌞',
+            icon: '🌞',
+            splashEffect: 'sunbeams',
+            uiEffect: 'sunshine',
+            iconAnimation: 'pulse',
+            welcomeMessage: 'Welcome to Flutter Earth',
+            splashText: 'Flutter Earth',
+            notificationMessage: 'Flutter Earth'
+        },
+        {
+            name: 'twilight_sparkle',
+            display_name: 'Twilight Sparkle',
+            category: 'mlp',
+            background: '#2c1a4d',
+            primary: '#6c4a8e',
+            emoji: '📚',
+            icon: '📚',
+            splashEffect: 'magic',
+            uiEffect: 'magicSparkle',
+            iconAnimation: 'magic',
+            welcomeMessage: 'Greetings, Everypony!',
+            splashText: "Twilight's Flutter Earth Study",
+            notificationMessage: "Twilight's Flutter Earth Study"
+        },
+        {
+            name: 'pinkie_pie',
+            display_name: 'Pinkie Pie',
+            category: 'mlp',
+            background: '#ffe6f2',
+            primary: '#ff80c0',
+            emoji: '🎉',
+            icon: '🎉',
+            splashEffect: 'confetti',
+            uiEffect: 'partyConfetti',
+            iconAnimation: 'bounce',
+            welcomeMessage: 'Okie Dokie Lokie!',
+            splashText: "Pinkie Pie's Super Duper Party App!",
+            notificationMessage: "Pinkie Pie's Super Duper Party App!"
+        },
+        {
+            name: 'fluttershy',
+            display_name: 'Fluttershy',
+            category: 'mlp',
+            background: '#f3e5f5',
+            primary: '#ffb3d9',
+            emoji: '🦋',
+            icon: '🦋',
+            splashEffect: 'fade',
+            uiEffect: 'none',
+            iconAnimation: 'float',
+            welcomeMessage: 'Oh, hello there...',
+            splashText: "Fluttershy's Gentle Earth Explorer",
+            notificationMessage: "Fluttershy's Gentle Earth Explorer"
+        },
+        {
+            name: 'rainbow_dash',
+            display_name: 'Rainbow Dash',
+            category: 'mlp',
+            background: '#e3f2fd',
+            primary: '#2196f3',
+            emoji: '🌈',
+            icon: '🌈',
+            splashEffect: 'rainbow',
+            uiEffect: 'rainbowTrail',
+            iconAnimation: 'rainbow',
+            welcomeMessage: 'Hey there!',
+            splashText: "Rainbow Dash's Awesome Earth Explorer",
+            notificationMessage: "Rainbow Dash's Awesome Earth Explorer"
+        },
+        {
+            name: 'applejack',
+            display_name: 'Applejack',
+            category: 'mlp',
+            background: '#fff3e0',
+            primary: '#ff9800',
+            emoji: '🍎',
+            icon: '🍎',
+            splashEffect: 'fade',
+            uiEffect: 'none',
+            iconAnimation: 'shake',
+            welcomeMessage: 'Howdy!',
+            splashText: "Applejack's Honest Earth Explorer",
+            notificationMessage: "Applejack's Honest Earth Explorer"
+        },
+        {
+            name: 'rarity',
+            display_name: 'Rarity',
+            category: 'mlp',
+            background: '#f3e5f5',
+            primary: '#9c27b0',
+            emoji: '💎',
+            icon: '💎',
+            splashEffect: 'fade',
+            uiEffect: 'none',
+            iconAnimation: 'sparkle',
+            welcomeMessage: 'Darling!',
+            splashText: "Rarity's Fabulous Earth Explorer",
+            notificationMessage: "Rarity's Fabulous Earth Explorer"
+        },
+        {
+            name: 'princess_celestia',
+            display_name: 'Princess Celestia',
+            category: 'mlp',
+            background: '#fff8e1',
+            primary: '#ffd54f',
+            emoji: '☀️',
+            icon: '☀️',
+            splashEffect: 'sunbeams',
+            uiEffect: 'sunshine',
+            iconAnimation: 'glow',
+            welcomeMessage: 'Greetings, my little pony!',
+            splashText: "Celestia's Solar Surveyor",
+            notificationMessage: "Celestia's Solar Surveyor"
+        },
+        {
+            name: 'princess_luna',
+            display_name: 'Princess Luna',
+            category: 'mlp',
+            background: '#23213a',
+            primary: '#3949ab',
+            emoji: '🌙',
+            icon: '🌙',
+            splashEffect: 'stars',
+            uiEffect: 'nightGlow',
+            iconAnimation: 'moonPhase',
+            welcomeMessage: 'Good evening, dreamer!',
+            splashText: "Luna's Lunar Mapper",
+            notificationMessage: "Luna's Lunar Mapper"
+        },
+        {
+            name: 'trixie',
+            display_name: 'Trixie',
+            category: 'mlp',
+            background: '#e1bee7',
+            primary: '#7c43bd',
+            emoji: '🎩',
+            icon: '🎩',
+            splashEffect: 'fade',
+            uiEffect: 'none',
+            iconAnimation: 'magic',
+            welcomeMessage: 'Behold, the Great and Powerful Trixie!',
+            splashText: "The Great and Powerful Trixie's Map!",
+            notificationMessage: "The Great and Powerful Trixie's Map!"
+        },
+        {
+            name: 'starlight_glimmer',
+            display_name: 'Starlight Glimmer',
+            category: 'mlp',
+            background: '#e0f7fa',
+            primary: '#ba68c8',
+            emoji: '⭐',
+            icon: '⭐',
+            splashEffect: 'sunbeams',
+            uiEffect: 'sunshine',
+            iconAnimation: 'twinkle',
+            welcomeMessage: 'Welcome, friend!',
+            splashText: "Starlight's Equality Explorer",
+            notificationMessage: "Starlight's Equality Explorer"
+        },
+        {
+            name: 'derpy_hooves',
+            display_name: 'Derpy Hooves',
+            category: 'mlp',
+            background: '#e0e0e0',
+            primary: '#ffd600',
+            emoji: '🧁',
+            icon: '🧁',
+            splashEffect: 'fade',
+            uiEffect: 'none',
+            iconAnimation: 'wiggle',
+            welcomeMessage: 'Muffins!',
+            splashText: "Derpy's Muffin Mapper",
+            notificationMessage: "Derpy's Muffin Mapper"
+        },
+        {
+            name: 'steve',
+            display_name: 'Steve',
+            category: 'mc',
+            background: '#7ec850',
+            primary: '#3c763d',
+            emoji: '🧑‍🌾',
+            icon: '⛏️',
+            splashEffect: 'blocky',
+            uiEffect: 'blockyOverlay',
+            iconAnimation: 'blockyJump',
+            welcomeMessage: "Let's Mine!",
+            splashText: 'Ready to build?',
+            notificationMessage: 'Ready to build?'
+        },
+        {
+            name: 'alex_minecraft',
+            display_name: 'Alex (Minecraft)',
+            category: 'mc',
+            background: '#f4e2d8',
+            primary: '#e67e22',
+            emoji: '🧑‍🦰',
+            icon: '🪓',
+            splashEffect: 'blocky',
+            uiEffect: 'blockyOverlay',
+            iconAnimation: 'blockyJump',
+            welcomeMessage: 'Adventure awaits!',
+            splashText: "Let's craft something new!",
+            notificationMessage: "Let's craft something new!"
+        },
+        {
+            name: 'creeper_minecraft',
+            display_name: 'Creeper (Minecraft)',
+            category: 'mc',
+            background: '#3fa63f',
+            primary: '#1a4d1a',
+            emoji: '💣',
+            icon: '💣',
+            splashEffect: 'explode',
+            uiEffect: 'creeperShake',
+            iconAnimation: 'explode',
+            welcomeMessage: "That's a nice app you have...",
+            splashText: 'Sssss... Boom!',
+            notificationMessage: 'Sssss... Boom!'
+        },
+        {
+            name: 'zombie_minecraft',
+            display_name: 'Zombie (Minecraft)',
+            category: 'mc',
+            background: '#4caf50',
+            primary: '#1b5e20',
+            emoji: '🧟',
+            icon: '🧟',
+            splashEffect: 'blocky',
+            uiEffect: 'blockyOverlay',
+            iconAnimation: 'shuffle',
+            welcomeMessage: 'Brains...',
+            splashText: 'Grrr! Stay safe!',
+            notificationMessage: 'Grrr! Stay safe!'
+        },
+        {
+            name: 'wlw_pride',
+            display_name: 'WLW Pride',
+            category: 'queer_pride',
+            background: '#d52d00',
+            primary: '#a30262',
+            emoji: '👭',
+            icon: '👭',
+            splashEffect: 'rainbow',
+            uiEffect: 'rainbowTrail',
+            iconAnimation: 'heartbeat',
+            welcomeMessage: 'WLW Pride!',
+            splashText: 'Love wins! Celebrate love!',
+            notificationMessage: 'Love wins! Celebrate love!'
+        },
+        {
+            name: 'mlm_pride',
+            display_name: 'MLM Pride',
+            category: 'queer_pride',
+            background: '#078d70',
+            primary: '#26ceaa',
+            emoji: '👬',
+            icon: '👬',
+            splashEffect: 'rainbow',
+            uiEffect: 'rainbowTrail',
+            iconAnimation: 'heartbeat',
+            welcomeMessage: 'MLM Pride!',
+            splashText: 'Love wins! Celebrate love!',
+            notificationMessage: 'Love wins! Celebrate love!'
+        },
+        {
+            name: 'nonbinary_pride',
+            display_name: 'Nonbinary Pride',
+            category: 'queer_pride',
+            background: '#fff430',
+            primary: '#9c59d1',
+            emoji: '⚧️',
+            icon: '⚧️',
+            splashEffect: 'trans',
+            uiEffect: 'transWave',
+            iconAnimation: 'transWave',
+            welcomeMessage: 'Nonbinary and proud!',
+            splashText: 'Be you, be bright!',
+            notificationMessage: 'Be you, be bright!'
+        },
+        {
+            name: 'genderqueer_pride',
+            display_name: 'Genderqueer Pride',
+            category: 'queer_pride',
+            background: '#b57edc',
+            primary: '#4a8123',
+            emoji: '🏳️‍🌈',
+            icon: '🏳️‍🌈',
+            splashEffect: 'rainbow',
+            uiEffect: 'rainbowTrail',
+            iconAnimation: 'rainbow',
+            welcomeMessage: 'Genderqueer and proud!',
+            splashText: 'Be yourself, always!',
+            notificationMessage: 'Be yourself, always!'
+        },
+        {
+            name: 'pan_pride',
+            display_name: 'Pan Pride',
+            category: 'queer_pride',
+            background: '#ff218c',
+            primary: '#ffd800',
+            emoji: '💖',
+            icon: '💖',
+            splashEffect: 'rainbow',
+            uiEffect: 'rainbowTrail',
+            iconAnimation: 'pulse',
+            welcomeMessage: 'Pan and proud!',
+            splashText: 'All the love, all the colors!',
+            notificationMessage: 'All the love, all the colors!'
+        },
+        {
+            name: 'ace_pride',
+            display_name: 'Ace Pride',
+            category: 'queer_pride',
+            background: '#a3a3a3',
+            primary: '#000000',
+            emoji: '🖤',
+            icon: '🤍',
+            splashEffect: 'stars',
+            uiEffect: 'nightGlow',
+            iconAnimation: 'twinkle',
+            welcomeMessage: 'Ace and proud!',
+            splashText: 'You are valid and awesome!',
+            notificationMessage: 'You are valid and awesome!'
+        },
+        {
+            name: 'aro_pride',
+            display_name: 'Aro Pride',
+            category: 'queer_pride',
+            background: '#3da542',
+            primary: '#a8d47a',
+            emoji: '💚',
+            icon: '💚',
+            splashEffect: 'rainbow',
+            uiEffect: 'rainbowTrail',
+            iconAnimation: 'pulse',
+            welcomeMessage: 'Aro and proud!',
+            splashText: 'Aromantic joy for all!',
+            notificationMessage: 'Aromantic joy for all!'
+        },
+        {
+            name: 'black_pride',
+            display_name: 'Black Pride',
+            category: 'queer_pride',
+            background: '#000000',
+            primary: '#f9d71c',
+            emoji: '✊🏿',
+            icon: '✊🏿',
+            splashEffect: 'fade',
+            uiEffect: 'nightGlow',
+            iconAnimation: 'fistPump',
+            welcomeMessage: 'Black Pride!',
+            splashText: 'Unity and strength always!',
+            notificationMessage: 'Unity and strength always!'
+        },
+        {
+            name: 'global_unity',
+            display_name: 'Global Unity',
+            category: 'unity_pride',
+            background: '#1e3a8a',
+            primary: '#fbbf24',
+            emoji: '🌍',
+            icon: '🌍',
+            splashEffect: 'rainbow',
+            uiEffect: 'rainbowTrail',
+            iconAnimation: 'rotate',
+            welcomeMessage: 'One World, One People!',
+            splashText: 'United we stand, divided we fall!',
+            notificationMessage: 'United we stand, divided we fall!'
+        },
+        {
+            name: 'cultural_unity',
+            display_name: 'Cultural Unity',
+            category: 'unity_pride',
+            background: '#dc2626',
+            primary: '#fbbf24',
+            emoji: '🎭',
+            icon: '🎭',
+            splashEffect: 'rainbow',
+            uiEffect: 'rainbowTrail',
+            iconAnimation: 'dance',
+            welcomeMessage: 'Celebrating our differences!',
+            splashText: 'Diversity is our strength!',
+            notificationMessage: 'Diversity is our strength!'
+        },
+        {
+            name: 'generational_unity',
+            display_name: 'Generational Unity',
+            category: 'unity_pride',
+            background: '#059669',
+            primary: '#fbbf24',
+            emoji: '👨‍👩‍👧‍👦',
+            icon: '👨‍👩‍👧‍👦',
+            splashEffect: 'rainbow',
+            uiEffect: 'rainbowTrail',
+            iconAnimation: 'heartbeat',
+            welcomeMessage: 'Bridging generations!',
+            splashText: 'Past, present, and future together!',
+            notificationMessage: 'Past, present, and future together!'
+        },
+        {
+            name: 'humanitarian_unity',
+            display_name: 'Humanitarian Unity',
+            category: 'unity_pride',
+            background: '#7c3aed',
+            primary: '#fbbf24',
+            emoji: '🤝',
+            icon: '🤝',
+            splashEffect: 'rainbow',
+            uiEffect: 'rainbowTrail',
+            iconAnimation: 'handshake',
+            welcomeMessage: 'Helping hands unite!',
+            splashText: 'Compassion connects us all!',
+            notificationMessage: 'Compassion connects us all!'
+        }
     ];
 
     currentThemeData = { options: {} };
-    currentTheme = 'default';
+    currentTheme = 'default_dark'; // Match the first theme in the array
 
     // Add missing switchThemeCategory function
     switchThemeCategory(category) {
         console.log('[DEBUG] Switching theme category:', category);
         try {
             // Update theme tabs
-        document.querySelectorAll('.theme-tab').forEach(tab => {
+            document.querySelectorAll('.theme-tab').forEach(tab => {
                 if (tab.dataset.category === category) {
                     tab.classList.add('active');
                 } else {
-            tab.classList.remove('active');
+                    tab.classList.remove('active');
                 }
-        });
-        
+            });
+            
             // Update theme grid for the selected category
-        this.updateThemeGrid(category);
+            this.updateThemeGrid(category);
         } catch (error) {
             console.error('[DEBUG] Error switching theme category:', error);
         }
     }
 
-    // --- Robust updateThemeGrid ---
+    // Ensure theme grid is initialized when settings view is shown
+    initializeThemeGrid() {
+        console.log('[DEBUG] Initializing theme grid...');
+        setTimeout(() => {
+            this.updateThemeGrid();
+        }, 100);
+    }
+
+    // --- Enhanced updateThemeGrid with better previews ---
     updateThemeGrid(category = null) {
+        console.log('[DEBUG] updateThemeGrid called with category:', category);
+        
         const themeGrid = document.getElementById('theme-grid');
         if (!themeGrid) {
             console.error('[Theme] theme-grid element not found!');
             return;
         }
+        
+        console.log('[DEBUG] Found theme-grid element');
         themeGrid.innerHTML = '';
         let rendered = 0;
+        
         try {
+            console.log('[DEBUG] Available themes count:', this.availableThemes.length);
+            
             // Filter themes by category if specified, otherwise show all
             const themesToShow = category ? 
                 this.availableThemes.filter(theme => theme.category === category) : 
                 this.availableThemes;
             
-            themesToShow.forEach(theme => {
-                // Calculate contrast color for text
-                const bg = theme.background || '#fff';
-                const fg = theme.primary || '#222';
-                function luminance(hex) {
-                    hex = hex.replace('#', '');
-                    const r = parseInt(hex.substring(0,2),16);
-                    const g = parseInt(hex.substring(2,4),16);
-                    const b = parseInt(hex.substring(4,6),16);
-                    return 0.299*r + 0.587*g + 0.114*b;
+            console.log('[DEBUG] Themes to show count:', themesToShow.length);
+            console.log('[DEBUG] Themes to show:', themesToShow.map(t => t.name));
+            
+            themesToShow.forEach((theme, index) => {
+                console.log(`[DEBUG] Processing theme ${index + 1}:`, theme.name);
+                
+                try {
+                    // Calculate contrast color for text
+                    const bg = theme.background || '#fff';
+                    const fg = theme.primary || '#222';
+                    
+                    function luminance(hex) {
+                        hex = hex.replace('#', '');
+                        const r = parseInt(hex.substring(0,2),16);
+                        const g = parseInt(hex.substring(2,4),16);
+                        const b = parseInt(hex.substring(4,6),16);
+                        return 0.299*r + 0.587*g + 0.114*b;
+                    }
+                    
+                    let textColor = luminance(bg) > 180 ? '#222' : '#fff';
+                    let cardBg = bg;
+                    if (Math.abs(luminance(bg) - luminance(fg)) < 60) {
+                        cardBg = fg;
+                        textColor = luminance(fg) > 180 ? '#222' : '#fff';
+                    }
+                    
+                    const themeItem = document.createElement('div');
+                    themeItem.className = 'theme-item';
+                    themeItem.dataset.theme = theme.name;
+                    themeItem.style.cssText = `
+                        background: ${cardBg};
+                        color: ${textColor};
+                        border: 2px solid ${theme.primary};
+                        border-radius: 12px;
+                        padding: 16px;
+                        margin: 8px;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        position: relative;
+                        overflow: hidden;
+                        min-width: 200px;
+                        text-align: center;
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                    `;
+                    
+                    // Create enhanced theme preview
+                    themeItem.innerHTML = `
+                        <div class="theme-preview-header theme-icon-animated theme-icon-${theme.iconAnimation || 'pulse'}" style="
+                            font-size: 3em;
+                            margin-bottom: 12px;
+                            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                        ">${theme.icon || theme.emoji}</div>
+                        
+                        <div class="theme-preview-gradient" style="
+                            background: linear-gradient(135deg, ${theme.background} 0%, ${theme.primary} 100%);
+                            height: 60px;
+                            border-radius: 8px;
+                            margin: 12px 0;
+                            position: relative;
+                            overflow: hidden;
+                        ">
+                            <div class="theme-preview-pattern" style="
+                                position: absolute;
+                                top: 0;
+                                left: 0;
+                                right: 0;
+                                bottom: 0;
+                                opacity: 0.3;
+                                background-image: ${theme.category === 'mlp' ? 'radial-gradient(circle, white 1px, transparent 1px)' :
+                                                 theme.category === 'minecraft' ? 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%)' :
+                                                 theme.category === 'pride' ? 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)' :
+                                                 'none'};
+                                background-size: ${theme.category === 'mlp' ? '20px 20px' : '30px 30px'};
+                            "></div>
+                        </div>
+                        
+                        <div class="theme-info">
+                            <div class="theme-name" style="
+                                font-weight: bold;
+                                font-size: 1.1em;
+                                margin-bottom: 4px;
+                                text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                            ">${theme.display_name}</div>
+                            <div class="theme-category" style="
+                                font-size: 0.9em;
+                                opacity: 0.8;
+                                margin-bottom: 8px;
+                            ">${this.getCategoryDisplayName(theme.category)}</div>
+                            <div class="theme-description" style="
+                                font-size: 0.8em;
+                                opacity: 0.7;
+                                font-style: italic;
+                            ">${theme.welcomeMessage}</div>
+                        </div>
+                        
+                        ${theme.name === this.currentTheme ? `
+                            <div class="theme-selected-indicator" style="
+                                position: absolute;
+                                top: 8px;
+                                right: 8px;
+                                background: ${theme.primary};
+                                color: ${textColor};
+                                border-radius: 50%;
+                                width: 24px;
+                                height: 24px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 14px;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                            ">✓</div>
+                        ` : ''}
+                    `;
+                    
+                    // Add hover effects
+                    themeItem.addEventListener('mouseenter', () => {
+                        themeItem.style.transform = 'translateY(-4px) scale(1.02)';
+                        themeItem.style.boxShadow = `0 8px 16px rgba(0,0,0,0.2), 0 0 20px ${theme.primary}40`;
+                    });
+                    
+                    themeItem.addEventListener('mouseleave', () => {
+                        themeItem.style.transform = 'translateY(0) scale(1)';
+                        themeItem.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                    });
+                    
+                    themeItem.addEventListener('click', () => this.selectTheme(theme.name));
+                    
+                    if (theme.name === this.currentTheme) {
+                        themeItem.classList.add('selected');
+                        themeItem.style.borderColor = theme.primary;
+                        themeItem.style.boxShadow = `0 4px 8px rgba(0,0,0,0.1), 0 0 0 2px ${theme.primary}40`;
+                    }
+                    
+                    themeGrid.appendChild(themeItem);
+                    rendered++;
+                    console.log(`[DEBUG] Successfully rendered theme: ${theme.name}`);
+                    
+                } catch (themeError) {
+                    console.error(`[DEBUG] Error rendering theme ${theme.name}:`, themeError);
                 }
-                let textColor = luminance(bg) > 180 ? '#222' : '#fff';
-                let cardBg = bg;
-                if (Math.abs(luminance(bg) - luminance(fg)) < 60) {
-                    cardBg = fg;
-                    textColor = luminance(fg) > 180 ? '#222' : '#fff';
-                }
-                const themeItem = document.createElement('div');
-                themeItem.className = 'theme-item';
-                themeItem.dataset.theme = theme.name;
-                themeItem.style.background = cardBg;
-                themeItem.style.color = textColor;
-                themeItem.innerHTML = `
-                    <div class="theme-icon-foreground" style="font-size:2.5em;line-height:1.2;">${theme.icon || theme.emoji}</div>
-                    <div class="theme-preview" style="background: linear-gradient(45deg, ${theme.background} 0%, ${theme.primary} 100%);"></div>
-                <div class="theme-info">
-                    <div class="theme-name">${theme.display_name}</div>
-                        <div class="theme-category">${this.getCategoryDisplayName(theme.category)}</div>
-                </div>
-                `;
-                themeItem.addEventListener('click', () => this.selectTheme(theme.name));
-                if (theme.name === this.currentTheme) {
-                    themeItem.classList.add('selected');
-                }
-                themeGrid.appendChild(themeItem);
-                rendered++;
             });
+            
+            // Add CSS animations for theme effects
+            if (!document.querySelector('#theme-animations')) {
+                const style = document.createElement('style');
+                style.id = 'theme-animations';
+                style.textContent = `
+                    @keyframes pulse {
+                        0%, 100% { transform: scale(1); }
+                        50% { transform: scale(1.1); }
+                    }
+                    @keyframes rainbow {
+                        0% { filter: hue-rotate(0deg); }
+                        100% { filter: hue-rotate(360deg); }
+                    }
+                    @keyframes twinkle {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.5; }
+                    }
+                    @keyframes confetti {
+                        0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+                        100% { transform: translateY(10px) rotate(360deg); opacity: 0; }
+                    }
+                    @keyframes bounce {
+                        0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+                        40%, 43% { transform: translate3d(0,-30px,0); }
+                        70% { transform: translate3d(0,-15px,0); }
+                        90% { transform: translate3d(0,-4px,0); }
+                    }
+                    @keyframes float {
+                        0%, 100% { transform: translateY(0px); }
+                        50% { transform: translateY(-10px); }
+                    }
+                    @keyframes shake {
+                        0%, 100% { transform: translateX(0); }
+                        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                        20%, 40%, 60%, 80% { transform: translateX(5px); }
+                    }
+                    @keyframes sparkle {
+                        0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
+                        25% { opacity: 0.8; transform: scale(1.1) rotate(90deg); }
+                        50% { opacity: 0.6; transform: scale(1.2) rotate(180deg); }
+                        75% { opacity: 0.8; transform: scale(1.1) rotate(270deg); }
+                    }
+                    @keyframes glow {
+                        0%, 100% { filter: brightness(1) drop-shadow(0 0 5px currentColor); }
+                        50% { filter: brightness(1.3) drop-shadow(0 0 15px currentColor); }
+                    }
+                    @keyframes moonPhase {
+                        0% { content: "🌑"; }
+                        25% { content: "🌒"; }
+                        50% { content: "🌕"; }
+                        75% { content: "🌘"; }
+                        100% { content: "🌑"; }
+                    }
+                    @keyframes wiggle {
+                        0%, 100% { transform: rotate(-3deg); }
+                        50% { transform: rotate(3deg); }
+                    }
+                    @keyframes blockyJump {
+                        0%, 100% { transform: translateY(0) scale(1); }
+                        50% { transform: translateY(-8px) scale(1.05); }
+                    }
+                    @keyframes explode {
+                        0% { transform: scale(1) rotate(0deg); }
+                        50% { transform: scale(1.5) rotate(180deg); }
+                        100% { transform: scale(1) rotate(360deg); }
+                    }
+                    @keyframes shuffle {
+                        0%, 100% { transform: translateX(0) rotate(0deg); }
+                        25% { transform: translateX(-5px) rotate(-5deg); }
+                        75% { transform: translateX(5px) rotate(5deg); }
+                    }
+                    @keyframes heartbeat {
+                        0%, 100% { transform: scale(1); }
+                        14% { transform: scale(1.1); }
+                        28% { transform: scale(1); }
+                        42% { transform: scale(1.1); }
+                        70% { transform: scale(1); }
+                    }
+                    @keyframes transWave {
+                        0% { filter: hue-rotate(0deg) brightness(1); }
+                        25% { filter: hue-rotate(90deg) brightness(1.1); }
+                        50% { filter: hue-rotate(180deg) brightness(1.2); }
+                        75% { filter: hue-rotate(270deg) brightness(1.1); }
+                        100% { filter: hue-rotate(360deg) brightness(1); }
+                    }
+                    @keyframes fistPump {
+                        0%, 100% { transform: translateY(0) rotate(0deg); }
+                        25% { transform: translateY(-5px) rotate(-10deg); }
+                        75% { transform: translateY(-5px) rotate(10deg); }
+                    }
+                    @keyframes rotate {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                    @keyframes dance {
+                        0%, 100% { transform: translateY(0) rotate(0deg); }
+                        25% { transform: translateY(-8px) rotate(-5deg); }
+                        50% { transform: translateY(-12px) rotate(0deg); }
+                        75% { transform: translateY(-8px) rotate(5deg); }
+                    }
+                    @keyframes handshake {
+                        0%, 100% { transform: translateY(0) rotate(0deg); }
+                        25% { transform: translateY(-3px) rotate(-15deg); }
+                        75% { transform: translateY(-3px) rotate(15deg); }
+                    }
+                    @keyframes magic {
+                        0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+                        25% { transform: scale(1.1) rotate(90deg); filter: brightness(1.2); }
+                        50% { transform: scale(1.2) rotate(180deg); filter: brightness(1.4); }
+                        75% { transform: scale(1.1) rotate(270deg); filter: brightness(1.2); }
+                    }
+                    
+                    /* Theme icon animation classes */
+                    .theme-icon-animated {
+                        animation-duration: 2s;
+                        animation-iteration-count: infinite;
+                        animation-timing-function: ease-in-out;
+                    }
+                    
+                    .theme-icon-pulse { animation-name: pulse; }
+                    .theme-icon-rainbow { animation-name: rainbow; }
+                    .theme-icon-twinkle { animation-name: twinkle; }
+                    .theme-icon-bounce { animation-name: bounce; }
+                    .theme-icon-float { animation-name: float; }
+                    .theme-icon-shake { animation-name: shake; }
+                    .theme-icon-sparkle { animation-name: sparkle; }
+                    .theme-icon-glow { animation-name: glow; }
+                    .theme-icon-moonPhase { animation-name: moonPhase; }
+                    .theme-icon-wiggle { animation-name: wiggle; }
+                    .theme-icon-blockyJump { animation-name: blockyJump; }
+                    .theme-icon-explode { animation-name: explode; }
+                    .theme-icon-shuffle { animation-name: shuffle; }
+                    .theme-icon-heartbeat { animation-name: heartbeat; }
+                    .theme-icon-transWave { animation-name: transWave; }
+                    .theme-icon-fistPump { animation-name: fistPump; }
+                    .theme-icon-rotate { animation-name: rotate; }
+                    .theme-icon-dance { animation-name: dance; }
+                    .theme-icon-handshake { animation-name: handshake; }
+                    .theme-icon-magic { animation-name: magic; }
+                `;
+                document.head.appendChild(style);
+            }
+            
         } catch (err) {
             console.error('[Theme] Error rendering theme grid:', err);
             themeGrid.innerHTML = `<div style="color:red;padding:2em;text-align:center;">Theme grid error: ${err.message}</div>`;
             return;
         }
+        
         if (rendered === 0) {
+            console.error('[DEBUG] No themes were rendered!');
             themeGrid.innerHTML = '<div style="color:red;padding:2em;text-align:center;">No themes could be rendered. Check console for errors.</div>';
         } else {
-            console.log(`[Theme] Rendered ${rendered} theme(s) in grid (${category ? 'category: ' + category : 'all themes'})`);
+            console.log(`[Theme] Successfully rendered ${rendered} theme(s) in grid (${category ? 'category: ' + category : 'all themes'})`);
         }
     }
 
@@ -1567,7 +2249,9 @@ class FlutterEarth {
     showThemeSplash(theme) {
         const splash = document.createElement('div');
         splash.className = 'theme-splash';
-        splash.innerHTML = `
+        
+        // Create theme-specific splash content
+        let splashContent = `
             <div class="theme-splash-content">
                 <div class="theme-splash-emoji">${theme.emoji}</div>
                 <div class="theme-splash-text">${theme.display_name}</div>
@@ -1575,6 +2259,46 @@ class FlutterEarth {
             </div>
         `;
         
+        // Add theme-specific decorative elements
+        if (theme.category === 'mlp') {
+            splashContent += `
+                <div class="theme-splash-decoration" style="
+                    position: absolute;
+                    top: 20px;
+                    right: 20px;
+                    font-size: 2em;
+                    opacity: 0.3;
+                    animation: float 3s ease-in-out infinite;
+                ">🦄</div>
+            `;
+        } else if (theme.category === 'minecraft') {
+            splashContent += `
+                <div class="theme-splash-decoration" style="
+                    position: absolute;
+                    bottom: 20px;
+                    left: 20px;
+                    font-size: 2em;
+                    opacity: 0.3;
+                    animation: blockyJump 2s ease-in-out infinite;
+                ">⛏️</div>
+            `;
+        } else if (theme.category === 'pride') {
+            splashContent += `
+                <div class="theme-splash-decoration" style="
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    font-size: 4em;
+                    opacity: 0.1;
+                    animation: rainbow 4s linear infinite;
+                ">🏳️‍🌈</div>
+            `;
+        }
+        
+        splash.innerHTML = splashContent;
+        
+        // Enhanced splash styling with theme colors
         splash.style.cssText = `
             position: fixed;
             top: 0;
@@ -1589,20 +2313,48 @@ class FlutterEarth {
             opacity: 0;
             transform: scale(0.8);
             transition: all 0.5s ease;
+            overflow: hidden;
         `;
+        
+        // Add theme-specific background patterns
+        if (theme.category === 'mlp') {
+            splash.style.backgroundImage = `
+                linear-gradient(135deg, ${theme.background} 0%, ${theme.primary} 100%),
+                radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%)
+            `;
+        } else if (theme.category === 'minecraft') {
+            splash.style.backgroundImage = `
+                linear-gradient(135deg, ${theme.background} 0%, ${theme.primary} 100%),
+                repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.05) 20px, rgba(255,255,255,0.05) 40px)
+            `;
+        } else if (theme.category === 'pride') {
+            splash.style.backgroundImage = `
+                linear-gradient(135deg, ${theme.background} 0%, ${theme.primary} 100%),
+                linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%)
+            `;
+        }
         
         const content = splash.querySelector('.theme-splash-content');
         content.style.cssText = `
             text-align: center;
             color: white;
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            z-index: 2;
+            position: relative;
         `;
         
         const emoji = splash.querySelector('.theme-splash-emoji');
         emoji.style.cssText = `
             font-size: 120px;
             margin-bottom: 20px;
-            animation: bounce 1s ease infinite;
+            animation: ${theme.splashEffect === 'magic' ? 'pulse 1s ease infinite' :
+                       theme.splashEffect === 'rainbow' ? 'rainbow 3s linear infinite' :
+                       theme.splashEffect === 'stars' ? 'twinkle 2s ease infinite' :
+                       theme.splashEffect === 'confetti' ? 'bounce 1s ease infinite' :
+                       theme.splashEffect === 'blocky' ? 'blockyJump 2s ease infinite' :
+                       theme.splashEffect === 'explode' ? 'explode 1s ease-out' : 'bounce 1s ease infinite'};
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
         `;
         
         const text = splash.querySelector('.theme-splash-text');
@@ -1611,6 +2363,7 @@ class FlutterEarth {
             font-weight: bold;
             margin-bottom: 16px;
             animation: slideInUp 0.6s ease 0.2s both;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
         `;
         
         const message = splash.querySelector('.theme-splash-message');
@@ -1618,28 +2371,63 @@ class FlutterEarth {
             font-size: 24px;
             opacity: 0.9;
             animation: slideInUp 0.6s ease 0.4s both;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.4;
         `;
         
-        // Add CSS animations
+        // Add enhanced CSS animations
         const style = document.createElement('style');
+        style.id = 'enhanced-splash-animations';
         style.textContent = `
+            @keyframes slideInUp {
+                0% { opacity: 0; transform: translateY(30px); }
+                100% { opacity: 1; transform: translateY(0); }
+            }
             @keyframes bounce {
                 0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-                40% { transform: translateY(-20px); }
-                60% { transform: translateY(-10px); }
+                40% { transform: translateY(-10px); }
+                60% { transform: translateY(-5px); }
             }
-            @keyframes slideInUp {
-                from {
-                    opacity: 0;
-                    transform: translateY(30px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+            }
+            @keyframes rainbow {
+                0% { filter: hue-rotate(0deg); }
+                100% { filter: hue-rotate(360deg); }
+            }
+            @keyframes twinkle {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.7; transform: scale(1.05); }
+            }
+            @keyframes blockyJump {
+                0%, 100% { transform: translateY(0) rotate(0deg); }
+                25% { transform: translateY(-10px) rotate(5deg); }
+                75% { transform: translateY(-5px) rotate(-5deg); }
+            }
+            @keyframes explode {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.3); }
+                100% { transform: scale(1); }
+            }
+            @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
             }
         `;
         document.head.appendChild(style);
+        
+        // Add theme-specific particle effects
+        if (theme.splashEffect === 'magic' || theme.category === 'mlp') {
+            this.createMagicParticles(splash, theme);
+        } else if (theme.splashEffect === 'confetti' || theme.category === 'mlp') {
+            this.createConfettiParticles(splash, theme);
+        } else if (theme.splashEffect === 'stars' || theme.category === 'mlp') {
+            this.createStarParticles(splash, theme);
+        } else if (theme.splashEffect === 'blocky' || theme.category === 'minecraft') {
+            this.createBlockyParticles(splash, theme);
+        }
         
         document.body.appendChild(splash);
         
@@ -1649,15 +2437,19 @@ class FlutterEarth {
             splash.style.transform = 'scale(1)';
         }, 100);
         
-        // Hide after 3 seconds
+        // Animate out after delay
         setTimeout(() => {
             splash.style.opacity = '0';
             splash.style.transform = 'scale(1.1)';
             setTimeout(() => {
-                if (splash.parentNode) splash.parentNode.removeChild(splash);
-                if (style.parentNode) style.parentNode.removeChild(style);
+                if (splash.parentNode) {
+                    splash.parentNode.removeChild(splash);
+                }
+                if (style.parentNode) {
+                    style.parentNode.removeChild(style);
+                }
             }, 500);
-        }, 3000);
+        }, 2500);
     }
 
     hideThemeSplash() {
@@ -2026,16 +2818,23 @@ class FlutterEarth {
     // Helper to get display name and icon for a category
     getCategoryDisplayName(category) {
         const map = {
+            'all': '🌟 All Themes',
+            'basic': '🌍 Basic',
+            'mlp': '🦄 My Little Pony',
+            'mc': '⛏️ Minecraft',
+            'queer_pride': '🏳️‍🌈 Queer Pride',
+            'unity_pride': '🤝 Unity Pride',
             'default': '🌍 Default',
             'dark': '🌑 Dark',
             'light': '🌞 Light',
-            'mlp': '🦄 MLP',
+            'professional': '💼 Professional',
+            'corporate': '🏢 Corporate',
             'pride': '🏳️‍🌈 Pride',
             'special': '✨ Special',
             'minecraft': '⛏️ Minecraft',
             'other': '⭐ Other',
         };
-        return map[category] || (category ? category.charAt(0).toUpperCase() + category.slice(1) : '');
+        return map[category] || (category ? category.charAt(0).toUpperCase() + category.slice(1) : 'Unknown');
     }
 
     // Add missing function stubs
@@ -2076,6 +2875,168 @@ class FlutterEarth {
     loadRasterData() {
         console.log('[DEBUG] Loading raster data...');
         this.showNotification('Raster data loading coming soon', 'info');
+    }
+
+    loadVectorData() {
+        console.log('[DEBUG] Loading vector data...');
+        this.showNotification('Vector data loading coming soon', 'info');
+    }
+
+    clearAllData() {
+        console.log('[DEBUG] Clearing all data...');
+        this.showNotification('All data cleared', 'info');
+    }
+
+    updateSatelliteCategory(category) {
+        console.log('[DEBUG] Updating satellite category:', category);
+        this.showNotification(`Satellite category updated to ${category}`, 'info');
+    }
+
+    visitProjectWebsite() {
+        console.log('[DEBUG] Visiting project website...');
+        this.showNotification('Project website coming soon', 'info');
+    }
+
+    browseSettingsOutputDirectory() {
+        console.log('[DEBUG] Browsing settings output directory...');
+        this.showNotification('Settings output directory browser coming soon', 'info');
+    }
+
+    initSatelliteInfo() {
+        console.log('[DEBUG] Initializing satellite info...');
+        // Satellite info initialization logic would go here
+    }
+
+    initAboutView() {
+        console.log('[DEBUG] Initializing about view...');
+        // About view initialization logic would go here
+    }
+
+    // Particle effect functions for theme splash screens
+    createMagicParticles(container, theme) {
+        const particles = ['✨', '⭐', '💫', '🌟', '💎'];
+        for (let i = 0; i < 15; i++) {
+            const particle = document.createElement('div');
+            particle.textContent = particles[Math.floor(Math.random() * particles.length)];
+            particle.style.cssText = `
+                position: absolute;
+                font-size: ${20 + Math.random() * 20}px;
+                color: ${theme.primary};
+                opacity: 0;
+                animation: magicFloat ${2 + Math.random() * 3}s ease-in-out infinite;
+                animation-delay: ${Math.random() * 2}s;
+                left: ${Math.random() * 100}%;
+                top: ${Math.random() * 100}%;
+                z-index: 1;
+                pointer-events: none;
+            `;
+            container.appendChild(particle);
+        }
+        
+        // Add magic sparkle animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes magicFloat {
+                0% { opacity: 0; transform: translateY(0) rotate(0deg); }
+                50% { opacity: 1; transform: translateY(-20px) rotate(180deg); }
+                100% { opacity: 0; transform: translateY(-40px) rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    createConfettiParticles(container, theme) {
+        const colors = [theme.primary, theme.background, '#ff69b4', '#00bcd4', '#ffd700'];
+        for (let i = 0; i < 30; i++) {
+            const confetti = document.createElement('div');
+            confetti.style.cssText = `
+                position: absolute;
+                width: 8px;
+                height: 8px;
+                background: ${colors[Math.floor(Math.random() * colors.length)]};
+                opacity: 0;
+                animation: confettiFall ${1 + Math.random() * 2}s ease-in infinite;
+                animation-delay: ${Math.random() * 1}s;
+                left: ${Math.random() * 100}%;
+                top: -10px;
+                z-index: 1;
+                pointer-events: none;
+                border-radius: 2px;
+            `;
+            container.appendChild(confetti);
+        }
+        
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes confettiFall {
+                0% { opacity: 0; transform: translateY(-10px) rotate(0deg); }
+                10% { opacity: 1; }
+                90% { opacity: 1; }
+                100% { opacity: 0; transform: translateY(100vh) rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    createStarParticles(container, theme) {
+        const stars = ['⭐', '✨', '🌟', '💫'];
+        for (let i = 0; i < 20; i++) {
+            const star = document.createElement('div');
+            star.textContent = stars[Math.floor(Math.random() * stars.length)];
+            star.style.cssText = `
+                position: absolute;
+                font-size: ${15 + Math.random() * 15}px;
+                color: white;
+                opacity: 0;
+                animation: starTwinkle ${1.5 + Math.random() * 2}s ease-in-out infinite;
+                animation-delay: ${Math.random() * 2}s;
+                left: ${Math.random() * 100}%;
+                top: ${Math.random() * 100}%;
+                z-index: 1;
+                pointer-events: none;
+            `;
+            container.appendChild(star);
+        }
+        
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes starTwinkle {
+                0%, 100% { opacity: 0; transform: scale(0.5); }
+                50% { opacity: 1; transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    createBlockyParticles(container, theme) {
+        const blocks = ['⬜', '🟫', '🟩', '🟦', '🟨'];
+        for (let i = 0; i < 12; i++) {
+            const block = document.createElement('div');
+            block.textContent = blocks[Math.floor(Math.random() * blocks.length)];
+            block.style.cssText = `
+                position: absolute;
+                font-size: ${20 + Math.random() * 15}px;
+                opacity: 0;
+                animation: blockyFloat ${2 + Math.random() * 2}s ease-in-out infinite;
+                animation-delay: ${Math.random() * 1.5}s;
+                left: ${Math.random() * 100}%;
+                top: ${Math.random() * 100}%;
+                z-index: 1;
+                pointer-events: none;
+                transform: rotate(${Math.random() * 360}deg);
+            `;
+            container.appendChild(block);
+        }
+        
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes blockyFloat {
+                0% { opacity: 0; transform: translateY(0) rotate(0deg); }
+                50% { opacity: 1; transform: translateY(-15px) rotate(180deg); }
+                100% { opacity: 0; transform: translateY(-30px) rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
     }
 }
 
