@@ -6,32 +6,10 @@
     <title>Flutter Earth</title>
     <link rel="stylesheet" href="flutter_earth.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="flutter_earth.js" defer></script>
 </head>
 <body>
     <div id="app" class="app-window">
-        <!-- Themed Splash Screen -->
-        <div id="theme-splash" class="theme-splash" style="display:none;">
-            <div class="theme-splash-content">
-                <div id="theme-splash-emoji" class="theme-splash-emoji"></div>
-                <h1 id="theme-splash-title"></h1>
-                <p id="theme-splash-message"></p>
-            </div>
-        </div>
-
-        <!-- Splash Screen -->
-        <div id="splash-screen" class="splash-screen">
-            <div class="splash-content">
-                <div class="splash-logo">🌍</div>
-                <h1>Flutter Earth</h1>
-                <p>Initializing...</p>
-                <div class="splash-progress">
-                    <div class="progress-bar"></div>
-                </div>
-            </div>
-        </div>
-
         <!-- Sidebar -->
         <div id="sidebar" class="sidebar">
             <div class="sidebar-content">
@@ -271,19 +249,9 @@
                         <div class="form-section">
                             <h3>Appearance</h3>
                             <div class="theme-selection">
-                                <!-- Theme Categories -->
-                                <div class="theme-categories">
-                                    <div id="theme-tabs" class="theme-tabs">
-                                        <button class="theme-tab active" data-category="default">Default</button>
-                                        <button class="theme-tab" data-category="dark">Dark</button>
-                                        <button class="theme-tab" data-category="light">Light</button>
-                                        <button class="theme-tab" data-category="special">Special</button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Theme Grid -->
+                                <!-- Theme Grid: Show all themes, no tabs -->
                                 <div id="theme-grid" class="theme-grid">
-                                    <!-- Themes will be populated by JavaScript -->
+                                    <!-- All themes will be populated by JavaScript -->
                                 </div>
                             </div>
                         </div>
@@ -809,158 +777,6 @@
                         <button id="auth-help" class="btn-secondary">Help</button>
                         <button id="auth-cancel" class="btn-secondary">Cancel</button>
                         <button id="auth-offline" class="btn-secondary">Continue Offline</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Help Popup -->
-        <div id="help-popup" class="modal">
-            <div class="modal-content help-modal">
-                <div class="modal-header">
-                    <h2>Help & Documentation</h2>
-                    <button class="close-btn" onclick="app.hideHelpPopup()">&times;</button>
-                </div>
-                
-                <div class="help-content">
-                    <!-- Help Navigation -->
-                    <div class="help-nav">
-                        <button class="help-nav-btn active" data-tab="getting-started">Getting Started</button>
-                        <button class="help-nav-btn" data-tab="download-guide">Download Guide</button>
-                        <button class="help-nav-btn" data-tab="analysis-tools">Analysis Tools</button>
-                        <button class="help-nav-btn" data-tab="faq">FAQ</button>
-                    </div>
-                    
-                    <!-- Help Content Tabs -->
-                    <div class="help-tabs">
-                        <!-- Getting Started Tab -->
-                        <div id="getting-started" class="help-tab active">
-                            <h3>Welcome to Flutter Earth!</h3>
-                            <p>Flutter Earth is a powerful tool for downloading and analyzing satellite imagery using Google Earth Engine. Here's how to get started:</p>
-                            
-                            <div class="help-section">
-                                <h4>1. Authentication</h4>
-                                <ul>
-                                    <li>You'll need a Google Earth Engine account</li>
-                                    <li>Set up authentication in the Settings view</li>
-                                    <li>Provide your GCP project ID and service account key</li>
-                                </ul>
-                            </div>
-                            
-                            <div class="help-section">
-                                <h4>2. Download Satellite Data</h4>
-                                <ul>
-                                    <li>Go to the Download view</li>
-                                    <li>Select your area of interest</li>
-                                    <li>Choose satellite sensor and date range</li>
-                                    <li>Configure processing options</li>
-                                    <li>Start the download</li>
-                                </ul>
-                            </div>
-                            
-                            <div class="help-section">
-                                <h4>3. Analyze Your Data</h4>
-                                <ul>
-                                    <li>Use the Index Analysis view for vegetation indices</li>
-                                    <li>View your data in the Data Viewer</li>
-                                    <li>Export results in various formats</li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        <!-- Download Guide Tab -->
-                        <div id="download-guide" class="help-tab">
-                            <h3>Download Guide</h3>
-                            
-                            <div class="help-section">
-                                <h4>Area of Interest (AOI)</h4>
-                                <p>You can specify your AOI in several formats:</p>
-                                <ul>
-                                    <li><strong>Bounding Box:</strong> [minLon, minLat, maxLon, maxLat]</li>
-                                    <li><strong>GeoJSON Polygon:</strong> Paste a valid GeoJSON</li>
-                                    <li><strong>Map Selection:</strong> Use the Map view to draw and select areas</li>
-                                </ul>
-                            </div>
-                            
-                            <div class="help-section">
-                                <h4>Satellite Sensors</h4>
-                                <p>Available sensors:</p>
-                                <ul>
-                                    <li><strong>Landsat 8/9:</strong> 30m resolution, good for land monitoring</li>
-                                    <li><strong>Sentinel-2:</strong> 10m resolution, excellent for agriculture</li>
-                                    <li><strong>Sentinel-1:</strong> Radar data, works in all weather</li>
-                                    <li><strong>MODIS:</strong> 250m resolution, good for large areas</li>
-                                    <li><strong>VIIRS:</strong> 375m resolution, environmental monitoring</li>
-                                </ul>
-                            </div>
-                            
-                            <div class="help-section">
-                                <h4>Processing Options</h4>
-                                <ul>
-                                    <li><strong>Cloud Mask:</strong> Automatically remove cloudy pixels</li>
-                                    <li><strong>Max Cloud Cover:</strong> Set maximum allowed cloud coverage</li>
-                                    <li><strong>Resolution:</strong> Choose output resolution</li>
-                                    <li><strong>Tiling:</strong> Split large areas into manageable tiles</li>
-                                    <li><strong>Output Format:</strong> GeoTIFF, JPEG, or PNG</li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        <!-- Analysis Tools Tab -->
-                        <div id="analysis-tools" class="help-tab">
-                            <h3>Analysis Tools</h3>
-                            
-                            <div class="help-section">
-                                <h4>Index Analysis</h4>
-                                <p>Calculate various vegetation and water indices:</p>
-                                <ul>
-                                    <li><strong>NDVI (Normalized Difference Vegetation Index):</strong> Measures vegetation health</li>
-                                    <li><strong>NDWI (Normalized Difference Water Index):</strong> Identifies water bodies</li>
-                                    <li><strong>NDBI (Normalized Difference Built-up Index):</strong> Detects urban areas</li>
-                                    <li><strong>EVI (Enhanced Vegetation Index):</strong> Improved vegetation monitoring</li>
-                                </ul>
-                            </div>
-                            
-                            <div class="help-section">
-                                <h4>Data Viewer</h4>
-                                <p>View and analyze your downloaded data:</p>
-                                <ul>
-                                    <li>Load raster and vector files</li>
-                                    <li>View metadata and statistics</li>
-                                    <li>Export data in various formats</li>
-                                    <li>Compare different datasets</li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        <!-- FAQ Tab -->
-                        <div id="faq" class="help-tab">
-                            <h3>Frequently Asked Questions</h3>
-                            
-                            <div class="help-section">
-                                <h4>General Questions</h4>
-                                
-                                <div class="faq-item">
-                                    <h5>Q: What is Google Earth Engine?</h5>
-                                    <p>A: Google Earth Engine is a cloud-based platform for planetary-scale geospatial analysis that enables users to access and analyze satellite imagery and other geospatial data.</p>
-                                </div>
-                                
-                                <div class="faq-item">
-                                    <h5>Q: Do I need a Google account?</h5>
-                                    <p>A: Yes, you need a Google account with Earth Engine access. You can sign up for free at <a href="https://earthengine.google.com" target="_blank">earthengine.google.com</a>.</p>
-                                </div>
-                                
-                                <div class="faq-item">
-                                    <h5>Q: What file formats are supported?</h5>
-                                    <p>A: Flutter Earth supports GeoTIFF, JPEG, PNG for raster data, and GeoJSON, Shapefile, KML for vector data.</p>
-                                </div>
-                                
-                                <div class="faq-item">
-                                    <h5>Q: How much data can I download?</h5>
-                                    <p>A: The amount depends on your Earth Engine quota and the area size. Large areas may be automatically tiled for processing.</p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
