@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flutter Earth - Desktop Satellite Imagery Tool</title>
+  <style>
+    body {
+      background: #181c24;
+      color: #f3f6fa;
+      font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.7;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 16px 0 16px;
+    }
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+    .hero img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      box-shadow: 0 4px 24px #0008;
+      margin-bottom: 16px;
+      background: #222;
+    }
+    h1 {
+      font-size: 2.8rem;
+      margin: 0 0 8px 0;
+      letter-spacing: 1px;
+    }
+    .tagline {
+      font-size: 1.3rem;
+      color: #7ecfff;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    section {
+      margin-bottom: 36px;
+    }
+    h2 {
+      color: #7ecfff;
+      font-size: 1.5rem;
+      margin-bottom: 12px;
+      border-left: 4px solid #7ecfff;
+      padding-left: 10px;
+    }
+    ul {
+      padding-left: 24px;
+    }
+    code, pre {
+      background: #23283a;
+      color: #b5e0ff;
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 1em;
+    }
+    pre {
+      display: block;
+      padding: 16px;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    .features-list li {
+      margin-bottom: 8px;
+    }
+    .faq-item {
+      margin-bottom: 18px;
+    }
+    .links a {
+      color: #7ecfff;
+      text-decoration: none;
+      margin-right: 18px;
+      font-weight: 500;
+    }
+    .links a:hover {
+      text-decoration: underline;
+    }
+    footer {
+      text-align: center;
+      color: #6a7a8c;
+      font-size: 0.95em;
+      margin: 40px 0 20px 0;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 12px 4px 0 4px; }
+      h1 { font-size: 2rem; }
+      .hero img { width: 80px; height: 80px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <img src="../logo.png" alt="Flutter Earth Logo">
+      <h1>Flutter Earth</h1>
+      <div class="tagline">A modern desktop tool for downloading and processing satellite imagery using Google Earth Engine</div>
+    </div>
+
+    <section>
+      <h2>Features</h2>
+      <ul class="features-list">
+        <li><b>Modern Electron Interface:</b> Sleek, responsive UI for a seamless user experience.</li>
+        <li><b>Modular Python Backend:</b> Professional Python package for maintainability and scalability.</li>
+        <li><b>Theming Support:</b> Switch between 'Dark', 'Light', and custom themes.</li>
+        <li><b>Advanced Downloading:</b> Download imagery from multiple sensors (Landsat, Sentinel-2, etc.).</li>
+        <li><b>On-the-fly Processing:</b> Includes cloud masking and pre-processing capabilities.</li>
+        <li><b>Robust Configuration:</b> Class-based configuration system manages all settings.</li>
+        <li><b>Comprehensive Satellite Info:</b> Browse detailed information about available satellites.</li>
+        <li><b>Offline Mode:</b> Use the app with limited features when Earth Engine credentials are missing.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Prerequisites & Installation</h2>
+      <ul>
+        <li>Python 3.8 or higher</li>
+        <li>Node.js 18+ (for Electron frontend)</li>
+        <li>Google Earth Engine account (for full functionality)</li>
+      </ul>
+      <p><b>Clone the repository:</b></p>
+      <pre>git clone https://github.com/yourusername/flutter-earth.git
+cd flutter-earth</pre>
+      <p><b>Install Python dependencies:</b></p>
+      <pre>pip install -r requirements.txt</pre>
+      <p><b>Install frontend dependencies:</b></p>
+      <pre>cd frontend
+npm install</pre>
+      <p><b>Run the app:</b></p>
+      <pre>cd ..
+run_desktop.bat</pre>
+    </section>
+
+    <section>
+      <h2>Usage</h2>
+      <ul>
+        <li>Start the app and sign in with your Google Earth Engine account if prompted.</li>
+        <li>Select your area of interest and satellite data source.</li>
+        <li>Configure download and processing options.</li>
+        <li>Download and process imagery directly to your desktop.</li>
+        <li>Browse satellite info and manage your settings.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>How it Works</h2>
+      <p>Flutter Earth uses a modern Electron-based frontend for the user interface and a Python backend for all satellite data processing. The backend communicates with Google Earth Engine, handles authentication, and manages downloads and processing tasks. The frontend and backend communicate via a local API, providing a seamless desktop experience.</p>
+    </section>
+
+    <section>
+      <h2>FAQ</h2>
+      <div class="faq-item">
+        <b>Q: Do I need a Google Earth Engine account?</b><br>
+        A: Yes, for full functionality. Offline mode is available with limited features.
+      </div>
+      <div class="faq-item">
+        <b>Q: Can I use this on Mac or Linux?</b><br>
+        A: The app is designed for Windows, but may work on other platforms with minor adjustments.
+      </div>
+      <div class="faq-item">
+        <b>Q: Where are downloads saved?</b><br>
+        A: By default, downloads are saved to the application's working directory. You can change this in the settings.
+      </div>
+      <div class="faq-item">
+        <b>Q: How do I update the app?</b><br>
+        A: Pull the latest changes from GitHub and re-run <code>npm install</code> and <code>pip install -r requirements.txt</code> if needed.
+      </div>
+    </section>
+
+    <section class="links">
+      <h2>Links</h2>
+      <a href="../README.md">Project README</a>
+      <a href="https://github.com/yourusername/flutter-earth/issues">Report Issues</a>
+      <a href="https://earthengine.google.com/">Google Earth Engine</a>
+    </section>
+
+    <footer>
+      &copy; 2024 Flutter Earth. Licensed under the MIT License.
+    </footer>
+  </div>
+</body>
+</html> 

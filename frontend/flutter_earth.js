@@ -9,17 +9,17 @@ class FlutterEarth {
         this.selectedDate = null;
         this.calendarTarget = null;
         this.downloadInProgress = false;
+        this.isOfflineMode = false;
         
         this.init();
     }
 
     async init() {
         this.setupEventListeners();
-        this.hideSplashScreen();
-        
+        // this.hideSplashScreen(); // Move this after initialization
         // Initialize Earth Engine
         await this.initializeEarthEngine();
-        
+        this.hideSplashScreen();
         this.loadSensors();
         this.setupCalendar();
         this.initSettings();
@@ -40,8 +40,14 @@ class FlutterEarth {
                     this.updateConnectionStatus('online');
                     this.statusBarText = 'Earth Engine ready';
                     this.showNotification('Earth Engine initialized successfully', 'success');
+                } else if (result.status === 'offline') {
+                    this.updateConnectionStatus('offline');
+                    this.statusBarText = 'Offline mode: ' + (result.message || 'No credentials');
+                    this.showNotification('Offline mode: ' + (result.message || 'No credentials'), 'warning');
+                    this.showAuthDialog();
+                    this.isOfflineMode = true;
+                    return;
                 } else {
-                    console.log('[DEBUG] Initialization failed, showing auth dialog');
                     this.updateConnectionStatus('offline');
                     this.statusBarText = 'Earth Engine initialization failed';
                     this.showNotification('Earth Engine initialization failed', 'error');
@@ -265,6 +271,8 @@ class FlutterEarth {
         if (authHelp) authHelp.addEventListener('click', () => this.showHelpPopup());
         const authCancel = document.getElementById('auth-cancel');
         if (authCancel) authCancel.addEventListener('click', () => this.hideAuthDialog());
+        const authOffline = document.getElementById('auth-offline');
+        if (authOffline) authOffline.addEventListener('click', () => this.hideAuthDialog());
 
         // Help popup close
         const helpClose = document.getElementById('help-close');
@@ -323,7 +331,8 @@ class FlutterEarth {
         // Modal backdrop clicks
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
+                // Prevent closing auth modal by clicking backdrop
+                if (e.target === modal && modal.id !== 'auth-dialog') {
                     modal.style.display = 'none';
                 }
             });
@@ -691,10 +700,10 @@ class FlutterEarth {
             }
         }
 
-        // Escape key to close modals
+        // Escape key to close modals, but not auth modal
         if (e.key === 'Escape') {
             document.querySelectorAll('.modal').forEach(modal => {
-                if (modal.style.display === 'flex') {
+                if (modal.style.display === 'flex' && modal.id !== 'auth-dialog') {
                     modal.style.display = 'none';
                 }
             });

@@ -10,6 +10,7 @@ from threading import Lock
 import os
 import json
 from pathlib import Path
+import traceback
 
 from .errors import EarthEngineError, handle_errors
 from .types import ProcessingParams, EEImage, EEFeatureCollection
@@ -67,7 +68,7 @@ class EarthEngineManager:
             return False
     
     @handle_errors()
-    def initialize(self, project: Optional[str] = None, force: bool = False, parent=None) -> bool:
+    def initialize(self, project: Optional[str] = None, force: bool = False, parent=None) -> dict:
         """Initialize Earth Engine.
         
         Args:
@@ -76,11 +77,15 @@ class EarthEngineManager:
             parent: Parent widget for authentication dialogs.
         
         Returns:
-            True if initialization successful, False otherwise.
+            Dictionary with status, message, and initialized flag.
         """
         if self.initialized and not force:
             if self._check_connection_health():
-                return True
+                return {
+                    "status": "online",
+                    "message": "Earth Engine connection is healthy.",
+                    "initialized": True
+                }
             logging.info("Connection unhealthy, forcing reinitialization")
             
         self.project = project
@@ -95,23 +100,40 @@ class EarthEngineManager:
         # Try to load stored credentials first
         auth_manager = AuthManager()
         creds = auth_manager.get_credentials()
-        print(f"[DEBUG] Attempting EE init with: {creds}")
-        if not auth_manager.has_credentials():
-            print("[DEBUG] No credentials found.")
-            return False
-        
         try:
-            # Initialize with stored service account credentials
-            credentials = ee.ServiceAccountCredentials('', creds['key_file'])
-            ee.Initialize(credentials, project=creds['project_id'])
-            ee_data.getAssetRoots()
-            logging.info("Earth Engine initialized successfully with stored credentials.")
-            self.initialized = True
-            self._last_health_check = time.time()
-            return True
+            logging.debug(f"Attempting EE init with: {creds}")
+            if not auth_manager.has_credentials():
+                logging.debug("No credentials found.")
+                # Return offline status instead of error
+                return {
+                    "status": "offline",
+                    "message": "No credentials found. Running in offline mode.",
+                    "initialized": False
+                }
+            try:
+                credentials = ee.ServiceAccountCredentials('', creds['key_file'])
+                ee.Initialize(credentials, project=creds['project_id'])
+                ee_data.getAssetRoots()
+                logging.info("Earth Engine initialized successfully with stored credentials.")
+                self.initialized = True
+                self._last_health_check = time.time()
+                return {
+                    "status": "online",
+                    "message": "Earth Engine initialized successfully with stored credentials.",
+                    "initialized": True
+                }
+            except Exception as e:
+                logging.error(f"Failed to initialize Earth Engine: {e}")
+                logging.error(traceback.format_exc())
+                # Fall back to interactive setup
         except Exception as e:
-            print(f"[ERROR] Failed to initialize Earth Engine: {e}")
-            # Fall back to interactive setup
+            logging.error(f"Exception in initialize_earth_engine: {e}")
+            logging.error(traceback.format_exc())
+            return {
+                "status": "offline",
+                "message": "Exception in initialize_earth_engine. Running in offline mode.",
+                "initialized": False
+            }
         
         # Try interactive authentication setup
         if parent:
@@ -119,7 +141,11 @@ class EarthEngineManager:
                 if auth_manager.initialize_earth_engine(parent):
                     self.initialized = True
                     self._last_health_check = time.time()
-                    return True
+                    return {
+                        "status": "online",
+                        "message": "Earth Engine initialized successfully with interactive authentication.",
+                        "initialized": True
+                    }
             except Exception as e:
                 logging.warning(f"Interactive authentication setup failed: {e}")
         
@@ -135,7 +161,11 @@ class EarthEngineManager:
             logging.info("Earth Engine initialized successfully (high-volume).")
             self.initialized = True
             self._last_health_check = time.time()
-            return True
+            return {
+                "status": "online",
+                "message": "Earth Engine initialized successfully (high-volume).",
+                "initialized": True
+            }
         except Exception as e_hv:
             logging.warning(
                 f"High-volume EE initialization failed: {e_hv}. "
@@ -147,7 +177,11 @@ class EarthEngineManager:
                 logging.info("Earth Engine initialized successfully (default).")
                 self.initialized = True
                 self._last_health_check = time.time()
-                return True
+                return {
+                    "status": "online",
+                    "message": "Earth Engine initialized successfully (default).",
+                    "initialized": True
+                }
             except Exception as e_def:
                 err_msg = str(e_def).lower()
                 
@@ -190,7 +224,11 @@ class EarthEngineManager:
                     )
                 
                 # Return False instead of raising exception
-                return False
+                return {
+                    "status": "offline",
+                    "message": f"Earth Engine initialization failed: {e_def}\nPlease check:\n1. Your internet connection\n2. Earth Engine service status\n3. Your authentication and project setup\n4. Try setting up service account authentication",
+                    "initialized": False
+                }
     
     def _get_cache_key(self, sensor_name: str, start_date: Union[datetime, date], 
                        end_date: Union[datetime, date], region: Optional[Any]) -> str:

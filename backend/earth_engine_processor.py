@@ -10,6 +10,20 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
+# Set up logging as the very first thing
+logs_dir = Path("logs")
+logs_dir.mkdir(exist_ok=True)
+log_file = logs_dir / f"earth_engine_processor_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file, mode='w', encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
+logging.getLogger(__name__).info("[TEST] Logging initialized at top of script.")
+
 print("DEBUG: Script starting", file=sys.stderr)
 
 # Add the flutter_earth_pkg to the path
@@ -36,14 +50,16 @@ def setup_logging():
     log_file = logs_dir / f"earth_engine_processor_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
     
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
             logging.FileHandler(log_file, mode='w', encoding='utf-8'),
             logging.StreamHandler(sys.stdout)
         ]
     )
-    return logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)
+    logger.info("[TEST] Logging initialized and log file created.")
+    return logger
 
 def initialize_earth_engine(logger):
     """Initialize Earth Engine"""
