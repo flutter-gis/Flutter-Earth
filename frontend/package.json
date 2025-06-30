@@ -8,5 +8,8 @@
   },
   "devDependencies": {
     "electron": "^29.3.1"
-  }
+  },
+  "author": "Flutter Earth Team",
+  "license": "MIT",
+  "productName": "Flutter Earth"
 } 

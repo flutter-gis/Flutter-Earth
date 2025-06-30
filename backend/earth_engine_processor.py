@@ -10,8 +10,12 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
+print("DEBUG: Script starting", file=sys.stderr)
+
 # Add the flutter_earth_pkg to the path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'flutter_earth_pkg'))
+
+print("DEBUG: About to import modules", file=sys.stderr)
 
 try:
     from flutter_earth.earth_engine import EarthEngineManager
@@ -19,7 +23,9 @@ try:
     from flutter_earth.config import ConfigManager
     from flutter_earth.progress_tracker import ProgressTracker
     from flutter_earth.auth_setup import AuthManager
+    print("DEBUG: All imports successful", file=sys.stderr)
 except ImportError as e:
+    print(f"DEBUG: Import error: {e}", file=sys.stderr)
     print(json.dumps({"error": f"Import error: {e}"}))
     sys.exit(1)
 
@@ -39,30 +45,38 @@ def setup_logging():
     )
     return logging.getLogger(__name__)
 
-def initialize_earth_engine():
+def initialize_earth_engine(logger):
     """Initialize Earth Engine"""
     try:
+        logger.debug("Starting Earth Engine initialization")
         config_manager = ConfigManager()
+        logger.debug("ConfigManager created")
         progress_tracker = ProgressTracker()
+        logger.debug("ProgressTracker created")
         download_manager = DownloadManager()
+        logger.debug("DownloadManager created")
         earth_engine = EarthEngineManager()
-        
-        # Try to initialize Earth Engine
+        logger.debug("EarthEngineManager created")
+        logger.debug("Calling earth_engine.initialize()")
         initialized = earth_engine.initialize()
+        logger.debug(f"earth_engine.initialize() returned: {initialized}")
         
         if initialized:
+            logger.info("Initialization successful")
             return {
                 "status": "success",
                 "message": "Earth Engine initialized successfully",
                 "initialized": True
             }
         else:
+            logger.warning("Initialization failed")
             return {
                 "status": "error",
                 "message": "Earth Engine initialization failed",
                 "initialized": False
             }
     except Exception as e:
+        logger.error(f"Exception in initialize_earth_engine: {e}")
         return {
             "status": "error",
             "message": f"Initialization error: {str(e)}",
@@ -132,15 +146,20 @@ def main():
     logger = setup_logging()
     logger.info("Earth Engine Processor started")
     
+    logger.debug("Script starting")
+    
     if len(sys.argv) < 2:
+        logger.error("No command specified")
         print(json.dumps({"error": "No command specified"}))
         sys.exit(1)
     
     command = sys.argv[1]
+    logger.debug(f"Command received: {command}")
     
     try:
         if command == "init":
-            result = initialize_earth_engine()
+            logger.debug("Starting initialization")
+            result = initialize_earth_engine(logger)
         elif command == "download":
             if len(sys.argv) < 3:
                 result = {"status": "error", "message": "No download parameters provided"}
@@ -159,7 +178,9 @@ def main():
         else:
             result = {"status": "error", "message": f"Unknown command: {command}"}
         
+        logger.debug("About to print result")
         print(json.dumps(result))
+        logger.debug("Result printed")
         
     except Exception as e:
         logger.error(f"Error in main: {e}")

@@ -128,9 +128,12 @@ body {
 }
 
 .splash-logo {
-    font-size: 80px;
-    margin-bottom: var(--spacing-lg);
-    animation: pulse 2s infinite;
+    font-size: 6rem;
+    margin-bottom: 1.2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* animation: spin-earth 3.5s linear infinite; */
 }
 
 .splash-content h1 {
@@ -1329,4 +1332,83 @@ body {
     margin-top: var(--spacing-sm);
     font-size: var(--font-size-small);
     color: var(--text-subtle);
+}
+
+/* --- Auth Modal Improvements --- */
+#auth-dialog.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background: rgba(30, 30, 40, 0.45);
+    backdrop-filter: blur(4px);
+    justify-content: center;
+    align-items: center;
+}
+#auth-dialog .modal-content {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    padding: 2.5rem 2.5rem 2rem 2.5rem;
+    min-width: 340px;
+    max-width: 95vw;
+    text-align: center;
+    position: relative;
+}
+#auth-dialog h3 {
+    margin-bottom: 1.2rem;
+    color: #2a2a2a;
+}
+#auth-dialog .auth-form .input-group {
+    margin-bottom: 1.1rem;
+    text-align: left;
+}
+#auth-dialog label {
+    font-weight: 500;
+    color: #444;
+    margin-bottom: 0.3rem;
+    display: block;
+}
+#auth-dialog input[type="file"],
+#auth-dialog input[type="text"] {
+    width: 100%;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid #ccc;
+    border-radius: 7px;
+    font-size: 1rem;
+    margin-top: 0.2rem;
+}
+#auth-dialog .button-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.7rem;
+    margin-top: 1.2rem;
+}
+#auth-dialog .btn-primary {
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 0.6rem 1.3rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+#auth-dialog .btn-primary:hover {
+    background: #2563eb;
+}
+#auth-dialog .btn-secondary {
+    background: #f3f4f6;
+    color: #222;
+    border: none;
+    border-radius: 7px;
+    padding: 0.6rem 1.3rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+#auth-dialog .btn-secondary:hover {
+    background: #e5e7eb;
 } 

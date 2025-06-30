@@ -8,6 +8,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
+    icon: path.join(__dirname, '..', 'logo.png'), // Use existing logo.png
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -15,15 +16,11 @@ function createWindow() {
       sandbox: false,
       webSecurity: false, // Allow local file access
       preload: path.join(__dirname, 'preload.js') // Add preload script
-    },
-    icon: path.join(__dirname, 'icon.png')
+    }
   });
   
   mainWindow.setMenuBarVisibility(true);
   mainWindow.loadFile('flutter_earth.html');
-  
-  // Open developer tools for debugging
-  mainWindow.webContents.openDevTools();
 }
 
 // IPC handlers for Python communication

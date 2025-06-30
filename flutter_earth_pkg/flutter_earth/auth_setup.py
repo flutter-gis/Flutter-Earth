@@ -5,6 +5,7 @@ import logging
 from typing import Optional, Dict
 from pathlib import Path
 from PySide6.QtCore import QObject, Signal, Slot, Property
+import sys
 
 class AuthManager(QObject):
     """Manages Earth Engine authentication for QML."""
@@ -49,7 +50,7 @@ class AuthManager(QObject):
     @Slot()
     def load_credentials(self):
         """Load authentication credentials from text file, JSON config, or environment."""
-        print(f"[DEBUG] Loading credentials from: {self.txt_file} or {self.auth_file}")
+        print(f"[DEBUG] Loading credentials from: {self.txt_file} or {self.auth_file}", file=sys.stderr)
         env_key_file = os.environ.get("FLUTTER_EARTH_KEY_FILE")
         env_project_id = os.environ.get("FLUTTER_EARTH_PROJECT_ID")
         if env_key_file and os.path.exists(env_key_file):
@@ -105,7 +106,7 @@ class AuthManager(QObject):
             self.successOccurred.emit("Authentication settings saved.")
             self.load_credentials()  # Always reload after saving
         except Exception as e:
-            print(f"[ERROR] Failed to save auth settings: {e}")
+            print(f"[ERROR] Failed to save auth settings: {e}", file=sys.stderr)
             self.logger.error(f"Failed to save auth settings: {e}")
             self.errorOccurred.emit(f"Failed to save auth settings: {e}")
 

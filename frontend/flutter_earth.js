@@ -34,16 +34,19 @@ class FlutterEarth {
             
             if (window.electronAPI) {
                 const result = await window.electronAPI.pythonInit();
+                console.log('[DEBUG] pythonInit result:', result);
                 
                 if (result.status === 'success' && result.initialized) {
                     this.updateConnectionStatus('online');
                     this.statusBarText = 'Earth Engine ready';
                     this.showNotification('Earth Engine initialized successfully', 'success');
                 } else {
+                    console.log('[DEBUG] Initialization failed, showing auth dialog');
                     this.updateConnectionStatus('offline');
                     this.statusBarText = 'Earth Engine initialization failed';
                     this.showNotification('Earth Engine initialization failed', 'error');
                     this.showAuthDialog();
+                    return;
                 }
             } else {
                 // Fallback for browser testing
@@ -51,7 +54,7 @@ class FlutterEarth {
                 this.statusBarText = 'Running in browser mode';
             }
         } catch (error) {
-            console.error('Earth Engine initialization error:', error);
+            console.error('[DEBUG] Earth Engine initialization error:', error);
             this.updateConnectionStatus('offline');
             this.statusBarText = 'Initialization error';
             this.showNotification('Failed to initialize Earth Engine', 'error');
@@ -241,63 +244,45 @@ class FlutterEarth {
             item.addEventListener('click', (e) => {
                 const view = item.dataset.view;
                 const panel = item.dataset.panel;
-                
                 if (view) {
                     this.switchView(view);
                 } else if (panel) {
                     this.showPanel(panel);
                 }
-                
-                // Update active state
                 document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
                 item.classList.add('active');
             });
         });
 
         // Help button
-        document.getElementById('help-button').addEventListener('click', () => {
-            this.showHelpPopup();
-        });
+        const helpBtn = document.getElementById('help-button');
+        if (helpBtn) helpBtn.addEventListener('click', () => this.showHelpPopup());
 
         // Auth dialog
-        document.getElementById('auth-submit').addEventListener('click', () => {
-            this.submitAuth();
-        });
-
-        document.getElementById('auth-help').addEventListener('click', () => {
-            this.showHelpPopup();
-        });
-
-        document.getElementById('auth-cancel').addEventListener('click', () => {
-            this.hideAuthDialog();
-        });
+        const authSubmit = document.getElementById('auth-submit');
+        if (authSubmit) authSubmit.addEventListener('click', () => this.submitAuth());
+        const authHelp = document.getElementById('auth-help');
+        if (authHelp) authHelp.addEventListener('click', () => this.showHelpPopup());
+        const authCancel = document.getElementById('auth-cancel');
+        if (authCancel) authCancel.addEventListener('click', () => this.hideAuthDialog());
 
         // Help popup close
-        document.getElementById('help-close').addEventListener('click', () => {
-            this.hideHelpPopup();
-        });
+        const helpClose = document.getElementById('help-close');
+        if (helpClose) helpClose.addEventListener('click', () => this.hideHelpPopup());
 
         // Calendar buttons
-        document.getElementById('calendar-prev').addEventListener('click', () => {
-            this.previousMonth();
-        });
-
-        document.getElementById('calendar-next').addEventListener('click', () => {
-            this.nextMonth();
-        });
+        const calPrev = document.getElementById('calendar-prev');
+        if (calPrev) calPrev.addEventListener('click', () => this.previousMonth());
+        const calNext = document.getElementById('calendar-next');
+        if (calNext) calNext.addEventListener('click', () => this.nextMonth());
 
         // Map selector
-        document.getElementById('map-selector-btn').addEventListener('click', () => {
-            this.showMapSelector();
-        });
-
-        document.getElementById('map-confirm').addEventListener('click', () => {
-            this.confirmMapSelection();
-        });
-
-        document.getElementById('map-cancel').addEventListener('click', () => {
-            this.hideMapSelector();
-        });
+        const mapSelectorBtn = document.getElementById('map-selector-btn');
+        if (mapSelectorBtn) mapSelectorBtn.addEventListener('click', () => this.showMapSelector());
+        const mapConfirm = document.getElementById('map-confirm');
+        if (mapConfirm) mapConfirm.addEventListener('click', () => this.confirmMapSelection());
+        const mapCancel = document.getElementById('map-cancel');
+        if (mapCancel) mapCancel.addEventListener('click', () => this.hideMapSelector());
 
         // Calendar buttons
         document.querySelectorAll('.calendar-btn').forEach(btn => {
@@ -308,35 +293,32 @@ class FlutterEarth {
         });
 
         // Download controls
-        document.getElementById('start-download').addEventListener('click', () => {
-            this.startDownload();
-        });
-
-        document.getElementById('cancel-download').addEventListener('click', () => {
-            this.cancelDownload();
-        });
+        const startDownload = document.getElementById('start-download');
+        if (startDownload) startDownload.addEventListener('click', () => this.startDownload());
+        const cancelDownload = document.getElementById('cancel-download');
+        if (cancelDownload) cancelDownload.addEventListener('click', () => this.cancelDownload());
 
         // Browse button
-        document.getElementById('browse-btn').addEventListener('click', () => {
-            this.browseOutputDirectory();
-        });
+        const browseBtn = document.getElementById('browse-btn');
+        if (browseBtn) browseBtn.addEventListener('click', () => this.browseOutputDirectory());
 
         // Best resolution checkbox
-        document.getElementById('best-res').addEventListener('change', (e) => {
+        const bestRes = document.getElementById('best-res');
+        if (bestRes) bestRes.addEventListener('change', (e) => {
             const targetResInput = document.getElementById('target-res');
-            targetResInput.disabled = e.target.checked;
+            if (targetResInput) targetResInput.disabled = e.target.checked;
         });
 
         // Tiling method
-        document.getElementById('tiling-method').addEventListener('change', (e) => {
+        const tilingMethod = document.getElementById('tiling-method');
+        if (tilingMethod) tilingMethod.addEventListener('change', (e) => {
             const numSubsectionsInput = document.getElementById('num-subsections');
-            numSubsectionsInput.disabled = e.target.value !== 'pixel';
+            if (numSubsectionsInput) numSubsectionsInput.disabled = e.target.value !== 'pixel';
         });
 
         // Theme selector
-        document.getElementById('theme-select').addEventListener('change', (e) => {
-            this.changeTheme(e.target.value);
-        });
+        const themeSelect = document.getElementById('theme-select');
+        if (themeSelect) themeSelect.addEventListener('change', (e) => this.changeTheme(e.target.value));
 
         // Modal backdrop clicks
         document.querySelectorAll('.modal').forEach(modal => {
@@ -348,147 +330,77 @@ class FlutterEarth {
         });
 
         // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            this.handleKeyboardShortcuts(e);
-        });
+        document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
 
         // Progress view controls
-        document.getElementById('cancel-current-download').addEventListener('click', () => {
-            this.cancelDownload();
-        });
-
-        document.getElementById('clear-cache-logs').addEventListener('click', () => {
-            this.clearCacheAndLogs();
-        });
-
-        document.getElementById('reload-settings').addEventListener('click', () => {
-            this.reloadSettings();
-        });
-
-        document.getElementById('clear-history').addEventListener('click', () => {
-            this.clearHistory();
-        });
+        const cancelCurrentDownload = document.getElementById('cancel-current-download');
+        if (cancelCurrentDownload) cancelCurrentDownload.addEventListener('click', () => this.cancelDownload());
+        const clearCacheLogs = document.getElementById('clear-cache-logs');
+        if (clearCacheLogs) clearCacheLogs.addEventListener('click', () => this.clearCacheAndLogs());
+        const reloadSettings = document.getElementById('reload-settings');
+        if (reloadSettings) reloadSettings.addEventListener('click', () => this.reloadSettings());
+        const clearHistory = document.getElementById('clear-history');
+        if (clearHistory) clearHistory.addEventListener('click', () => this.clearHistory());
 
         // Index analysis controls
-        document.getElementById('add-raster-files').addEventListener('click', () => {
-            this.addRasterFiles();
-        });
-
-        document.getElementById('clear-raster-files').addEventListener('click', () => {
-            this.clearRasterFiles();
-        });
-
-        document.getElementById('browse-analysis-output').addEventListener('click', () => {
-            this.browseAnalysisOutputDirectory();
-        });
-
-        document.getElementById('start-analysis').addEventListener('click', () => {
-            this.startIndexAnalysis();
-        });
-
-        document.getElementById('cancel-analysis').addEventListener('click', () => {
-            this.cancelIndexAnalysis();
-        });
+        const addRasterFiles = document.getElementById('add-raster-files');
+        if (addRasterFiles) addRasterFiles.addEventListener('click', () => this.addRasterFiles());
+        const clearRasterFiles = document.getElementById('clear-raster-files');
+        if (clearRasterFiles) clearRasterFiles.addEventListener('click', () => this.clearRasterFiles());
+        const browseAnalysisOutput = document.getElementById('browse-analysis-output');
+        if (browseAnalysisOutput) browseAnalysisOutput.addEventListener('click', () => this.browseAnalysisOutputDirectory());
+        const startAnalysis = document.getElementById('start-analysis');
+        if (startAnalysis) startAnalysis.addEventListener('click', () => this.startIndexAnalysis());
+        const cancelAnalysis = document.getElementById('cancel-analysis');
+        if (cancelAnalysis) cancelAnalysis.addEventListener('click', () => this.cancelIndexAnalysis());
 
         // Index selection checkboxes
         document.querySelectorAll('input[id^="index-"]').forEach(checkbox => {
-            checkbox.addEventListener('change', () => {
-                this.updateAnalysisButtonState();
-            });
+            checkbox.addEventListener('change', () => this.updateAnalysisButtonState());
         });
 
         // Settings controls
-        document.getElementById('browse-settings-output').addEventListener('click', () => {
-            this.browseSettingsOutputDirectory();
-        });
-
-        document.getElementById('reload-settings-btn').addEventListener('click', () => {
-            this.reloadSettings();
-        });
-
-        document.getElementById('clear-cache-settings-btn').addEventListener('click', () => {
-            this.clearCacheAndLogs();
-        });
+        const browseSettingsOutput = document.getElementById('browse-settings-output');
+        if (browseSettingsOutput) browseSettingsOutput.addEventListener('click', () => this.browseSettingsOutputDirectory());
+        const reloadSettingsBtn = document.getElementById('reload-settings-btn');
+        if (reloadSettingsBtn) reloadSettingsBtn.addEventListener('click', () => this.reloadSettings());
+        const clearCacheSettingsBtn = document.getElementById('clear-cache-settings-btn');
+        if (clearCacheSettingsBtn) clearCacheSettingsBtn.addEventListener('click', () => this.clearCacheAndLogs());
 
         // Theme tabs
         document.querySelectorAll('.theme-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                this.switchThemeCategory(e.target.dataset.category);
-            });
+            tab.addEventListener('click', (e) => this.switchThemeCategory(e.target.dataset.category));
         });
 
         // Theme options
-        document.getElementById('use-character-catchphrases').addEventListener('change', () => {
-            this.saveThemeSubOptions();
-        });
-
-        document.getElementById('show-special-icons').addEventListener('change', () => {
-            this.saveThemeSubOptions();
-        });
-
-        document.getElementById('enable-animated-background').addEventListener('change', () => {
-            this.saveThemeSubOptions();
-        });
+        const useCharacterCatchphrases = document.getElementById('use-character-catchphrases');
+        if (useCharacterCatchphrases) useCharacterCatchphrases.addEventListener('change', () => this.saveThemeSubOptions());
+        const showSpecialIcons = document.getElementById('show-special-icons');
+        if (showSpecialIcons) showSpecialIcons.addEventListener('change', () => this.saveThemeSubOptions());
+        const enableAnimatedBackground = document.getElementById('enable-animated-background');
+        if (enableAnimatedBackground) enableAnimatedBackground.addEventListener('change', () => this.saveThemeSubOptions());
 
         // Vector download controls
-        document.getElementById('load-example-query').addEventListener('click', () => {
-            this.loadExampleVectorQuery();
-        });
-
-        document.getElementById('clear-vector-query').addEventListener('click', () => {
-            this.clearVectorQuery();
-        });
-
-        document.getElementById('select-vector-aoi').addEventListener('click', () => {
-            this.selectVectorAOI();
-        });
-
-        document.getElementById('browse-vector-output').addEventListener('click', () => {
-            this.browseVectorOutputDirectory();
-        });
-
-        document.getElementById('start-vector-download').addEventListener('click', () => {
-            this.startVectorDownload();
-        });
-
-        document.getElementById('cancel-vector-download').addEventListener('click', () => {
-            this.cancelVectorDownload();
-        });
+        const loadExampleQuery = document.getElementById('load-example-query');
+        if (loadExampleQuery) loadExampleQuery.addEventListener('click', () => this.loadExampleVectorQuery());
+        const clearVectorQuery = document.getElementById('clear-vector-query');
+        if (clearVectorQuery) clearVectorQuery.addEventListener('click', () => this.clearVectorQuery());
+        const selectVectorAoi = document.getElementById('select-vector-aoi');
+        if (selectVectorAoi) selectVectorAoi.addEventListener('click', () => this.selectVectorAOI());
+        const browseVectorOutput = document.getElementById('browse-vector-output');
+        if (browseVectorOutput) browseVectorOutput.addEventListener('click', () => this.browseVectorOutputDirectory());
+        const startVectorDownload = document.getElementById('start-vector-download');
+        if (startVectorDownload) startVectorDownload.addEventListener('click', () => this.startVectorDownload());
+        const cancelVectorDownload = document.getElementById('cancel-vector-download');
+        if (cancelVectorDownload) cancelVectorDownload.addEventListener('click', () => this.cancelVectorDownload());
 
         // Vector data source selection
-        document.getElementById('vector-data-source').addEventListener('change', (e) => {
-            this.updateVectorDataSourceDescription(e.target.value);
-        });
+        const vectorDataSource = document.getElementById('vector-data-source');
+        if (vectorDataSource) vectorDataSource.addEventListener('change', (e) => this.updateVectorDataSourceDescription(e.target.value));
 
         // Data viewer controls
-        document.getElementById('load-raster-btn').addEventListener('click', () => {
-            this.loadRasterData();
-        });
-
-        document.getElementById('load-vector-btn').addEventListener('click', () => {
-            this.loadVectorData();
-        });
-
-        document.getElementById('clear-data-btn').addEventListener('click', () => {
-            this.clearAllData();
-        });
-
-        // Satellite info controls
-        document.getElementById('satellite-category').addEventListener('change', (e) => {
-            this.updateSatelliteCategory(e.target.value);
-        });
-
-        // About view controls
-        document.getElementById('visit-website-btn').addEventListener('click', () => {
-            this.visitProjectWebsite();
-        });
-
-        // Help popup controls
-        document.querySelectorAll('.help-nav-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                this.switchHelpTab(e.target.dataset.tab);
-            });
-        });
+        const loadRasterBtn = document.getElementById('load-raster-btn');
+        if (loadRasterBtn) loadRasterBtn.addEventListener('click', () => this.loadRasterData());
     }
 
     hideSplashScreen() {
@@ -1654,4 +1566,76 @@ document.addEventListener('DOMContentLoaded', () => {
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = FlutterEarth;
-} 
+}
+
+$(document).ready(function() {
+    // Splash screen fade in
+    $('#splash-screen').hide().fadeIn(800);
+
+    // Sidebar item hover pop
+    $('.sidebar-item').hover(
+        function() { $(this).stop().animate({ scale: 1.08 }, { step: function(now) { $(this).css('transform', 'scale(' + now + ')'); }, duration: 180 }); },
+        function() { $(this).stop().animate({ scale: 1 }, { step: function(now) { $(this).css('transform', 'scale(' + now + ')'); }, duration: 180 }); }
+    );
+
+    // Button click pop
+    $(document).on('mousedown', '.btn-primary, .btn-secondary', function() {
+        $(this).stop().animate({ scale: 1.12 }, { step: function(now) { $(this).css('transform', 'scale(' + now + ')'); }, duration: 80 });
+    });
+    $(document).on('mouseup mouseleave', '.btn-primary, .btn-secondary', function() {
+        $(this).stop().animate({ scale: 1 }, { step: function(now) { $(this).css('transform', 'scale(' + now + ')'); }, duration: 120 });
+    });
+});
+
+// Override showAuthDialog to pop in the modal
+FlutterEarth.prototype.showAuthDialog = function() {
+    const $modal = $('#auth-dialog');
+    $modal.css({ display: 'flex', opacity: 0 });
+    $modal.find('.modal-content').css({ transform: 'scale(0.8)' });
+    $modal.animate({ opacity: 1 }, 180, function() {
+        $modal.find('.modal-content').animate({ scale: 1.08 }, {
+            step: function(now) { $(this).css('transform', 'scale(' + now + ')'); },
+            duration: 120,
+            complete: function() {
+                $(this).animate({ scale: 1 }, {
+                    step: function(now) { $(this).css('transform', 'scale(' + now + ')'); },
+                    duration: 100
+                });
+            }
+        });
+    });
+};
+
+// Override hideSplashScreen to fade out
+FlutterEarth.prototype.hideSplashScreen = function() {
+    $('#splash-screen').fadeOut(500);
+};
+
+// Override showNotification to pop/fade
+FlutterEarth.prototype.showNotification = function(message, type = 'success') {
+    const $notification = $('#notification-popup');
+    const $notificationText = $('#notification-text');
+    const $notificationContent = $notification.find('.notification-content');
+    $notificationText.text(message);
+    $notificationContent.removeClass('success error warning');
+    if (type === 'error') $notificationContent.addClass('error');
+    else if (type === 'warning') $notificationContent.addClass('warning');
+    else $notificationContent.addClass('success');
+    $notification.stop(true, true).css({ display: 'block', opacity: 0 });
+    $notificationContent.css({ transform: 'scale(0.8)' });
+    $notification.animate({ opacity: 1 }, 180, function() {
+        $notificationContent.animate({ scale: 1.08 }, {
+            step: function(now) { $(this).css('transform', 'scale(' + now + ')'); },
+            duration: 120,
+            complete: function() {
+                $(this).animate({ scale: 1 }, {
+                    step: function(now) { $(this).css('transform', 'scale(' + now + ')'); },
+                    duration: 100
+                });
+            }
+        });
+    });
+    setTimeout(() => {
+        $notification.fadeOut(400);
+    }, 3000);
+}; 
