@@ -102,78 +102,21 @@ body {
     position: relative;
 }
 
-/* Splash Screen */
-.splash-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    transition: opacity var(--transition-slow);
+/* Remove splash screen styles */
+.splash-screen, .splash-content, .splash-logo, .splash-progress, .progress-bar { display: none !important; }
+
+/* Welcome logo image animation */
+.welcome-logo-img {
+    width: 120px;
+    height: 120px;
+    display: block;
+    margin: 0 auto 1.2rem auto;
+    animation: pulse-logo 2.2s ease-in-out infinite;
 }
 
-.splash-screen.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.splash-content {
-    text-align: center;
-    color: var(--text-on-primary);
-}
-
-.splash-logo {
-    font-size: 6rem;
-    margin-bottom: 1.2rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    /* animation: spin-earth 3.5s linear infinite; */
-}
-
-.splash-content h1 {
-    font-size: var(--font-size-heading);
-    font-weight: 700;
-    margin-bottom: var(--spacing-md);
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.splash-content p {
-    font-size: var(--font-size-large);
-    margin-bottom: var(--spacing-xl);
-    opacity: 0.9;
-}
-
-.splash-progress {
-    width: 200px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 2px;
-    overflow: hidden;
-    margin: 0 auto;
-}
-
-.progress-bar {
-    height: 100%;
-    background: var(--text-on-primary);
-    border-radius: 2px;
-    animation: progress 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
+@keyframes pulse-logo {
     0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-
-@keyframes progress {
-    0% { width: 0%; }
-    50% { width: 70%; }
-    100% { width: 100%; }
+    50% { transform: scale(1.15); }
 }
 
 /* Sidebar */
@@ -1411,4 +1354,40 @@ body {
 }
 #auth-dialog .btn-secondary:hover {
     background: #e5e7eb;
+}
+
+/* Themed Splash Screen */
+.theme-splash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background-color, #f0f0f0);
+    z-index: 10001;
+    transition: opacity 0.5s;
+}
+.theme-splash-content {
+    text-align: center;
+    color: var(--primary-color, #e91e63);
+    background: rgba(255,255,255,0.85);
+    border-radius: 24px;
+    padding: 48px 32px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+.theme-splash-emoji {
+    font-size: 4.5rem;
+    margin-bottom: 1.2rem;
+}
+#theme-splash-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+#theme-splash-message {
+    font-size: 1.25rem;
+    opacity: 0.95;
 } 

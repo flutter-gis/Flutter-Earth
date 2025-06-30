@@ -214,4 +214,29 @@ When contributing to the HTML interface:
 
 ## License
 
-This HTML interface is part of the Flutter Earth project and follows the same licensing terms as the main application. 
+This HTML interface is part of the Flutter Earth project and follows the same licensing terms as the main application.
+
+## Manual Electron and Node Modules Installation (If npm install Fails)
+
+If you are unable to run `npm install` due to network or certificate issues, you can manually download and install the required Electron package:
+
+1. Go to the official Electron releases page:
+   https://github.com/electron/electron/releases
+2. Download the ZIP file for your platform (e.g., `electron-v29.3.1-win32-x64.zip` for Windows 64-bit).
+3. Extract the contents of the ZIP file.
+4. Create a folder in your project at: `frontend/node_modules/electron`
+5. Place all the extracted files into this `electron` folder.
+6. Ensure your `package.json` includes:
+   ```json
+   "devDependencies": {
+     "electron": "^29.3.1"
+   }
+   ```
+7. Now you can run the app with your batch file or:
+   ```
+   npm start
+   ```
+
+**Note:**
+- This manual method bypasses npm's install scripts, so some advanced features (like auto-updates or native module rebuilding) may not work, but for most Electron apps, this is enough to get the UI running.
+- If you need other node modules, you can download their release zips from their respective npm or GitHub pages and place them in `frontend/node_modules/` as needed. 

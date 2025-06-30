@@ -11,6 +11,15 @@
 </head>
 <body>
     <div id="app" class="app-window">
+        <!-- Themed Splash Screen -->
+        <div id="theme-splash" class="theme-splash" style="display:none;">
+            <div class="theme-splash-content">
+                <div id="theme-splash-emoji" class="theme-splash-emoji"></div>
+                <h1 id="theme-splash-title"></h1>
+                <p id="theme-splash-message"></p>
+            </div>
+        </div>
+
         <!-- Splash Screen -->
         <div id="splash-screen" class="splash-screen">
             <div class="splash-content">
@@ -100,7 +109,7 @@
             <!-- Welcome View -->
             <div id="welcome-view" class="view-content active">
                 <div class="welcome-content">
-                    <div class="welcome-logo">🌍</div>
+                    <img src="logo.png" class="welcome-logo-img" alt="Flutter Earth Logo">
                     <h1>Welcome to Flutter Earth!</h1>
                     <p>Select a tool from the sidebar to get started.</p>
                 </div>

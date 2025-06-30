@@ -15,16 +15,16 @@ class FlutterEarth {
     }
 
     async init() {
+        this.showThemeSplash();
         this.setupEventListeners();
-        // this.hideSplashScreen(); // Move this after initialization
-        // Initialize Earth Engine
         await this.initializeEarthEngine();
-        this.hideSplashScreen();
+        this.hideThemeSplash();
         this.loadSensors();
         this.setupCalendar();
         this.initSettings();
         this.initSatelliteInfo();
         this.initAboutView();
+        // Do NOT show help popup on startup
     }
 
     async initializeEarthEngine() {
@@ -260,9 +260,11 @@ class FlutterEarth {
             });
         });
 
-        // Help button
+        // Help button opens help popup
         const helpBtn = document.getElementById('help-button');
-        if (helpBtn) helpBtn.addEventListener('click', () => this.showHelpPopup());
+        if (helpBtn) {
+            helpBtn.addEventListener('click', () => this.showHelpPopup());
+        }
 
         // Auth dialog
         const authSubmit = document.getElementById('auth-submit');
@@ -410,16 +412,23 @@ class FlutterEarth {
         // Data viewer controls
         const loadRasterBtn = document.getElementById('load-raster-btn');
         if (loadRasterBtn) loadRasterBtn.addEventListener('click', () => this.loadRasterData());
-    }
 
-    hideSplashScreen() {
-        setTimeout(() => {
-            const splash = document.getElementById('splash-screen');
-            splash.classList.add('hidden');
-            setTimeout(() => {
-                splash.style.display = 'none';
-            }, 300);
-        }, 2000);
+        // Help popup close button is already wired in HTML
+        // Add Escape key to close help popup
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.hideHelpPopup();
+            }
+        });
+        // Clicking outside modal-content closes help popup
+        const helpPopup = document.getElementById('help-popup');
+        if (helpPopup) {
+            helpPopup.addEventListener('click', (e) => {
+                if (e.target === helpPopup) {
+                    this.hideHelpPopup();
+                }
+            });
+        }
     }
 
     switchView(viewName) {
@@ -965,12 +974,44 @@ class FlutterEarth {
 
     // Settings Functions
     availableThemes = [
-        { name: 'default', display_name: 'Default', category: 'default', background: '#f0f0f0', primary: '#e91e63' },
-        { name: 'dark', display_name: 'Dark Theme', category: 'dark', background: '#2d2d2d', primary: '#4fc3f7' },
-        { name: 'light', display_name: 'Light Theme', category: 'light', background: '#ffffff', primary: '#2196f3' },
-        { name: 'twilight_sparkle', display_name: 'Twilight Sparkle', category: 'special', background: '#f8c5f8', primary: '#9c27b0' },
-        { name: 'rainbow_dash', display_name: 'Rainbow Dash', category: 'special', background: '#e3f2fd', primary: '#00bcd4' },
-        { name: 'applejack', display_name: 'Applejack', category: 'special', background: '#fff3e0', primary: '#ff9800' }
+        // Default themes
+        { name: 'default', display_name: 'Default', category: 'default', background: '#f0f0f0', primary: '#e91e63', emoji: '🌍', welcomeMessage: 'Welcome to Flutter Earth!', notificationMessage: 'Theme changed to Default 🌍' },
+        { name: 'dark', display_name: 'Dark Theme', category: 'dark', background: '#2d2d2d', primary: '#4fc3f7', emoji: '🌑', welcomeMessage: 'Welcome to the Dark Side!', notificationMessage: 'Theme changed to Dark 🌑' },
+        { name: 'light', display_name: 'Light Theme', category: 'light', background: '#ffffff', primary: '#2196f3', emoji: '🌞', welcomeMessage: 'Bright and Light!', notificationMessage: 'Theme changed to Light 🌞' },
+        // Mane 6
+        { name: 'twilight_sparkle', display_name: 'Twilight Sparkle', category: 'mlp', background: '#f8c5f8', primary: '#9c27b0', emoji: '📚', welcomeMessage: 'Magic of Friendship!', notificationMessage: 'Twilight Sparkle magic! 📚' },
+        { name: 'rainbow_dash', display_name: 'Rainbow Dash', category: 'mlp', background: '#e3f2fd', primary: '#00bcd4', emoji: '🌈', welcomeMessage: '20% Cooler!', notificationMessage: 'Rainbow Dash zoom! 🌈' },
+        { name: 'applejack', display_name: 'Applejack', category: 'mlp', background: '#fff3e0', primary: '#ff9800', emoji: '🍏', welcomeMessage: 'Honest to the Core!', notificationMessage: 'Applejack style! 🍏' },
+        { name: 'pinkie_pie', display_name: 'Pinkie Pie', category: 'mlp', background: '#ffe0f7', primary: '#ff69b4', emoji: '🎉', welcomeMessage: 'Smile! Smile! Smile!', notificationMessage: 'Pinkie Pie party! 🎉' },
+        { name: 'rarity', display_name: 'Rarity', category: 'mlp', background: '#f3e6ff', primary: '#b39ddb', emoji: '💎', welcomeMessage: 'Simply Fabulous!', notificationMessage: 'Rarity glam! 💎' },
+        { name: 'fluttershy', display_name: 'Fluttershy', category: 'mlp', background: '#f0fff0', primary: '#aed581', emoji: '🦋', welcomeMessage: 'Kindness is Magic!', notificationMessage: 'Fluttershy gentle! 🦋' },
+        // Pride
+        { name: 'trans_pride', display_name: 'Trans Pride', category: 'pride', background: '#55cdfc', primary: '#f7a8b8', emoji: '🏳️‍⚧️', welcomeMessage: 'Trans Rights are Human Rights!', notificationMessage: 'Trans Pride! 🏳️‍⚧️' },
+        { name: 'bi_pride', display_name: 'Bi Pride', category: 'pride', background: '#d60270', primary: '#0038a8', emoji: '💖💜💙', welcomeMessage: 'Proud to be Bi!', notificationMessage: 'Bi Pride! 💖💜💙' },
+        { name: 'mlm_pride', display_name: 'MLM Pride', category: 'pride', background: '#78dbe2', primary: '#078d70', emoji: '🏳️‍🌈♂️', welcomeMessage: 'MLM Pride!', notificationMessage: 'MLM Pride! 🏳️‍🌈♂️' },
+        { name: 'wlw_pride', display_name: 'WLW Pride', category: 'pride', background: '#d162a4', primary: '#a349a4', emoji: '🏳️‍🌈♀️', welcomeMessage: 'WLW Pride!', notificationMessage: 'WLW Pride! 🏳️‍🌈♀️' },
+        { name: 'nonbinary_pride', display_name: 'Nonbinary Pride', category: 'pride', background: '#fff430', primary: '#9c59d1', emoji: '⚧️', welcomeMessage: 'Nonbinary and Proud!', notificationMessage: 'Nonbinary Pride! ⚧️' },
+        { name: 'ace_pride', display_name: 'Ace Pride', category: 'pride', background: '#a3a3a3', primary: '#810081', emoji: '🖤🤍💜', welcomeMessage: 'Asexual Pride!', notificationMessage: 'Ace Pride! 🖤🤍💜' },
+        { name: 'pan_pride', display_name: 'Pan Pride', category: 'pride', background: '#ff218c', primary: '#ffd800', emoji: '💗💛💙', welcomeMessage: 'Pan and Proud!', notificationMessage: 'Pan Pride! 💗💛💙' },
+        { name: 'genderqueer_pride', display_name: 'Genderqueer Pride', category: 'pride', background: '#b57edc', primary: '#4a8123', emoji: '🏳️‍🌈', welcomeMessage: 'Genderqueer and Proud!', notificationMessage: 'Genderqueer Pride! 🏳️‍🌈' },
+        // Unity & Black History
+        { name: 'unity_pride', display_name: 'Unity Pride', category: 'special', background: '#ffffff', primary: '#000000', emoji: '🤝', welcomeMessage: 'Unity in Diversity!', notificationMessage: 'Unity Pride! 🤝' },
+        { name: 'black_history', display_name: 'Black History', category: 'special', background: '#232323', primary: '#ffbe00', emoji: '✊🏿', welcomeMessage: 'Celebrating Black Excellence!', notificationMessage: 'Black History! ✊🏿' },
+        // MLP Characters
+        { name: 'trixie', display_name: 'Trixie', category: 'mlp', background: '#d0e6ff', primary: '#5e92f3', emoji: '🔮', welcomeMessage: 'The Great and Powerful Trixie!', notificationMessage: 'Trixie magic! 🔮' },
+        { name: 'celestia', display_name: 'Celestia', category: 'mlp', background: '#fff8e1', primary: '#ffd600', emoji: '☀️', welcomeMessage: 'Let the Sun Shine!', notificationMessage: 'Celestia shines! ☀️' },
+        { name: 'luna', display_name: 'Luna', category: 'mlp', background: '#232946', primary: '#5a4fcf', emoji: '🌙', welcomeMessage: 'Embrace the Night!', notificationMessage: 'Luna glows! 🌙' },
+        { name: 'derpy', display_name: 'Derpy', category: 'mlp', background: '#e0e7ef', primary: '#b0c4de', emoji: '🧁', welcomeMessage: 'Muffins for All!', notificationMessage: 'Derpy delivers! 🧁' },
+        { name: 'cadence', display_name: 'Cadence', category: 'mlp', background: '#ffe0f0', primary: '#f06292', emoji: '💖', welcomeMessage: 'Love is Magic!', notificationMessage: 'Cadence love! 💖' },
+        { name: 'starlight_glimmer', display_name: 'Starlight Glimmer', category: 'mlp', background: '#e1f5fe', primary: '#ba68c8', emoji: '✨', welcomeMessage: 'Equality for All!', notificationMessage: 'Starlight Glimmer! ✨' },
+        { name: 'sunset_shimmer', display_name: 'Sunset Shimmer', category: 'mlp', background: '#fff3e0', primary: '#ff7043', emoji: '🌅', welcomeMessage: 'Shimmer and Shine!', notificationMessage: 'Sunset Shimmer! 🌅' },
+        // Minecraft
+        { name: 'steve', display_name: 'Steve', category: 'minecraft', background: '#7ec850', primary: '#3c763d', emoji: '🧑‍🌾', welcomeMessage: "Let's Mine!", notificationMessage: 'Steve is ready! 🧑‍🌾' },
+        { name: 'alex', display_name: 'Alex', category: 'minecraft', background: '#f7a35c', primary: '#e67e22', emoji: '🧑‍🔧', welcomeMessage: "Let's Build!", notificationMessage: 'Alex is ready! 🧑‍🔧' },
+        { name: 'enderman', display_name: 'Enderman', category: 'minecraft', background: '#1a1a2e', primary: '#8f00ff', emoji: '👾', welcomeMessage: '... ... ...', notificationMessage: 'Enderman stares! 👾' },
+        { name: 'creeper', display_name: 'Creeper', category: 'minecraft', background: '#3fa63f', primary: '#1a4d1a', emoji: '💣', welcomeMessage: "That's a nice app you have...", notificationMessage: 'Creeper hisses! 💣' },
+        { name: 'zombie', display_name: 'Zombie', category: 'minecraft', background: '#4e944f', primary: '#2e7d32', emoji: '🧟', welcomeMessage: 'Brains...', notificationMessage: 'Zombie groans! 🧟' },
+        { name: 'skeleton', display_name: 'Skeleton', category: 'minecraft', background: '#e0e0e0', primary: '#bdbdbd', emoji: '💀', welcomeMessage: 'Rattle Rattle!', notificationMessage: 'Skeleton rattles! 💀' }
     ];
 
     currentThemeData = { options: {} };
@@ -1010,38 +1051,37 @@ class FlutterEarth {
 
     selectTheme(themeName) {
         if (this.currentThemeData.name === themeName) return;
-        
         // Update visual selection
         document.querySelectorAll('.theme-item').forEach(item => {
             item.classList.remove('selected');
         });
         document.querySelector(`[data-theme="${themeName}"]`).classList.add('selected');
-        
         // Apply theme
         this.applyTheme(themeName);
-        
+        // Update splash and welcome view immediately
+        this.showThemeSplash();
+        setTimeout(() => this.hideThemeSplash(), 1200);
+        this.updateWelcomeView();
         // Save setting
         if (window.electronAPI) {
             // This would call the Python backend to save the theme
             console.log('Theme selected:', themeName);
         }
-        
-        this.showNotification(`Theme changed to ${themeName}`, 'success');
+        this.showNotification(this.getThemeNotification(themeName), 'success');
     }
 
     applyTheme(themeName) {
         const theme = this.availableThemes.find(t => t.name === themeName);
         if (!theme) return;
-        
         // Update current theme data
         this.currentThemeData.name = themeName;
-        
         // Apply CSS variables (simplified theme application)
         document.documentElement.style.setProperty('--primary-color', theme.primary);
         document.documentElement.style.setProperty('--background-color', theme.background);
-        
         // Update theme options based on new theme
         this.updateThemeOptions();
+        // Update welcome view
+        this.updateWelcomeView();
     }
 
     updateThemeOptions() {
@@ -1547,6 +1587,21 @@ out skel qt;`;
         });
         document.getElementById(tabName).classList.add('active');
     }
+
+    updateWelcomeView() {
+        const theme = this.availableThemes.find(t => t.name === (this.currentThemeData?.name || 'default')) || this.availableThemes[0];
+        const logo = document.querySelector('.welcome-logo-img');
+        const welcomeTitle = document.querySelector('#welcome-view h1');
+        const welcomeMsg = document.querySelector('#welcome-view p');
+        if (logo) logo.alt = theme.display_name + ' Logo';
+        if (welcomeTitle) welcomeTitle.innerHTML = `${theme.emoji || ''} ${theme.display_name}`;
+        if (welcomeMsg) welcomeMsg.textContent = theme.welcomeMessage;
+    }
+
+    getThemeNotification(themeName) {
+        const theme = this.availableThemes.find(t => t.name === themeName);
+        return theme && theme.notificationMessage ? theme.notificationMessage : `Theme changed to ${themeName}`;
+    }
 }
 
 // Initialize the application when DOM is loaded
@@ -1647,4 +1702,105 @@ FlutterEarth.prototype.showNotification = function(message, type = 'success') {
     setTimeout(() => {
         $notification.fadeOut(400);
     }, 3000);
-}; 
+};
+
+// Check if running in Electron (Node.js) environment
+function isElectron() {
+    // Renderer process
+    if (typeof window !== 'undefined' && typeof window.process === 'object' && window.process.type === 'renderer') {
+        return true;
+    }
+    // Main process
+    if (typeof process !== 'undefined' && typeof process.versions === 'object' && !!process.versions.electron) {
+        return true;
+    }
+    // User agent
+    if (typeof navigator === 'object' && typeof navigator.userAgent === 'string' && navigator.userAgent.indexOf('Electron') >= 0) {
+        return true;
+    }
+    return false;
+}
+
+function showLatexErrorBox() {
+    const latexBox = document.createElement('div');
+    latexBox.style.background = '#fffbe6';
+    latexBox.style.border = '2px solid #e0c200';
+    latexBox.style.padding = '24px';
+    latexBox.style.margin = '32px auto';
+    latexBox.style.maxWidth = '600px';
+    latexBox.style.fontFamily = 'serif';
+    latexBox.style.fontSize = '1.1em';
+    latexBox.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+    latexBox.innerHTML = `
+        <b style="font-size:1.2em;">\(\text{Electron/Node.js Not Detected}\)</b><br><br>
+        \(
+          \begin{array}{l}
+            \text{The application could not detect Electron (Node.js) running.} \\
+            \text{This usually means the Electron dependencies are missing or failed to install.} \\
+            \\
+            \text{\textbf{Manual Fix:}} \\
+            \text{1. Download Electron from:} \\
+            \text{\quad \texttt{https://github.com/electron/electron/releases}} \\
+            \text{2. Extract the ZIP and place it in:} \\
+            \text{\quad frontend/node\_modules/electron} \\
+            \text{3. Try running the app again.} \\
+            \\
+            \text{See the README for full instructions.}
+          \end{array}
+        \)
+    `;
+    document.body.prepend(latexBox);
+    // Optionally, load MathJax for LaTeX rendering
+    if (!window.MathJax) {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+        script.async = true;
+        document.head.appendChild(script);
+    } else {
+        window.MathJax.typesetPromise();
+    }
+}
+
+// Helper: Copy Electron folder from user-provided path
+async function copyElectronFromUserPath() {
+    // Prompt user for folder path
+    const userPath = prompt('Electron not found. Please provide the full path to your electron folder (e.g., C:/path/to/electron):');
+    if (!userPath) return;
+
+    // Call backend to copy the folder (requires a backend endpoint)
+    try {
+        const response = await fetch('/copy-electron', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source: userPath })
+        });
+        const result = await response.json();
+        if (result.success) {
+            alert('Electron copied successfully! Please restart the app.');
+            location.reload();
+        } else {
+            alert('Failed to copy Electron: ' + (result.error || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Error communicating with backend: ' + err.message);
+    }
+}
+
+function showLatexErrorBoxWithButton() {
+    showLatexErrorBox();
+    // Add a button for user to provide Electron folder
+    const latexBox = document.body.querySelector('div');
+    if (latexBox) {
+        const btn = document.createElement('button');
+        btn.textContent = 'Provide Electron Folder';
+        btn.style.marginTop = '16px';
+        btn.onclick = copyElectronFromUserPath;
+        latexBox.appendChild(btn);
+    }
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+    if (!isElectron()) {
+        showLatexErrorBoxWithButton();
+    }
+}); 
