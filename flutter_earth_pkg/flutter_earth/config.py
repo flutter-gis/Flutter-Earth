@@ -1695,6 +1695,39 @@ SATELLITE_DETAILS: Dict[str, SatelliteDetails] = {
     }
 }
 
+def load_satellite_details_from_crawler() -> Dict[str, SatelliteDetails]:
+    """Load satellite details from crawler output"""
+    try:
+        crawler_file = Path("backend/gee_catalog_data_enhanced.json")
+        if crawler_file.exists():
+            with open(crawler_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            satellite_details = {}
+            for satellite_name, datasets in data.get('satellites', {}).items():
+                if datasets:
+                    first_dataset = datasets[0]
+                    satellite_details[satellite_name.upper()] = SatelliteDetails(
+                        name=satellite_name,
+                        description=first_dataset.get('description', ''),
+                        resolution_nominal=first_dataset.get('resolution', ''),
+                        bands=first_dataset.get('bands', []),
+                        start_date=first_dataset.get('start_date', ''),
+                        end_date=first_dataset.get('end_date', 'present'),
+                        cloud_cover=first_dataset.get('cloud_cover', True),
+                        collection_id=first_dataset.get('collection_id', '')
+                    )
+            
+            return satellite_details
+    except Exception as e:
+        logging.warning(f"Could not load satellite details from crawler: {e}")
+    
+    # Fallback to default satellite details
+    return SATELLITE_DETAILS
+
+# Update the satellite details to use crawler data
+SATELLITE_DETAILS = load_satellite_details_from_crawler()
+
 class ConfigManager(QObject):
     """Manages application configuration.
     Emits config_changed(dict) when the config is changed or reloaded.

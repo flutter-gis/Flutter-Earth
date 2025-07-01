@@ -2,10 +2,11 @@
 
 > **The most magical, animated, and inclusive satellite data application ever created!** 🚀✨
 
-[![Flutter Earth](https://img.shields.io/badge/Flutter%20Earth-v1.0.0-brightgreen)](https://github.com/yourusername/flutter-earth)
+[![Flutter Earth](https://img.shields.io/badge/Flutter%20Earth-v2.0.0-brightgreen)](https://github.com/yourusername/flutter-earth)
 [![Themes](https://img.shields.io/badge/Themes-30%20Unique%20Styles-ff69b4)](https://github.com/yourusername/flutter-earth)
 [![Animations](https://img.shields.io/badge/Animations-20%2B%20Icon%20Effects-00bcd4)](https://github.com/yourusername/flutter-earth)
 [![Pride](https://img.shields.io/badge/Pride%20Themes-13%20Inclusive%20Styles-ffd700)](https://github.com/yourusername/flutter-earth)
+[![Crawler](https://img.shields.io/badge/GEE%20Crawler-Enhanced%20Data%20Extraction-orange)](https://github.com/yourusername/flutter-earth)
 
 ---
 
@@ -23,6 +24,54 @@ Flutter Earth isn't just another satellite data application—it's a **celebrati
 - ⛏️ **Minecraft Vibes** - 4 blocky, adventurous themes for the crafters
 - 🎨 **Professional Polish** - Clean, modern UI with smooth animations
 - 🛰️ **Real Satellite Data** - Google Earth Engine integration for actual Earth observation
+- 🕷️ **Enhanced GEE Crawler** - Automatically extracts comprehensive dataset information
+- 📊 **Smart Data Classification** - Intelligent categorization of satellite datasets
+- 💻 **Code Snippets** - Ready-to-use Earth Engine code for every dataset
+
+---
+
+## 🕷️ **NEW: Enhanced Google Earth Engine Crawler**
+
+### 🎯 **What's New in v2.0**
+
+The enhanced crawler automatically extracts comprehensive information from the Google Earth Engine Data Catalog:
+
+- **🌍 Complete Dataset Discovery** - Crawls until no more data is found
+- **📊 Smart Classification** - Categorizes by satellite, data type, and publisher
+- **💻 Code Snippets** - Generates ready-to-use Earth Engine code for each dataset
+- **🔄 Real-time Integration** - Frontend automatically loads and displays crawler data
+- **📈 Progress Tracking** - Visual progress bars and detailed logging
+
+### 🛠️ **Crawler Features**
+
+```bash
+# Run the enhanced crawler
+cd backend
+python gee_catalog_crawler_enhanced.py
+```
+
+**Extracted Data:**
+- Dataset names, descriptions, and IDs
+- Satellite information and resolutions
+- Data types and categories
+- Temporal and spatial coverage
+- Publisher information
+- Ready-to-use Earth Engine code snippets
+- Band information and applications
+
+**Output Files:**
+- `gee_catalog_data_enhanced.json` - Complete dataset catalog
+- `catalog_viewer.html` - Interactive web interface
+- Detailed logs in `logs/` directory
+
+### 🎯 **Frontend Integration**
+
+The satellite information and settings panes automatically:
+- Load real satellite data from crawler output
+- Display comprehensive satellite details
+- Show resolution, coverage, and applications
+- Provide Earth Engine code snippets
+- Filter by satellite, category, and publisher
 
 ---
 
@@ -138,6 +187,21 @@ npm start
 run_desktop.bat
 ```
 
+### 🕷️ **Running the Enhanced Crawler**
+
+```bash
+# Navigate to backend directory
+cd backend
+
+# Run the enhanced crawler (goes until no more data found)
+python gee_catalog_crawler_enhanced.py
+
+# View the results
+# - Open gee_catalog_data_enhanced.json for raw data
+# - Open catalog_viewer.html for interactive interface
+# - Check logs/ directory for detailed logs
+```
+
 ---
 
 ## 🎯 **How to Use - Let's Explore Together!**
@@ -161,10 +225,104 @@ run_desktop.bat
 5. Watch the **animated splash screen** and **icon effects**!
 
 ### 🛰️ **Satellite Data Features**
-- **Download Manager** - Get real satellite imagery
-- **Index Analysis** - Calculate NDVI, NDWI, and more
-- **Data Viewer** - Explore your downloaded data
-- **Progress Tracking** - Monitor your downloads
+
+#### **Enhanced Satellite Information**
+- **Real-time Data** - Automatically loads from crawler output
+- **Comprehensive Details** - Resolution, coverage, applications
+- **Code Snippets** - Ready-to-use Earth Engine code
+- **Smart Filtering** - By satellite, category, and publisher
+
+#### **Download Manager**
+- **Multi-sensor Support** - Landsat, Sentinel, MODIS, and more
+- **Advanced Filtering** - Cloud cover, date ranges, quality
+- **Progress Tracking** - Real-time download monitoring
+- **Batch Processing** - Download multiple datasets
+
+#### **Index Analysis**
+- **Vegetation Indices** - NDVI, EVI, LAI calculations
+- **Water Indices** - NDWI, MNDWI analysis
+- **Urban Indices** - NDBI, NDBaI mapping
+- **Custom Indices** - Create your own formulas
+
+#### **Data Viewer**
+- **Interactive Maps** - Explore your downloaded data
+- **Time Series** - Analyze temporal changes
+- **Statistics** - Detailed data analysis
+- **Export Options** - Multiple output formats
+
+---
+
+## 🕷️ **Crawler Development - Extend the Data Collection!**
+
+### 🎯 **Crawler Architecture**
+
+The enhanced crawler is designed for maximum efficiency and data quality:
+
+```python
+class EnhancedGEECatalogCrawler:
+    def __init__(self, base_url: str = "https://developers.google.com/earth-engine/datasets/catalog"):
+        # Initialize with comprehensive satellite detection
+        # Setup logging and progress tracking
+        # Configure data extraction patterns
+```
+
+### 🔧 **Customization Options**
+
+#### **Add New Satellite Detection**
+```python
+satellite_keywords = [
+    'your_new_satellite',
+    'another_satellite',
+    # Add more keywords here
+]
+```
+
+#### **Extend Data Type Classification**
+```python
+if any(keyword in tag_lower for keyword in ['your_category']):
+    dataset_info['data_type'] = 'Your Category'
+```
+
+#### **Custom Code Snippet Generation**
+```python
+def generate_code_snippet(self, dataset_info: Dict[str, Any]) -> str:
+    # Customize the Earth Engine code template
+    return your_custom_code_template
+```
+
+### 📊 **Output Format**
+
+The crawler generates structured JSON data:
+
+```json
+{
+  "metadata": {
+    "crawl_date": "2024-01-01T12:00:00",
+    "total_datasets": 1500,
+    "crawler_version": "enhanced_v2"
+  },
+  "datasets": [
+    {
+      "name": "Landsat 9 Collection 2 Tier 1",
+      "description": "Surface reflectance data...",
+      "dataset_id": "LANDSAT/LC09/C02/T1_L2",
+      "resolution": "30m",
+      "satellites": ["Landsat 9"],
+      "data_type": "Satellite Imagery",
+      "code_snippet": "// Earth Engine code...",
+      "applications": ["agriculture", "forestry"]
+    }
+  ],
+  "satellites": {
+    "Landsat 9": [...],
+    "Sentinel-2": [...]
+  },
+  "categories": {
+    "Satellite Imagery": [...],
+    "Elevation/Topography": [...]
+  }
+}
+```
 
 ---
 
@@ -204,6 +362,13 @@ Want to add your own theme? It's super easy!
 
 We welcome contributions from **everyone**! Here's how you can help:
 
+### 🕷️ **Crawler Contributions**
+- Improve satellite detection algorithms
+- Add new data type classifications
+- Enhance code snippet generation
+- Optimize crawling performance
+- Add support for new data sources
+
 ### 🎨 **Theme Contributions**
 - Create new themes with unique animations
 - Add more Pride themes for different identities
@@ -233,6 +398,7 @@ Flutter Earth is built on the principles of:
 - **🎨 Creativity** - Encouraging artistic expression
 - **🚀 Innovation** - Pushing the boundaries of what's possible
 - **💖 Love** - Spreading joy and positivity through technology
+- **🔬 Science** - Making Earth observation accessible to everyone
 
 ### 🏳️‍🌈 **Pride Themes**
 Our Pride themes are designed to:
@@ -257,6 +423,7 @@ Our Unity themes promote:
 - **Backend**: Python with Earth Engine API
 - **Desktop**: Electron for cross-platform support
 - **Theming**: CSS custom properties and animations
+- **Crawler**: BeautifulSoup4, requests, regex patterns
 
 ### 🎨 **Theme System**
 - **30 themes** across 5 categories
@@ -266,9 +433,18 @@ Our Unity themes promote:
 
 ### 🛰️ **Satellite Features**
 - **Google Earth Engine** integration
-- **Multi-sensor support** (Landsat, Sentinel, MODIS)
+- **Enhanced Crawler** for comprehensive data extraction
+- **Multi-sensor support** (Landsat, Sentinel, MODIS, and more)
 - **Index analysis** (NDVI, NDWI, NDBI, etc.)
 - **Vector data** download capabilities
+- **Real-time data** integration with frontend
+
+### 🕷️ **Crawler System**
+- **Comprehensive Data Extraction** - All available dataset information
+- **Smart Classification** - Automatic categorization by satellite, type, publisher
+- **Code Generation** - Ready-to-use Earth Engine snippets
+- **Progress Tracking** - Visual progress bars and detailed logging
+- **Frontend Integration** - Automatic data loading and display
 
 ---
 
@@ -284,6 +460,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **My Little Pony** community for inspiration
 - **LGBTQ+ community** for Pride theme ideas
 - **Minecraft community** for gaming themes
+- **Earth observation community** for scientific guidance
 - **All contributors** who make this project magical
 
 ---
@@ -297,15 +474,16 @@ If Flutter Earth brings you joy, consider:
 - 💻 **Contributing code** or themes
 - 📢 **Sharing** with friends and communities
 - 💖 **Spreading love** and positivity
+- 🔬 **Using** for Earth observation research
 
 ---
 
 ## 🎉 **Join the Magic!**
 
-Ready to explore Earth with style, animation, and inclusivity? 
+Ready to explore Earth with style, animation, inclusivity, and cutting-edge satellite data? 
 
 **Start your Flutter Earth adventure today!** 🌍✨
 
 ---
 
-*Made with 💖, 🌈, and lots of ✨ by the Flutter Earth community*
+*Made with 💖, 🌈, 🔬, and lots of ✨ by the Flutter Earth community*

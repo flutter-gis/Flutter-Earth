@@ -1255,17 +1255,163 @@ class FlutterEarth {
     }
 
     loadSensors() {
-        console.log('[DEBUG] Loading sensors...');
-        // Placeholder for sensor loading
-        const sensorSelect = document.getElementById('sensor-select');
-        if (sensorSelect) {
-            sensorSelect.innerHTML = `
-                <option value="">Choose a sensor...</option>
-                <option value="sentinel-2">Sentinel-2</option>
-                <option value="landsat-8">Landsat 8</option>
-                <option value="landsat-9">Landsat 9</option>
-            `;
+        console.log('[DEBUG] Loading sensors from crawler data...');
+        
+        // Try to load from crawler data first
+        this.loadSensorsFromCrawlerData().then(() => {
+            console.log('[DEBUG] Sensors loaded from crawler data');
+        }).catch(() => {
+            // Fallback to hardcoded data
+            console.log('[DEBUG] Falling back to hardcoded sensor data');
+            const sensorSelect = document.getElementById('sensor-select');
+            if (sensorSelect) {
+                sensorSelect.innerHTML = `
+                    <option value="">Choose a sensor...</option>
+                    <option value="sentinel-2">Sentinel-2</option>
+                    <option value="landsat-8">Landsat 8</option>
+                    <option value="landsat-9">Landsat 9</option>
+                `;
+            }
+        });
+    }
+
+    async loadSensorsFromCrawlerData() {
+        try {
+            // Try to load from the crawler output file
+            const response = await fetch('../backend/gee_catalog_data_enhanced.json');
+            if (!response.ok) {
+                throw new Error('Crawler data not found');
+            }
+            
+            const data = await response.json();
+            console.log('[DEBUG] Loaded crawler data:', data);
+            
+            // Update sensor select dropdown
+            const sensorSelect = document.getElementById('sensor-select');
+            if (sensorSelect && data.satellites) {
+                let options = '<option value="">Choose a sensor...</option>';
+                
+                // Add satellites from crawler data
+                Object.keys(data.satellites).forEach(satellite => {
+                    const datasets = data.satellites[satellite];
+                    const datasetCount = datasets.length;
+                    options += `<option value="${satellite.toLowerCase()}">${satellite} (${datasetCount} datasets)</option>`;
+                });
+                
+                sensorSelect.innerHTML = options;
+            }
+            
+            // Store the data for use in other parts of the app
+            this.crawlerData = data;
+            
+            // Update satellite info view
+            this.updateSatelliteInfoView(data);
+            
+        } catch (error) {
+            console.warn('[DEBUG] Could not load crawler data:', error);
+            throw error;
         }
+    }
+
+    updateSatelliteInfoView(data) {
+        const sensorListContainer = document.getElementById('sensor-list-container');
+        if (!sensorListContainer || !data.satellites) return;
+        
+        let html = '';
+        
+        Object.entries(data.satellites).forEach(([satellite, datasets]) => {
+            const firstDataset = datasets[0];
+            const resolution = firstDataset.resolution || 'N/A';
+            const dataType = firstDataset.data_type || 'Satellite Imagery';
+            
+            html += `
+                <div class="sensor-item" onclick="flutterEarth.showSensorDetails('${satellite}')">
+                    <div class="sensor-item-content">
+                        <div class="sensor-name">${satellite}</div>
+                        <div class="sensor-type">${dataType}</div>
+                        <div class="sensor-resolution">${resolution} • ${datasets.length} datasets</div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        sensorListContainer.innerHTML = html;
+    }
+
+    showSensorDetails(satelliteName) {
+        if (!this.crawlerData || !this.crawlerData.satellites[satelliteName]) {
+            console.warn('[DEBUG] No data for satellite:', satelliteName);
+            return;
+        }
+        
+        const datasets = this.crawlerData.satellites[satelliteName];
+        const firstDataset = datasets[0];
+        
+        // Create or update sensor details section
+        let detailsSection = document.querySelector('.sensor-details-section');
+        if (!detailsSection) {
+            detailsSection = document.createElement('div');
+            detailsSection.className = 'sensor-details-section';
+            document.querySelector('.satellite-content').appendChild(detailsSection);
+        }
+        
+        detailsSection.innerHTML = `
+            <div class="sensor-details">
+                <h4>${satelliteName}</h4>
+                <div class="sensor-info-grid">
+                    <div class="sensor-info-row">
+                        <span class="sensor-label">Datasets:</span>
+                        <span class="sensor-value">${datasets.length}</span>
+                    </div>
+                    <div class="sensor-info-row">
+                        <span class="sensor-label">Resolution:</span>
+                        <span class="sensor-value">${firstDataset.resolution || 'N/A'}</span>
+                    </div>
+                    <div class="sensor-info-row">
+                        <span class="sensor-label">Data Type:</span>
+                        <span class="sensor-value">${firstDataset.data_type || 'N/A'}</span>
+                    </div>
+                    <div class="sensor-info-row">
+                        <span class="sensor-label">Coverage:</span>
+                        <span class="sensor-value">${firstDataset.coverage || 'N/A'}</span>
+                    </div>
+                    <div class="sensor-info-row">
+                        <span class="sensor-label">Publisher:</span>
+                        <span class="sensor-value">${firstDataset.publisher || 'N/A'}</span>
+                    </div>
+                </div>
+                
+                <div class="sensor-description">
+                    <h5>Description</h5>
+                    <p>${firstDataset.description || 'No description available'}</p>
+                </div>
+                
+                ${firstDataset.bands && firstDataset.bands.length > 0 ? `
+                <div class="sensor-bands">
+                    <h5>Available Bands</h5>
+                    <div class="band-list">
+                        ${firstDataset.bands.map(band => `<span class="band-item">${band}</span>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${firstDataset.applications && firstDataset.applications.length > 0 ? `
+                <div class="sensor-applications">
+                    <h5>Applications</h5>
+                    <div class="application-list">
+                        ${firstDataset.applications.map(app => `<span class="application-item">${app}</span>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${firstDataset.code_snippet ? `
+                <div class="sensor-code">
+                    <h5>Earth Engine Code Snippet</h5>
+                    <pre><code>${firstDataset.code_snippet}</code></pre>
+                </div>
+                ` : ''}
+            </div>
+        `;
     }
 
     cancelDownload() {
@@ -2904,7 +3050,15 @@ class FlutterEarth {
 
     initSatelliteInfo() {
         console.log('[DEBUG] Initializing satellite info...');
-        // Satellite info initialization logic would go here
+        // This will be called when the satellite info view is loaded
+        if (this.crawlerData) {
+            this.updateSatelliteInfoView(this.crawlerData);
+        } else {
+            // Try to load data if not already loaded
+            this.loadSensorsFromCrawlerData().catch(() => {
+                console.log('[DEBUG] Using fallback satellite data');
+            });
+        }
     }
 
     initAboutView() {

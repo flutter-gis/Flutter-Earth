@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEE Catalog Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 20px;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .dataset-card {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .dataset-name {
+            font-weight: bold;
+            color: #2c5aa0;
+            font-size: 18px;
+        }
+        .tag {
+            background: #e0e0e0;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 12px;
+            display: inline-block;
+            font-size: 12px;
+        }
+        .satellite-tag {
+            background: #ffeb3b;
+            font-weight: bold;
+        }
+        .download-link {
+            color: #4caf50;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌍 Google Earth Engine Data Catalog</h1>
+        <p>Dataset information extracted from the Earth Engine Data Catalog</p>
+    </div>
+    
+    <input type="text" id="searchInput" class="search-box" placeholder="Search datasets...">
+    
+    <div id="datasets"></div>
+
+    <script>
+        let allDatasets = [];
+        
+        async function loadData() {
+            try {
+                const response = await fetch('gee_catalog_data.json');
+                const data = await response.json();
+                allDatasets = data.datasets || [];
+                renderDatasets(allDatasets);
+            } catch (error) {
+                document.getElementById('datasets').innerHTML = 
+                    '<p>Error loading data. Please run the crawler first.</p>';
+            }
+        }
+        
+        function renderDatasets(datasets) {
+            const container = document.getElementById('datasets');
+            
+            if (datasets.length === 0) {
+                container.innerHTML = '<p>No datasets found.</p>';
+                return;
+            }
+            
+            container.innerHTML = datasets.map(dataset => `
+                <div class="dataset-card">
+                    <div class="dataset-name">${dataset.name}</div>
+                    <p><strong>Description:</strong> ${dataset.description || 'No description'}</p>
+                    <p><strong>Resolution:</strong> ${dataset.resolution || 'N/A'}</p>
+                    <p><strong>Data Type:</strong> ${dataset.data_type || 'N/A'}</p>
+                    <p><strong>Frequency:</strong> ${dataset.frequency || 'N/A'}</p>
+                    <p><strong>Dates:</strong> ${dataset.dates || 'N/A'}</p>
+                    <p><strong>Satellites:</strong> 
+                        ${dataset.satellites && dataset.satellites.length > 0 
+                            ? dataset.satellites.map(sat => `<span class="tag satellite-tag">${sat}</span>`).join('')
+                            : '<span class="tag">None</span>'
+                        }
+                    </p>
+                    <p><strong>Tags:</strong> 
+                        ${dataset.tags && dataset.tags.length > 0 
+                            ? dataset.tags.map(tag => `<span class="tag">${tag}</span>`).join('')
+                            : '<span class="tag">None</span>'
+                        }
+                    </p>
+                    <p><a href="${dataset.download_link}" class="download-link" target="_blank">🔗 View in Earth Engine</a></p>
+                </div>
+            `).join('');
+        }
+        
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const filtered = allDatasets.filter(dataset => {
+                const name = (dataset.name || '').toLowerCase();
+                const description = (dataset.description || '').toLowerCase();
+                return name.includes(searchTerm) || description.includes(searchTerm);
+            });
+            renderDatasets(filtered);
+        });
+        
+        window.addEventListener('load', loadData);
+    </script>
+</body>
+</html> 

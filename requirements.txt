@@ -14,5 +14,9 @@ folium>=0.14.0
 # File handling
 pathlib2>=2.3.0
 
+# Web scraping for GEE catalog crawler
+beautifulsoup4>=4.9.0
+lxml>=4.6.0
+
 # Note: PySide6 and other GUI packages are not needed for the Electron version
 # as the UI is handled by HTML/CSS/JS in Electron 
