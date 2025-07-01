@@ -13,7 +13,9 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 900,
-    icon: path.join(__dirname, '..', 'logo.png'), // Use existing logo.png
+    minWidth: 1024,
+    minHeight: 700,
+    icon: path.join(__dirname, '../logo.png'), // Set the window/taskbar icon
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="logo.png" alt="Flutter Earth Logo" width="160" height="160" />
+</div>
+
 # 🌍 Flutter Earth
 
 **A powerful desktop application for Earth Engine data access, satellite information, and geospatial analysis built with Electron and Python.**
