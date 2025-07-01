@@ -1233,18 +1233,17 @@ class FlutterEarth {
     }
 
     showMapSelector() {
-        const mapModal = document.getElementById('map-modal');
-        if (mapModal) {
-            mapModal.style.display = 'flex';
-            mapModal.classList.add('show');
+        const overlay = document.getElementById('map-selector-overlay');
+        if (overlay) {
+            overlay.style.display = 'block';
         }
+        // Optionally, disable background scrolling/interactions here
     }
 
     hideMapSelector() {
-        const mapModal = document.getElementById('map-modal');
-        if (mapModal) {
-            mapModal.style.display = 'none';
-            mapModal.classList.remove('show');
+        const overlay = document.getElementById('map-selector-overlay');
+        if (overlay) {
+            overlay.style.display = 'none';
         }
     }
 
@@ -3255,5 +3254,16 @@ window.addEventListener('DOMContentLoaded', function() {
     if (!isElectron()) {
         console.warn('[DEBUG] Electron not detected - showing error box');
         showLatexErrorBox();
+    }
+}); 
+
+// Add this after DOMContentLoaded or in your init function:
+document.addEventListener('DOMContentLoaded', function() {
+    const closeBtn = document.getElementById('map-selector-close');
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            const overlay = document.getElementById('map-selector-overlay');
+            if (overlay) overlay.style.display = 'none';
+        };
     }
 }); 

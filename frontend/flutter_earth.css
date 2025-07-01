@@ -253,6 +253,15 @@ body {
     font-size: var(--font-size-medium);
     width: 24px;
     text-align: center;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.sidebar-item:hover .sidebar-icon, .sidebar-item.active .sidebar-icon {
+    transform: translateY(-2px) scale(1.08);
+    text-shadow: 0 4px 8px rgba(0,0,0,0.35);
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.18));
 }
 
 .sidebar-label {
@@ -2149,4 +2158,63 @@ body {
     0% { box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.3); }
     50% { box-shadow: 0 0 0 6px rgba(233, 30, 99, 0.2); }
     100% { box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.3); }
+}
+
+.download-form-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg) var(--spacing-xl);
+    align-items: start;
+}
+
+.download-form-columns .form-section {
+    margin-bottom: var(--spacing-lg);
+}
+
+@media (max-width: 900px) {
+    .download-form-columns {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Map Selector Overlay (fullscreen) */
+#map-selector-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: 2000;
+  background: rgba(0,0,0,0.7);
+}
+#map-selector-overlay iframe {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  border: none;
+  z-index: 2001;
+}
+#map-selector-close {
+  position: absolute;
+  top: 24px; right: 24px;
+  z-index: 2100;
+  background: #fff;
+  color: #d32f2f;
+  border: none;
+  border-radius: 50%;
+  width: 44px; height: 44px;
+  font-size: 2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+#map-selector-close:hover {
+  background: #f8bbd0;
+  color: #b71c1c;
+}
+/* Ensure mode/menu controls in map_selector.html are spaced from edges */
+.mode-switcher { top: 40px !important; left: 40px !important; }
+.map-type-menu { top: 40px !important; right: 40px !important; }
+@media (max-width: 600px) {
+  .mode-switcher { top: 12px !important; left: 12px !important; }
+  .map-type-menu { top: 12px !important; right: 12px !important; }
 } 

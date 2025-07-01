@@ -2,16 +2,264 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Map Selector (Placeholder)</title>
+  <title>Map Selector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body { display: flex; align-items: center; justify-content: center; height: 100vh; background: #f3f4f6; color: #333; font-family: sans-serif; }
-    .message { font-size: 1.5rem; text-align: center; }
+    html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+    #map { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+    .map-type-menu {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      z-index: 1001;
+      background: rgba(255,255,255,0.95);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      padding: 8px 0;
+      display: flex;
+      flex-direction: column;
+      transition: max-height 0.4s cubic-bezier(.4,2,.6,1), opacity 0.3s;
+      max-height: 48px;
+      overflow: hidden;
+      opacity: 0.95;
+    }
+    .map-type-menu.open {
+      max-height: 600px;
+      opacity: 1;
+    }
+    .map-type-toggle {
+      background: #2196f3;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 1.5rem;
+      margin: 0 auto 8px auto;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(33,150,243,0.15);
+      transition: background 0.2s;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: spinIn 0.5s;
+    }
+    .map-type-toggle:hover { background: #1769aa; }
+    @keyframes spinIn {
+      from { transform: rotate(-180deg) scale(0.5); opacity: 0; }
+      to { transform: rotate(0) scale(1); opacity: 1; }
+    }
+    .map-type-option {
+      padding: 8px 24px;
+      cursor: pointer;
+      font-size: 1rem;
+      color: #333;
+      border: none;
+      background: none;
+      text-align: left;
+      transition: background 0.2s, color 0.2s;
+      border-radius: 8px;
+      margin: 2px 0;
+    }
+    .map-type-option.selected, .map-type-option:hover {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+    .leaflet-container { font-family: 'Inter', sans-serif; }
+    .leaflet-popup-content { font-size: 1rem; }
+    .coords-popup { font-family: monospace; font-size: 1rem; }
+    .mode-switcher {
+      position: absolute; top: 24px; left: 24px; z-index: 1002;
+      background: rgba(255,255,255,0.95); border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      padding: 8px 16px; display: flex; flex-direction: row; gap: 8px; align-items: center;
+      font-size: 1rem;
+    }
+    .mode-btn { border: none; background: #eee; color: #333; border-radius: 8px; padding: 6px 16px; cursor: pointer; font-weight: 500; transition: background 0.2s, color 0.2s; }
+    .mode-btn.selected, .mode-btn:hover { background: #2196f3; color: #fff; }
+    .finish-btn { margin-left: 12px; background: #43a047; color: #fff; border: none; border-radius: 8px; padding: 6px 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .finish-btn:hover { background: #2e7031; }
+    .instructions { margin-left: 16px; color: #555; font-size: 0.95rem; }
   </style>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
-  <div class="message">
-    <strong>Map Selector Placeholder</strong><br>
-    (Map selection functionality coming soon!)
+  <div id="map"></div>
+  <div class="map-type-menu" id="mapTypeMenu">
+    <button class="map-type-toggle" id="mapTypeToggle" title="Switch Map Type">🗺️</button>
+    <div id="mapTypeOptions" style="display:none;"></div>
   </div>
+  <div class="mode-switcher" id="modeSwitcher">
+    <button class="mode-btn selected" id="rectModeBtn">Rectangle</button>
+    <button class="mode-btn" id="polyModeBtn">Freeform</button>
+    <button class="finish-btn" id="finishBtn" style="display:none;">Finish</button>
+    <span class="instructions" id="instructions">Click two points for a rectangle</span>
+  </div>
+  <script>
+    // 10 reliable, visually distinct map types (all public, no API key required)
+    const mapTypes = [
+      // 1. OpenStreetMap Standard
+      { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OSM contributors' },
+      // 2. OpenStreetMap HOT
+      { name: 'OSM Humanitarian', url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', attr: '© OSM, Humanitarian' },
+      // 3. OpenTopoMap
+      { name: 'OpenTopoMap', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attr: '© OpenTopoMap' },
+      // 4. CartoDB Voyager
+      { name: 'CartoDB Voyager', url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attr: '© CartoDB' },
+      // 5. CartoDB Dark Matter
+      { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attr: '© CartoDB' },
+      // 6. Stamen Terrain
+      { name: 'Stamen Terrain', url: 'https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg', attr: 'Map tiles by Stamen Design' },
+      // 7. Stamen Toner
+      { name: 'Stamen Toner', url: 'https://stamen-tiles.a.ssl.fastly.net/toner/{z}/{x}/{y}.png', attr: 'Map tiles by Stamen Design' },
+      // 8. Stamen Watercolor
+      { name: 'Stamen Watercolor', url: 'https://stamen-tiles.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.jpg', attr: 'Map tiles by Stamen Design' },
+      // 9. Esri World Imagery (satellite)
+      { name: 'Esri Satellite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: '© Esri, Maxar' },
+      // 10. Esri World Street Map
+      { name: 'Esri Streets', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', attr: '© Esri' }
+    ];
+    let currentMapType = 0;
+    // Initialize map
+    const map = L.map('map', { preferCanvas: true }).setView([20, 0], 2);
+    let tileLayer = L.tileLayer(mapTypes[0].url, { attribution: mapTypes[0].attr, maxZoom: 19, keepBuffer: 8 });
+    tileLayer.addTo(map);
+    // Animated menu logic
+    const menu = document.getElementById('mapTypeMenu');
+    const toggle = document.getElementById('mapTypeToggle');
+    const options = document.getElementById('mapTypeOptions');
+    let menuOpen = false;
+    toggle.onclick = () => {
+      menuOpen = !menuOpen;
+      menu.classList.toggle('open', menuOpen);
+      options.style.display = menuOpen ? 'block' : 'none';
+    };
+    // Populate map type options
+    mapTypes.forEach((type, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'map-type-option' + (idx === 0 ? ' selected' : '');
+      btn.textContent = type.name;
+      btn.onclick = () => {
+        if (currentMapType !== idx) {
+          map.removeLayer(tileLayer);
+          tileLayer = L.tileLayer(type.url, { attribution: type.attr, maxZoom: 19, keepBuffer: 8 });
+          tileLayer.addTo(map);
+          document.querySelectorAll('.map-type-option').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          currentMapType = idx;
+        }
+        menuOpen = false;
+        menu.classList.remove('open');
+        options.style.display = 'none';
+      };
+      options.appendChild(btn);
+    });
+
+    // --- Selection Modes ---
+    let mode = 'rect'; // 'rect' or 'poly'
+    let points = [];
+    let tempLayer = null;
+    let polyLayer = null;
+    let rectLayer = null;
+    const rectBtn = document.getElementById('rectModeBtn');
+    const polyBtn = document.getElementById('polyModeBtn');
+    const finishBtn = document.getElementById('finishBtn');
+    const instructions = document.getElementById('instructions');
+
+    function clearSelection() {
+      points = [];
+      if (tempLayer) { map.removeLayer(tempLayer); tempLayer = null; }
+      if (polyLayer) { map.removeLayer(polyLayer); polyLayer = null; }
+      if (rectLayer) { map.removeLayer(rectLayer); rectLayer = null; }
+    }
+
+    rectBtn.onclick = () => {
+      mode = 'rect';
+      rectBtn.classList.add('selected');
+      polyBtn.classList.remove('selected');
+      finishBtn.style.display = 'none';
+      instructions.textContent = 'Click two points for a rectangle';
+      clearSelection();
+    };
+    polyBtn.onclick = () => {
+      mode = 'poly';
+      polyBtn.classList.add('selected');
+      rectBtn.classList.remove('selected');
+      finishBtn.style.display = 'inline-block';
+      instructions.textContent = 'Click to add points. Click Finish when done.';
+      clearSelection();
+    };
+
+    // Convex hull (Andrew's monotone chain, O(n log n))
+    function convexHull(pts) {
+      if (pts.length <= 3) return pts.slice();
+      pts = pts.slice().sort((a, b) => a.lng - b.lng || a.lat - b.lat);
+      const cross = (o, a, b) => (a.lng - o.lng) * (b.lat - o.lat) - (a.lat - o.lat) * (b.lng - o.lng);
+      const lower = [];
+      for (let p of pts) {
+        while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+        lower.push(p);
+      }
+      const upper = [];
+      for (let i = pts.length - 1; i >= 0; i--) {
+        let p = pts[i];
+        while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+        upper.push(p);
+      }
+      upper.pop(); lower.pop();
+      return lower.concat(upper);
+    }
+
+    map.on('click', function(e) {
+      if (mode === 'rect') {
+        points.push(e.latlng);
+        if (points.length === 2) {
+          if (rectLayer) map.removeLayer(rectLayer);
+          rectLayer = L.rectangle([points[0], points[1]], { color: '#1976d2', weight: 2, fillOpacity: 0.1 }).addTo(map);
+          // Show popup to confirm
+          rectLayer.bindPopup(`<div class='coords-popup'>Rectangle selected.<br><button id='select-rect-btn'>Select</button></div>`).openPopup();
+          setTimeout(() => {
+            const btn = document.getElementById('select-rect-btn');
+            if (btn) {
+              btn.onclick = () => {
+                const coords = [points[0], points[1]];
+                if (window.parent !== window) {
+                  window.parent.postMessage({ type: 'map-rect', coords }, '*');
+                } else if (window.electronAPI && window.electronAPI.sendCoords) {
+                  window.electronAPI.sendCoords(coords);
+                } else {
+                  alert(`Rectangle: ${coords.map(c => `${c.lat},${c.lng}`).join(' | ')}`);
+                }
+              };
+            }
+          }, 100);
+        } else if (points.length > 2) {
+          clearSelection();
+        }
+      } else if (mode === 'poly') {
+        points.push(e.latlng);
+        // Always draw convex hull
+        const hull = convexHull(points);
+        if (polyLayer) map.removeLayer(polyLayer);
+        polyLayer = L.polygon(hull, { color: '#43a047', weight: 2, fillOpacity: 0.15 }).addTo(map);
+      }
+    });
+
+    finishBtn.onclick = () => {
+      if (mode === 'poly' && points.length >= 3) {
+        const hull = convexHull(points);
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'map-poly', coords: hull }, '*');
+        } else if (window.electronAPI && window.electronAPI.sendCoords) {
+          window.electronAPI.sendCoords(hull);
+        } else {
+          alert('Polygon: ' + hull.map(c => `${c.lat},${c.lng}`).join(' | '));
+        }
+      }
+    };
+
+    // Note: For true offline caching, consider a service worker or a plugin like leaflet.offline in the future.
+  </script>
 </body>
 </html> 
