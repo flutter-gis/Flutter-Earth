@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pythonRunCrawler: () => ipcRenderer.invoke('python-run-crawler'),
   saveCrawlerData: (data) => ipcRenderer.invoke('save-crawler-data', data),
   tailCrawlerLog: (numLines = 50) => ipcRenderer.invoke('tail-crawler-log', numLines),
+  pythonCrawlerProgress: () => ipcRenderer.invoke('python-crawler-progress'),
+  pythonCancelCrawler: () => ipcRenderer.invoke('python-cancel-crawler'),
   
   // Utility functions
   showMessage: (message) => {

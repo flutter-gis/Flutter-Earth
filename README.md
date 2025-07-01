@@ -1,489 +1,239 @@
-# 🌍 Flutter Earth - Satellite Data Explorer
+# 🌍 Flutter Earth
 
-> **The most magical, animated, and inclusive satellite data application ever created!** 🚀✨
+**A powerful desktop application for Earth Engine data access, satellite information, and geospatial analysis built with Electron and Python.**
 
-[![Flutter Earth](https://img.shields.io/badge/Flutter%20Earth-v2.0.0-brightgreen)](https://github.com/yourusername/flutter-earth)
-[![Themes](https://img.shields.io/badge/Themes-30%20Unique%20Styles-ff69b4)](https://github.com/yourusername/flutter-earth)
-[![Animations](https://img.shields.io/badge/Animations-20%2B%20Icon%20Effects-00bcd4)](https://github.com/yourusername/flutter-earth)
-[![Pride](https://img.shields.io/badge/Pride%20Themes-13%20Inclusive%20Styles-ffd700)](https://github.com/yourusername/flutter-earth)
-[![Crawler](https://img.shields.io/badge/GEE%20Crawler-Enhanced%20Data%20Extraction-orange)](https://github.com/yourusername/flutter-earth)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/flutter-earth)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/yourusername/flutter-earth)
 
----
+## ✨ Features
 
-## 🎉 What Makes Flutter Earth Special?
+### 🛰️ **Satellite Information System**
+- **Comprehensive Database**: Access detailed information about 100+ satellites and sensors
+- **Real-time Crawling**: Web crawler to collect latest satellite data from Google Earth Engine
+- **Smart Search**: Filter satellites by type (Optical, Radar, Thermal, Multispectral)
+- **Code Generation**: Auto-generate Earth Engine code snippets for each satellite
+- **Visual Thumbnails**: Satellite imagery and dataset previews
 
-Flutter Earth isn't just another satellite data application—it's a **celebration of diversity, unity, and pure joy** wrapped in cutting-edge Earth observation technology! 
+### 📥 **Advanced Download Manager**
+- **Multi-Sensor Support**: Landsat, Sentinel, MODIS, and more
+- **Flexible AOI**: Support for coordinates, GeoJSON, and interactive map selection
+- **Cloud Processing**: Built-in cloud masking and filtering
+- **High Resolution**: Configurable resolution settings and tiling options
+- **Progress Tracking**: Real-time progress monitoring with speed graphs
 
-### ✨ **Key Features That Will Make You Smile**
+### 🌱 **Index Analysis Tools**
+- **Vegetation Indices**: NDVI, NDWI, EVI calculations
+- **Multi-band Analysis**: Support for various spectral indices
+- **Batch Processing**: Process multiple raster files simultaneously
+- **Visualization**: Interactive charts and analysis results
 
-- 🌈 **30 Animated Themes** - From My Little Pony to Unity Pride, every theme has its own personality!
-- 🎭 **20+ Icon Animations** - Watch icons dance, sparkle, rainbow, and even explode!
-- 🏳️‍🌈 **Inclusive Design** - 13 Pride themes celebrating love, identity, and unity
-- 🤝 **Unity Themes** - 4 special themes promoting global solidarity and compassion
-- 🦄 **MLP Magic** - 13 My Little Pony themed experiences for the inner child
-- ⛏️ **Minecraft Vibes** - 4 blocky, adventurous themes for the crafters
-- 🎨 **Professional Polish** - Clean, modern UI with smooth animations
-- 🛰️ **Real Satellite Data** - Google Earth Engine integration for actual Earth observation
-- 🕷️ **Enhanced GEE Crawler** - Automatically extracts comprehensive dataset information
-- 📊 **Smart Data Classification** - Intelligent categorization of satellite datasets
-- 💻 **Code Snippets** - Ready-to-use Earth Engine code for every dataset
+### 🌐 **Vector Data Download**
+- **Multiple Sources**: Access to various vector datasets
+- **Format Support**: GeoJSON, Shapefile, KML export options
+- **Area Selection**: Interactive area of interest selection
+- **Metadata Extraction**: Comprehensive dataset information
 
----
+### 📊 **Data Viewer**
+- **Raster Support**: View and analyze satellite imagery
+- **Vector Support**: Display and interact with vector data
+- **Metadata Display**: Detailed file information and properties
+- **Export Options**: Multiple format export capabilities
 
-## 🕷️ **NEW: Enhanced Google Earth Engine Crawler**
+### 🎨 **Beautiful Theming System**
+- **Multiple Themes**: 20+ carefully crafted themes including:
+  - 🌍 **Basic**: Clean, professional themes
+  - 🦄 **My Little Pony**: Colorful, playful themes
+  - ⛏️ **Minecraft**: Blocky, pixelated themes
+  - 🏳️‍🌈 **Queer Pride**: Pride flag-inspired themes
+  - 🤝 **Unity Pride**: Community-focused themes
+- **Animated Backgrounds**: Dynamic theme effects and animations
+- **Customizable**: Theme options and character catchphrases
+- **Smooth Transitions**: Beautiful theme switching animations
 
-### 🎯 **What's New in v2.0**
+### ⚙️ **Professional Interface**
+- **Modern UI**: Clean, intuitive interface design
+- **Responsive Layout**: Adapts to different screen sizes
+- **Keyboard Shortcuts**: Power user shortcuts for efficiency
+- **Progress Monitoring**: Real-time status updates and logging
+- **Offline Capable**: Works without internet connection
 
-The enhanced crawler automatically extracts comprehensive information from the Google Earth Engine Data Catalog:
+## 🚀 Quick Start
 
-- **🌍 Complete Dataset Discovery** - Crawls until no more data is found
-- **📊 Smart Classification** - Categorizes by satellite, data type, and publisher
-- **💻 Code Snippets** - Generates ready-to-use Earth Engine code for each dataset
-- **🔄 Real-time Integration** - Frontend automatically loads and displays crawler data
-- **📈 Progress Tracking** - Visual progress bars and detailed logging
+### Prerequisites
+- **Node.js** (v16 or higher)
+- **Python** (3.8 or higher)
+- **Google Earth Engine Account** (optional, for full functionality)
 
-### 🛠️ **Crawler Features**
+### Installation
 
-```bash
-# Run the enhanced crawler
-cd backend
-python gee_catalog_crawler_enhanced.py
-```
-
-**Extracted Data:**
-- Dataset names, descriptions, and IDs
-- Satellite information and resolutions
-- Data types and categories
-- Temporal and spatial coverage
-- Publisher information
-- Ready-to-use Earth Engine code snippets
-- Band information and applications
-
-**Output Files:**
-- `gee_catalog_data_enhanced.json` - Complete dataset catalog
-- `catalog_viewer.html` - Interactive web interface
-- Detailed logs in `logs/` directory
-
-### 🎯 **Frontend Integration**
-
-The satellite information and settings panes automatically:
-- Load real satellite data from crawler output
-- Display comprehensive satellite details
-- Show resolution, coverage, and applications
-- Provide Earth Engine code snippets
-- Filter by satellite, category, and publisher
-
----
-
-## 🎨 **Theme Showcase - Where Magic Happens!**
-
-### 🌟 **All Themes (30 Total)**
-Our theme system is like a **digital art gallery** where every theme tells a story:
-
-#### 🌍 **Basic Themes (2)**
-- **Default Dark** - Professional and sleek with twinkling stars
-- **Light** - Clean and bright with pulsing sun energy
-
-#### 🦄 **My Little Pony Themes (13)**
-- **Twilight Sparkle** - Magic sparkles and scholarly vibes 📚✨
-- **Rainbow Dash** - Rainbow trails and awesome animations 🌈
-- **Pinkie Pie** - Bouncing confetti and party energy 🎉
-- **Fluttershy** - Gentle floating butterflies 🦋
-- **Applejack** - Honest apple shaking 🍎
-- **Rarity** - Sparkling diamond effects 💎
-- **Princess Celestia** - Glowing sun majesty ☀️
-- **Princess Luna** - Moon phase transformations 🌙
-- **Trixie** - Magical hat tricks 🎩
-- **Starlight Glimmer** - Twinkling equality stars ⭐
-- **Derpy Hooves** - Wiggle muffin magic 🧁
-- **And more pony magic!** 🦄
-
-#### ⛏️ **Minecraft Themes (4)**
-- **Steve** - Blocky jumping adventures 🧑‍🌾
-- **Alex** - Crafting creativity 🧑‍🦰
-- **Creeper** - Explosive surprises 💣
-- **Zombie** - Shuffling undead vibes 🧟
-
-#### 🏳️‍🌈 **Queer Pride Themes (9)**
-- **WLW Pride** - Heartbeat love energy 👭
-- **MLM Pride** - Heartbeat love energy 👬
-- **Nonbinary Pride** - Trans wave magic ⚧️
-- **Genderqueer Pride** - Rainbow identity 🏳️‍🌈
-- **Pan Pride** - Pulsing love hearts 💖
-- **Ace Pride** - Twinkling validation 🖤🤍
-- **Aro Pride** - Pulsing aromantic joy 💚
-- **Black Pride** - Fist pump strength ✊🏿
-
-#### 🤝 **Unity Pride Themes (4)**
-- **Global Unity** - Rotating world harmony 🌍
-- **Cultural Unity** - Dancing diversity celebration 🎭
-- **Generational Unity** - Heartbeat family bonds 👨‍👩‍👧‍👦
-- **Humanitarian Unity** - Handshake compassion 🤝
-
----
-
-## 🎭 **Animation Showcase - Icons Come Alive!**
-
-Every theme icon has its own **unique personality** through 20+ different animations:
-
-| Animation | Effect | Example Themes |
-|-----------|--------|----------------|
-| 🌈 **Rainbow** | Color cycling magic | Rainbow Dash, Genderqueer Pride |
-| ✨ **Twinkle** | Gentle star flicker | Twilight Sparkle, Ace Pride |
-| 🎉 **Bounce** | Joyful jumping | Pinkie Pie, Pan Pride |
-| 🦋 **Float** | Gentle hovering | Fluttershy |
-| 🍎 **Shake** | Honest vibration | Applejack |
-| 💎 **Sparkle** | Rotating brilliance | Rarity |
-| ☀️ **Glow** | Radiant brightness | Princess Celestia |
-| 🌙 **MoonPhase** | Lunar transformation | Princess Luna |
-| 🎩 **Magic** | Mystical rotation | Trixie |
-| ⛏️ **BlockyJump** | Minecraft physics | Steve, Alex |
-| 💣 **Explode** | Creeper surprise | Creeper |
-| 🧟 **Shuffle** | Undead movement | Zombie |
-| 💓 **Heartbeat** | Love pulse | WLW Pride, MLM Pride |
-| ⚧️ **TransWave** | Identity spectrum | Nonbinary Pride |
-| ✊🏿 **FistPump** | Strength gesture | Black Pride |
-| 🌍 **Rotate** | Global movement | Global Unity |
-| 🎭 **Dance** | Cultural celebration | Cultural Unity |
-| 👨‍👩‍👧‍👦 **Heartbeat** | Family bonds | Generational Unity |
-| 🤝 **Handshake** | Compassion gesture | Humanitarian Unity |
-
----
-
-## 🚀 **Getting Started - Your Adventure Begins!**
-
-### 📋 **Prerequisites**
-- Python 3.8+
-- Node.js (for Electron version)
-- Google Earth Engine account (for satellite data)
-
-### 🛠️ **Installation**
-
+1. **Clone the repository**
    ```bash
-# Clone the repository
-git clone https://github.com/yourusername/flutter-earth.git
-cd flutter-earth
-
-# Install Python dependencies
-   pip install -r requirements.txt
-
-# For Electron desktop app
-npm install
+   git clone https://github.com/yourusername/flutter-earth.git
+   cd flutter-earth
    ```
 
-### 🎮 **Running Flutter Earth**
-
-#### **Web Version**
+2. **Install dependencies**
    ```bash
+   # Install Node.js dependencies
    cd frontend
-python -m http.server 8000
-# Open http://localhost:8000
+   npm install
+   
+   # Install Python dependencies
+   cd ../backend
+   pip install -r requirements.txt
    ```
 
-#### **Desktop Version**
-```bash
-npm start
-# Or use the provided batch file
-run_desktop.bat
+3. **Start the application**
+   ```bash
+   # From the project root
+   npm start
+   # or
+   cd frontend && npm start
+   ```
+
+### First Time Setup
+
+1. **Launch Flutter Earth**
+2. **Navigate to Satellite Info** (🛰️ tab)
+3. **Click "Start Data Collection"** to populate satellite database
+4. **Wait 2-5 minutes** for initial data collection
+5. **Start exploring!** 🎉
+
+## 📖 Usage Guide
+
+### Satellite Information
+- **Browse Satellites**: View comprehensive satellite database
+- **Search & Filter**: Find specific satellites by name, type, or application
+- **Get Code Snippets**: Copy ready-to-use Earth Engine code
+- **View Details**: Access resolution, bands, and application information
+
+### Data Download
+1. **Select Area**: Use coordinates, GeoJSON, or map selector
+2. **Choose Dates**: Set start and end dates for data collection
+3. **Pick Sensor**: Select from available satellites and sensors
+4. **Configure Settings**: Adjust cloud cover, resolution, and processing options
+5. **Start Download**: Monitor progress with real-time updates
+
+### Index Analysis
+1. **Add Raster Files**: Select satellite imagery for analysis
+2. **Choose Indices**: Pick from NDVI, NDWI, EVI, and more
+3. **Set Parameters**: Configure analysis settings
+4. **Run Analysis**: Process and visualize results
+
+### Theme Customization
+1. **Open Settings** (⚙️ tab)
+2. **Browse Themes**: Explore different theme categories
+3. **Customize Options**: Adjust animations and effects
+4. **Apply Changes**: See immediate visual updates
+
+## 🏗️ Architecture
+
+```
+Flutter Earth/
+├── frontend/                 # Electron application
+│   ├── flutter_earth.html   # Main interface
+│   ├── flutter_earth.js     # Application logic
+│   ├── flutter_earth.css    # Styling and themes
+│   └── package.json         # Node.js dependencies
+├── backend/                  # Python backend
+│   ├── earth_engine.py      # Earth Engine integration
+│   ├── download_manager.py  # Download processing
+│   ├── crawler.py           # Web crawler
+│   └── requirements.txt     # Python dependencies
+├── assets/                   # Static assets
+├── docs/                     # Documentation
+└── scripts/                  # Utility scripts
 ```
 
-### 🕷️ **Running the Enhanced Crawler**
+### Technology Stack
+- **Frontend**: Electron, HTML5, CSS3, JavaScript (ES6+)
+- **Backend**: Python 3.8+, Google Earth Engine API
+- **Data Processing**: NumPy, Pandas, GDAL
+- **UI Framework**: Custom CSS with CSS Variables
+- **Build System**: npm, pip
 
-```bash
-# Navigate to backend directory
-cd backend
+## 🔧 Configuration
 
-# Run the enhanced crawler (goes until no more data found)
-python gee_catalog_crawler_enhanced.py
+### Earth Engine Setup
+1. **Create Account**: Sign up at [earthengine.google.com](https://earthengine.google.com)
+2. **Enable API**: Enable Earth Engine API in Google Cloud Console
+3. **Download Credentials**: Download service account key
+4. **Configure**: Place credentials in `backend/` directory
 
-# View the results
-# - Open gee_catalog_data_enhanced.json for raw data
-# - Open catalog_viewer.html for interactive interface
-# - Check logs/ directory for detailed logs
-```
-
----
-
-## 🎯 **How to Use - Let's Explore Together!**
-
-### 🏠 **Home Page**
-- **Animated logo** with pulsing effects
-- **Welcome message** that changes with themes
-- **Sidebar navigation** with glowing effects
-
-### ⚙️ **Settings & Themes**
-1. Click **Settings** in the sidebar
-2. Navigate to **Appearance**
-3. Use **category tabs** to filter themes:
-   - 🌟 **All Themes** - See everything at once
-   - 🌍 **Basic** - Professional themes
-   - 🦄 **MLP** - My Little Pony magic
-   - ⛏️ **MC** - Minecraft adventures
-   - 🏳️‍🌈 **Queer Pride** - LGBTQ+ celebration
-   - 🤝 **Unity Pride** - Global solidarity
-4. **Click any theme** to apply it instantly
-5. Watch the **animated splash screen** and **icon effects**!
-
-### 🛰️ **Satellite Data Features**
-
-#### **Enhanced Satellite Information**
-- **Real-time Data** - Automatically loads from crawler output
-- **Comprehensive Details** - Resolution, coverage, applications
-- **Code Snippets** - Ready-to-use Earth Engine code
-- **Smart Filtering** - By satellite, category, and publisher
-
-#### **Download Manager**
-- **Multi-sensor Support** - Landsat, Sentinel, MODIS, and more
-- **Advanced Filtering** - Cloud cover, date ranges, quality
-- **Progress Tracking** - Real-time download monitoring
-- **Batch Processing** - Download multiple datasets
-
-#### **Index Analysis**
-- **Vegetation Indices** - NDVI, EVI, LAI calculations
-- **Water Indices** - NDWI, MNDWI analysis
-- **Urban Indices** - NDBI, NDBaI mapping
-- **Custom Indices** - Create your own formulas
-
-#### **Data Viewer**
-- **Interactive Maps** - Explore your downloaded data
-- **Time Series** - Analyze temporal changes
-- **Statistics** - Detailed data analysis
-- **Export Options** - Multiple output formats
-
----
-
-## 🕷️ **Crawler Development - Extend the Data Collection!**
-
-### 🎯 **Crawler Architecture**
-
-The enhanced crawler is designed for maximum efficiency and data quality:
-
-```python
-class EnhancedGEECatalogCrawler:
-    def __init__(self, base_url: str = "https://developers.google.com/earth-engine/datasets/catalog"):
-        # Initialize with comprehensive satellite detection
-        # Setup logging and progress tracking
-        # Configure data extraction patterns
-```
-
-### 🔧 **Customization Options**
-
-#### **Add New Satellite Detection**
-```python
-satellite_keywords = [
-    'your_new_satellite',
-    'another_satellite',
-    # Add more keywords here
-]
-```
-
-#### **Extend Data Type Classification**
-```python
-if any(keyword in tag_lower for keyword in ['your_category']):
-    dataset_info['data_type'] = 'Your Category'
-```
-
-#### **Custom Code Snippet Generation**
-```python
-def generate_code_snippet(self, dataset_info: Dict[str, Any]) -> str:
-    # Customize the Earth Engine code template
-    return your_custom_code_template
-```
-
-### 📊 **Output Format**
-
-The crawler generates structured JSON data:
-
+### Custom Themes
+Create custom themes by adding to `frontend/themes.json`:
 ```json
 {
-  "metadata": {
-    "crawl_date": "2024-01-01T12:00:00",
-    "total_datasets": 1500,
-    "crawler_version": "enhanced_v2"
-  },
-  "datasets": [
-    {
-      "name": "Landsat 9 Collection 2 Tier 1",
-      "description": "Surface reflectance data...",
-      "dataset_id": "LANDSAT/LC09/C02/T1_L2",
-      "resolution": "30m",
-      "satellites": ["Landsat 9"],
-      "data_type": "Satellite Imagery",
-      "code_snippet": "// Earth Engine code...",
-      "applications": ["agriculture", "forestry"]
-    }
-  ],
-  "satellites": {
-    "Landsat 9": [...],
-    "Sentinel-2": [...]
-  },
-  "categories": {
-    "Satellite Imagery": [...],
-    "Elevation/Topography": [...]
-  }
+  "name": "my_theme",
+  "display_name": "My Custom Theme",
+  "category": "custom",
+  "background": "#1a1a1a",
+  "primary": "#4CAF50",
+  "text": "#ffffff",
+  "splashEffect": "confetti"
 }
 ```
 
----
+## 📊 Performance
 
-## 🎨 **Theme Development - Create Your Own Magic!**
+- **Fast Startup**: Optimized loading times
+- **Efficient Processing**: Multi-threaded data processing
+- **Memory Management**: Smart caching and cleanup
+- **Offline Support**: Core functionality without internet
 
-Want to add your own theme? It's super easy!
+## 🤝 Contributing
 
-```javascript
-{
-    name: 'my_awesome_theme',
-    display_name: 'My Awesome Theme',
-    category: 'custom',
-    background: '#FF6B6B',
-    primary: '#4ECDC4',
-    emoji: '🌟',
-    icon: '🌟',
-    splashEffect: 'rainbow',
-    uiEffect: 'rainbowTrail',
-    iconAnimation: 'bounce',
-    welcomeMessage: 'Welcome to my awesome theme!',
-    splashText: 'Awesome vibes only!',
-    notificationMessage: 'Awesome theme activated!'
-}
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+```bash
+# Install development dependencies
+npm install --dev
+
+# Run in development mode
+npm run dev
+
+# Run tests
+npm test
+
+# Build for production
+npm run build
 ```
 
-### 🎭 **Available Animation Types**
-- `pulse`, `rainbow`, `twinkle`, `bounce`
-- `float`, `shake`, `sparkle`, `glow`
-- `moonPhase`, `wiggle`, `blockyJump`
-- `explode`, `shuffle`, `heartbeat`
-- `transWave`, `fistPump`, `rotate`
-- `dance`, `handshake`, `magic`
+## 📝 Changelog
 
----
+### Version 1.0.0
+- ✨ Initial release
+- 🛰️ Satellite information system
+- 📥 Advanced download manager
+- 🌱 Index analysis tools
+- 🎨 Beautiful theming system
+- ⚙️ Professional interface
 
-## 🤝 **Contributing - Join Our Community!**
-
-We welcome contributions from **everyone**! Here's how you can help:
-
-### 🕷️ **Crawler Contributions**
-- Improve satellite detection algorithms
-- Add new data type classifications
-- Enhance code snippet generation
-- Optimize crawling performance
-- Add support for new data sources
-
-### 🎨 **Theme Contributions**
-- Create new themes with unique animations
-- Add more Pride themes for different identities
-- Design Unity themes for different causes
-- Improve existing theme animations
-
-### 🐛 **Bug Reports & Features**
-- Report bugs with detailed descriptions
-- Suggest new features and improvements
-- Help improve accessibility
-- Add more satellite data sources
-
-### 📚 **Documentation**
-- Improve this README
-- Add code comments
-- Create tutorials
-- Write theme development guides
-
----
-
-## 🌈 **Inclusivity & Values**
-
-Flutter Earth is built on the principles of:
-
-- **🌈 Diversity** - Celebrating all identities and orientations
-- **🤝 Unity** - Promoting global solidarity and compassion
-- **🎨 Creativity** - Encouraging artistic expression
-- **🚀 Innovation** - Pushing the boundaries of what's possible
-- **💖 Love** - Spreading joy and positivity through technology
-- **🔬 Science** - Making Earth observation accessible to everyone
-
-### 🏳️‍🌈 **Pride Themes**
-Our Pride themes are designed to:
-- **Celebrate identity** and self-expression
-- **Promote visibility** for LGBTQ+ communities
-- **Educate** about different orientations and identities
-- **Create safe spaces** for everyone to be themselves
-
-### 🌍 **Unity Themes**
-Our Unity themes promote:
-- **Global solidarity** across cultures and borders
-- **Intergenerational connection** and wisdom sharing
-- **Cultural celebration** and diversity appreciation
-- **Humanitarian values** and compassion
-
----
-
-## 📊 **Technical Details**
-
-### 🏗️ **Architecture**
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
-- **Backend**: Python with Earth Engine API
-- **Desktop**: Electron for cross-platform support
-- **Theming**: CSS custom properties and animations
-- **Crawler**: BeautifulSoup4, requests, regex patterns
-
-### 🎨 **Theme System**
-- **30 themes** across 5 categories
-- **20+ animation types** for icons
-- **CSS-based** for performance
-- **Real-time switching** with splash effects
-
-### 🛰️ **Satellite Features**
-- **Google Earth Engine** integration
-- **Enhanced Crawler** for comprehensive data extraction
-- **Multi-sensor support** (Landsat, Sentinel, MODIS, and more)
-- **Index analysis** (NDVI, NDWI, NDBI, etc.)
-- **Vector data** download capabilities
-- **Real-time data** integration with frontend
-
-### 🕷️ **Crawler System**
-- **Comprehensive Data Extraction** - All available dataset information
-- **Smart Classification** - Automatic categorization by satellite, type, publisher
-- **Code Generation** - Ready-to-use Earth Engine snippets
-- **Progress Tracking** - Visual progress bars and detailed logging
-- **Frontend Integration** - Automatic data loading and display
-
----
-
-## 📜 **License**
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
+## 🙏 Acknowledgments
 
-## 🙏 **Acknowledgments**
+- **Google Earth Engine** for providing satellite data access
+- **Electron** for the desktop application framework
+- **Open Source Community** for various libraries and tools
+- **Contributors** who helped make this project possible
 
-- **Google Earth Engine** for satellite data access
-- **My Little Pony** community for inspiration
-- **LGBTQ+ community** for Pride theme ideas
-- **Minecraft community** for gaming themes
-- **Earth observation community** for scientific guidance
-- **All contributors** who make this project magical
+## 📞 Support
 
----
+- **Issues**: [GitHub Issues](https://github.com/yourusername/flutter-earth/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/flutter-earth/discussions)
+- **Documentation**: [Wiki](https://github.com/yourusername/flutter-earth/wiki)
 
-## 🌟 **Support the Project**
+## 🌟 Star History
 
-If Flutter Earth brings you joy, consider:
-
-- ⭐ **Starring** this repository
-- 🐛 **Reporting bugs** and suggesting features
-- 💻 **Contributing code** or themes
-- 📢 **Sharing** with friends and communities
-- 💖 **Spreading love** and positivity
-- 🔬 **Using** for Earth observation research
+[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/flutter-earth&type=Date)](https://star-history.com/#yourusername/flutter-earth&Date)
 
 ---
 
-## 🎉 **Join the Magic!**
+**Made with ❤️ by the Flutter Earth Team**
 
-Ready to explore Earth with style, animation, inclusivity, and cutting-edge satellite data? 
-
-**Start your Flutter Earth adventure today!** 🌍✨
-
----
-
-*Made with 💖, 🌈, 🔬, and lots of ✨ by the Flutter Earth community*
+*Empowering geospatial analysis with beautiful, accessible tools.*

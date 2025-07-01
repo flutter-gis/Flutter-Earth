@@ -1,9 +1,13 @@
+// Suppress Electron security warnings for local/offline use
+process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
+
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 
 let mainWindow;
+let crawlerProcess = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -50,15 +54,46 @@ ipcMain.handle('python-auth', async (event, keyFile, projectId) => {
 });
 
 ipcMain.handle('python-run-crawler', async () => {
-  console.log('Received python-run-crawler request');
+  if (crawlerProcess && !crawlerProcess.killed) {
+    return { status: 'error', message: 'Crawler is already running' };
+  }
   try {
-    const result = await callPythonScript('run-crawler');
-    console.log('Python crawler result:', result);
-    return result;
+    const scriptPath = path.join(__dirname, '../backend/earth_engine_processor.py');
+    crawlerProcess = spawn('python', [scriptPath, 'run-crawler'], { shell: true });
+    crawlerProcess.on('close', (code) => {
+      console.log('Crawler process exited with code', code);
+      crawlerProcess = null;
+    });
+    crawlerProcess.on('error', (err) => {
+      console.error('Crawler process error:', err);
+      crawlerProcess = null;
+    });
+    return { status: 'started', message: 'Crawler started in background' };
   } catch (error) {
-    console.error('Python crawler error:', error);
     return { status: 'error', message: error.message };
   }
+});
+
+ipcMain.handle('python-crawler-progress', async () => {
+  try {
+    const progressPath = path.join(__dirname, '../backend/crawler_data/crawler_progress.json');
+    if (!fs.existsSync(progressPath)) {
+      return { status: 'pending', message: 'No progress yet' };
+    }
+    const data = fs.readFileSync(progressPath, 'utf-8');
+    return { status: 'success', progress: JSON.parse(data) };
+  } catch (err) {
+    return { status: 'error', message: err.message };
+  }
+});
+
+ipcMain.handle('python-cancel-crawler', async () => {
+  if (crawlerProcess && !crawlerProcess.killed) {
+    crawlerProcess.kill();
+    crawlerProcess = null;
+    return { status: 'cancelled', message: 'Crawler cancelled' };
+  }
+  return { status: 'error', message: 'No crawler running' };
 });
 
 ipcMain.handle('save-crawler-data', async (event, data) => {
@@ -164,6 +199,4 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
-// Suppress Electron security warnings for local/offline use
-process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'; 
+}); 

@@ -262,14 +262,16 @@ def run_web_crawler():
         sys.path.insert(0, str(Path(__file__).parent))
         from gee_catalog_crawler_enhanced import run_crawler
         
-        # Run the crawler
-        result = run_crawler()
+        # Run the crawler in background (this should be non-blocking)
+        import threading
+        crawler_thread = threading.Thread(target=run_crawler)
+        crawler_thread.daemon = True
+        crawler_thread.start()
         
-        logger.info("Web crawler completed successfully")
+        logger.info("Web crawler started in background")
         return {
-            "status": "success",
-            "message": "Web crawler completed successfully",
-            "data_file": "gee_catalog_data_enhanced.json"
+            "status": "started",
+            "message": "Web crawler started in background"
         }
     except Exception as e:
         logger = logging.getLogger(__name__)
@@ -294,6 +296,52 @@ def compress_crawler_data(json_path):
         return {"status": "success", "message": f"Compressed and saved to {out_path}"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+def get_crawler_progress():
+    """Get current crawler progress from the progress file"""
+    try:
+        progress_file = Path('backend/crawler_data/crawler_progress.json')
+        if not progress_file.exists():
+            return {
+                "status": "success",
+                "progress": {
+                    "status": "not_started",
+                    "message": "Crawler not started",
+                    "percentage": 0,
+                    "current_page": 0,
+                    "total_pages": 0,
+                    "datasets_found": 0,
+                    "satellites_found": 0
+                }
+            }
+        
+        with open(progress_file, 'r', encoding='utf-8') as f:
+            progress_data = json.load(f)
+        
+        # Calculate percentage based on current progress
+        percentage = 0
+        if progress_data.get('total_pages', 0) > 0:
+            percentage = min(100, (progress_data.get('current_page', 0) / progress_data.get('total_pages', 1)) * 100)
+        elif progress_data.get('status') == 'completed':
+            percentage = 100
+        
+        return {
+            "status": "success",
+            "progress": {
+                "status": progress_data.get('status', 'unknown'),
+                "message": progress_data.get('message', 'Processing...'),
+                "percentage": percentage,
+                "current_page": progress_data.get('current_page', 0),
+                "total_pages": progress_data.get('total_pages', 0),
+                "datasets_found": progress_data.get('datasets_found', 0),
+                "satellites_found": progress_data.get('satellites_found', 0)
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Crawler progress error: {str(e)}"
+        }
 
 def main():
     """Main entry point for the processor"""
@@ -337,6 +385,8 @@ def main():
             else:
                 json_path = sys.argv[2]
                 result = compress_crawler_data(json_path)
+        elif command == "crawler-progress":
+            result = get_crawler_progress()
         else:
             result = {"status": "error", "message": f"Unknown command: {command}"}
         

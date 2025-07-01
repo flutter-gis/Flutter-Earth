@@ -206,32 +206,28 @@ def main():
         js_code += f"        uiEffect: '{theme['uiEffect']}',\n"
         js_code += f"        welcomeMessage: '{theme['welcomeMessage']}',\n"
         js_code += f"        splashText: '{theme['splashText']}',\n"
-        js_code += f"        notificationMessage: '{theme['notificationMessage']}'\n"
+        js_code += f"        notificationMessage: '{theme['notificationMessage']}',\n"
+        js_code += f"        colors: {json.dumps(theme['colors'], indent=8)},\n"
+        js_code += f"        catchphrases: {json.dumps(theme['catchphrases'], indent=8)},\n"
+        js_code += f"        options: {json.dumps(theme['options'], indent=8)}\n"
         js_code += "    }"
-        
         if i < len(js_themes) - 1:
             js_code += ","
         js_code += "\n"
     
     js_code += "];\n\n"
-    js_code += "export { availableThemes };\n"
+    js_code += "// Export for use in other modules\n"
+    js_code += "if (typeof module !== 'undefined' && module.exports) {\n"
+    js_code += "    module.exports = availableThemes;\n"
+    js_code += "}\n"
     
-    # Write to file
-    output_file = os.path.join(os.path.dirname(__file__), 'generated_themes.js')
+    # Write to generated_themes.js
+    output_file = 'generated_themes.js'
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(js_code)
     
-    print(f"\n✓ Generated {len(js_themes)} themes")
-    print(f"✓ Output written to: {output_file}")
-    
-    # Also create a JSON file for easy inspection
-    json_file = os.path.join(os.path.dirname(__file__), 'themes.json')
-    with open(json_file, 'w', encoding='utf-8') as f:
-        json.dump(js_themes, f, indent=2, ensure_ascii=False)
-    
-    print(f"✓ JSON output written to: {json_file}")
-    
-    return js_themes
+    print(f"\n✓ Generated {len(js_themes)} themes in {output_file}")
+    print(f"✓ Total themes processed: {len(THEMES)}")
 
 if __name__ == "__main__":
     main() 

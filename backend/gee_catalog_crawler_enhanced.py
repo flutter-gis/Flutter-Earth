@@ -18,6 +18,17 @@ import sys
 import gzip
 import argparse
 import shutil
+import threading
+
+PROGRESS_FILE = 'backend/crawler_data/crawler_progress.json'
+
+def write_progress(progress):
+    try:
+        Path(PROGRESS_FILE).parent.mkdir(parents=True, exist_ok=True)
+        with open(PROGRESS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(progress, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        pass  # Don't crash on progress write error
 
 class EnhancedGEECatalogCrawler:
     def __init__(self, base_url: str = "https://developers.google.com/earth-engine/datasets/catalog"):
@@ -380,18 +391,27 @@ Export.image.toDrive({{
         consecutive_empty_pages = 0
         max_consecutive_empty = 5  # Stop after 5 consecutive empty pages
         start_time = time.time()
-
-        print(f"\n🌍 Starting to crawl all available pages...")
-        print("=" * 60)
-        print("The crawler will continue until no more datasets are found.")
-        print("=" * 60)
-
+        progress = {
+            'status': 'init',
+            'message': 'Initializing web crawler...',
+            'current_page': 0,
+            'total_pages': 0,
+            'datasets_found': 0,
+            'satellites_found': 0,
+            'percent': 0,
+            'speed': 0,
+            'error': None
+        }
+        write_progress(progress)
         # Pre-scan phase: count total datasets and satellites
-        print("[PRESCAN] Scanning catalog to count total datasets and satellites...")
         prescan_datasets = []
         prescan_page = 1
         prescan_consecutive_empty = 0
         while True:
+            progress['status'] = 'prescan'
+            progress['message'] = f'Prescanning page {prescan_page}'
+            progress['current_page'] = prescan_page
+            write_progress(progress)
             if prescan_page == 1:
                 page_url = self.base_url
             else:
@@ -425,20 +445,21 @@ Export.image.toDrive({{
             for s in d.get('satellites', []):
                 unique_satellites.add(s)
         total_satellites = len(unique_satellites)
-        print(f"[PRESCAN] Total datasets: {total_datasets}")
-        print(f"[PRESCAN] Total satellites: {total_satellites}")
-        self.logger.info(f"[PRESCAN] Total datasets: {total_datasets}")
-        self.logger.info(f"[PRESCAN] Total satellites: {total_satellites}")
-        print(f"[PROGRESS] 0/{total_datasets} datasets processed | 0/{total_satellites} satellites | Elapsed: 0s")
-        self.logger.info(f"[PROGRESS] 0/{total_datasets} datasets processed | 0/{total_satellites} satellites | Elapsed: 0s")
-
+        progress['total_pages'] = prescan_page-1
+        progress['datasets_found'] = total_datasets
+        progress['satellites_found'] = total_satellites
+        progress['status'] = 'crawling'
+        progress['message'] = 'Crawling catalog pages...'
+        write_progress(progress)
         # Now do the actual crawl and download, logging progress for each
-        all_datasets = []
         processed_satellites = set()
         processed_datasets = 0
         page_num = 1
         consecutive_empty_pages = 0
         while True:
+            progress['current_page'] = page_num
+            progress['message'] = f'Crawling page {page_num}'
+            write_progress(progress)
             if page_num == 1:
                 page_url = self.base_url
             else:
@@ -461,14 +482,22 @@ Export.image.toDrive({{
                     for s in dataset.get('satellites', []):
                         processed_satellites.add(s)
                     elapsed = int(time.time() - start_time)
-                    print(f"[PROGRESS] {processed_datasets}/{total_datasets} datasets processed | {len(processed_satellites)}/{total_satellites} satellites | Elapsed: {elapsed}s")
-                    self.logger.info(f"[PROGRESS] {processed_datasets}/{total_datasets} datasets processed | {len(processed_satellites)}/{total_satellites} satellites | Elapsed: {elapsed}s")
+                    progress['datasets_found'] = processed_datasets
+                    progress['satellites_found'] = len(processed_satellites)
+                    progress['percent'] = int(100 * processed_datasets / max(1, total_datasets))
+                    progress['speed'] = processed_datasets / max(1, elapsed)
+                    progress['message'] = f'Processed {processed_datasets}/{total_datasets} datasets'
+                    write_progress(progress)
                 self.logger.info(f"Found {len(page_datasets)} datasets on page {page_num}")
             time.sleep(1)
             page_num += 1
             if page_num > 10000:
                 print(f"\n⚠️ Safety limit reached (10000 pages). Stopping to prevent infinite loop.")
                 break
+        progress['status'] = 'completed'
+        progress['message'] = f'Crawling completed! {processed_datasets} datasets.'
+        progress['percent'] = 100
+        write_progress(progress)
         print(f"\n✅ Crawling completed! Found {len(all_datasets)} total datasets across {page_num-1} pages.")
         print("=" * 60)
         self.datasets = all_datasets
@@ -562,6 +591,8 @@ def run_crawler():
             "output_file": str(crawler.data_dir / "gee_catalog_data_enhanced.json.gz")
         }
     except Exception as e:
+        progress = {'status': 'error', 'message': str(e), 'error': str(e)}
+        write_progress(progress)
         return {
             "status": "error",
             "message": f"Web crawler error: {str(e)}"

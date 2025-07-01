@@ -1,33 +1,22 @@
 @echo off
-echo Starting Flutter Earth Desktop App...
+REM Flutter Earth Desktop App Launcher (Batch)
+REM This script launches the Electron desktop application
+
+echo Flutter Earth Desktop App
+echo =========================
 echo.
 
-REM Set local Node.js and npm paths
-set NODE_DIR=%~dp0node-v22.17.0-win-x64
-set PATH=%NODE_DIR%;%NODE_DIR%\node_modules\npm\bin;%PATH%
+REM Change to the frontend directory
+cd frontend
 
-REM Move to frontend directory
-cd /d %~dp0frontend
-
-REM Use local npm to install dependencies if needed
-if not exist node_modules (
-    "%NODE_DIR%\npm.cmd" install
-    if errorlevel 1 goto error
+REM Check if node_modules exists
+if not exist "node_modules" (
+    echo Installing dependencies...
+    ..\node-v22.17.0-win-x64\npm.cmd install
 )
 
-REM Start the app using local npm
-"%NODE_DIR%\npm.cmd" start
-if errorlevel 1 goto error
+REM Start the Electron app
+echo Starting Flutter Earth Desktop App...
+..\node-v22.17.0-win-x64\npm.cmd start
 
-goto end
-
-:error
-echo.
-echo =============================
-echo ERROR: The app failed to start or a command failed.
-echo Please scroll up for details.
-echo The command prompt will remain open so you can read the error.
-echo =============================
-
-:end
 pause 

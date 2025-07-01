@@ -402,6 +402,8 @@ class FlutterEarth {
     }
 
     async startDownload() {
+        console.log('[DEBUG] startDownload() called');
+        
         if (this.downloadInProgress) {
             this.showNotification('Download already in progress', 'warning');
             return;
@@ -410,17 +412,21 @@ class FlutterEarth {
         try {
             // Gather form data
             const params = this.gatherDownloadParams();
+            console.log('[DEBUG] Download params:', params);
             
-            if (!params.aoi || !params.startDate || !params.endDate || !params.sensor) {
+            if (!params.area_of_interest || !params.start_date || !params.end_date || !params.sensor_name) {
                 this.showNotification('Please fill in all required fields', 'error');
                 return;
             }
 
             this.downloadInProgress = true;
             this.updateDownloadStatus('Starting download...', 'info');
+            console.log('[DEBUG] About to call electronAPI.pythonDownload');
             
             if (window.electronAPI) {
+                console.log('[DEBUG] electronAPI available, calling pythonDownload');
                 const result = await window.electronAPI.pythonDownload(params);
+                console.log('[DEBUG] pythonDownload result:', result);
                 
                 if (result.status === 'success') {
                     this.updateDownloadStatus('Download started successfully', 'success');
@@ -432,11 +438,12 @@ class FlutterEarth {
                     this.downloadInProgress = false;
                 }
             } else {
+                console.log('[DEBUG] electronAPI not available, using fallback');
                 // Fallback for browser testing
                 this.simulateDownloadProgress();
             }
         } catch (error) {
-            console.error('Download error:', error);
+            console.error('[DEBUG] Download error:', error);
             this.updateDownloadStatus('Download error: ' + error.message, 'error');
             this.showNotification('Download failed', 'error');
             this.downloadInProgress = false;
@@ -445,31 +452,31 @@ class FlutterEarth {
 
     gatherDownloadParams() {
         const params = {
-            aoi: document.getElementById('aoi-input').value,
-            startDate: document.getElementById('start-date').value,
-            endDate: document.getElementById('end-date').value,
-            sensor: document.getElementById('sensor-select').value,
-            outputDir: document.getElementById('output-dir').value,
-            cloudMask: document.getElementById('cloud-mask').checked,
-            cloudCover: parseInt(document.getElementById('cloud-cover').value),
-            bestRes: document.getElementById('best-res').checked,
-            targetRes: parseInt(document.getElementById('target-res').value),
-            tilingMethod: document.getElementById('tiling-method').value,
-            numSubsections: parseInt(document.getElementById('num-subsections').value),
-            overwriteExisting: document.getElementById('overwrite-existing').checked,
-            cleanupTiles: document.getElementById('cleanup-tiles').checked
+            area_of_interest: document.getElementById('aoi-input').value,
+            start_date: document.getElementById('start-date').value,
+            end_date: document.getElementById('end-date').value,
+            sensor_name: document.getElementById('sensor-select').value,
+            output_dir: document.getElementById('output-dir').value,
+            cloud_mask: document.getElementById('cloud-mask').checked,
+            max_cloud_cover: parseInt(document.getElementById('cloud-cover').value),
+            use_best_resolution: document.getElementById('best-res').checked,
+            target_resolution: parseInt(document.getElementById('target-res').value),
+            tiling_method: document.getElementById('tiling-method').value,
+            num_subsections: parseInt(document.getElementById('num-subsections').value),
+            overwrite_existing: document.getElementById('overwrite-existing').checked,
+            cleanup_tiles: document.getElementById('cleanup-tiles').checked
         };
 
         // Add code snippet from web scraped data if available
-        if (this.crawlerData && this.crawlerData.satellites && params.sensor) {
-            const satelliteName = params.sensor.charAt(0).toUpperCase() + params.sensor.slice(1);
+        if (this.crawlerData && this.crawlerData.satellites && params.sensor_name) {
+            const satelliteName = params.sensor_name.charAt(0).toUpperCase() + params.sensor_name.slice(1);
             const satelliteData = this.crawlerData.satellites[satelliteName];
             if (satelliteData && satelliteData[0]?.code_snippet) {
-                params.codeSnippet = satelliteData[0].code_snippet;
-                params.satelliteInfo = {
+                params.code_snippet = satelliteData[0].code_snippet;
+                params.satellite_info = {
                     name: satelliteName,
                     resolution: satelliteData[0].resolution,
-                    dataType: satelliteData[0].data_type,
+                    data_type: satelliteData[0].data_type,
                     description: satelliteData[0].description,
                     bands: satelliteData[0].bands || [],
                     applications: satelliteData[0].applications || []
@@ -595,6 +602,26 @@ class FlutterEarth {
             statusElement.textContent = message;
             statusElement.className = `download-status ${type}`;
         }
+    }
+
+    simulateDownloadProgress() {
+        console.log('[DEBUG] Simulating download progress');
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 10;
+            this.updateProgressDisplay({
+                percentage: progress,
+                message: `Simulated download progress: ${progress}%`,
+                completed: progress >= 100
+            });
+            
+            if (progress >= 100) {
+                clearInterval(interval);
+                this.downloadInProgress = false;
+                this.updateDownloadStatus('Simulated download completed', 'success');
+                this.showNotification('Simulated download completed', 'success');
+            }
+        }, 1000);
     }
 
     setupEventListeners() {
@@ -797,6 +824,10 @@ class FlutterEarth {
         if (browseVectorOutput) browseVectorOutput.addEventListener('click', () => this.browseVectorOutputDirectory());
         const startVectorDownload = document.getElementById('start-vector-download');
         if (startVectorDownload) startVectorDownload.addEventListener('click', () => this.startVectorDownload());
+        
+        // Web crawler controls (fallback setup)
+        console.log('[DEBUG] Setting up web crawler controls in main event listeners...');
+        this.setupWebCrawlerEvents();
         const cancelVectorDownload = document.getElementById('cancel-vector-download');
         if (cancelVectorDownload) cancelVectorDownload.addEventListener('click', () => this.cancelVectorDownload());
 
@@ -1116,6 +1147,37 @@ class FlutterEarth {
                     console.log('[DEBUG] Settings view logic completed successfully');
                 } catch (error) {
                     console.error('[DEBUG] Error in settings view logic:', error);
+                }
+            }
+            
+            // --- SATELLITE INFO VIEW LOGIC ---
+            if (viewName === 'satelliteInfo') {
+                console.log('[DEBUG] Satellite Info view specific logic starting...');
+                
+                // Check if satellite info view is actually visible
+                const satelliteInfoView = document.getElementById('satelliteInfo-view');
+                if (satelliteInfoView) {
+                    console.log('[DEBUG] Satellite Info view element found and accessible');
+                    
+                    // Force the view to be visible
+                    satelliteInfoView.style.display = 'block';
+                    satelliteInfoView.classList.add('active');
+                    console.log('[DEBUG] Forced satellite info view to be visible');
+                } else {
+                    console.error('[DEBUG] Satellite Info view element NOT FOUND!');
+                }
+                
+                try {
+                    // Set up crawler events when the view is shown
+                    this.setupWebCrawlerEvents();
+                    console.log('[DEBUG] Crawler events setup completed');
+                    
+                    // Initialize satellite info if not already done
+                    this.initSatelliteInfo();
+                    console.log('[DEBUG] Satellite info initialization completed');
+                    
+                } catch (error) {
+                    console.error('[DEBUG] Error in satellite info view logic:', error);
                 }
             }
         } catch (error) {
@@ -3212,18 +3274,67 @@ class FlutterEarth {
 
     // Web Crawler Methods
     setupWebCrawlerEvents() {
+        console.log('[DEBUG] setupWebCrawlerEvents() called');
+        
         const runCrawlerBtn = document.getElementById('run-web-crawler');
+        const cancelCrawlerBtn = document.getElementById('cancel-web-crawler');
         const refreshDataBtn = document.getElementById('refresh-crawler-data');
         const viewLogBtn = document.getElementById('view-crawler-log');
-
+        
+        console.log('[DEBUG] Setting up crawler events...');
+        console.log('[DEBUG] Run button found:', !!runCrawlerBtn);
+        console.log('[DEBUG] Run button element:', runCrawlerBtn);
+        
         if (runCrawlerBtn) {
-            runCrawlerBtn.addEventListener('click', () => this.runWebCrawler());
+            console.log('[DEBUG] Run button text:', runCrawlerBtn.textContent);
+            console.log('[DEBUG] Run button classes:', runCrawlerBtn.className);
+        }
+        
+        if (runCrawlerBtn) {
+            // Add visual feedback for testing
+            runCrawlerBtn.style.position = 'relative';
+            runCrawlerBtn.style.zIndex = '1000';
+            
+            runCrawlerBtn.addEventListener('click', (e) => {
+                console.log('Run crawler button clicked!');
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Add immediate visual feedback
+                runCrawlerBtn.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    runCrawlerBtn.style.transform = '';
+                }, 150);
+                
+                this.runWebCrawler();
+            });
+            
+            // Also add mousedown/mouseup for better feedback
+            runCrawlerBtn.addEventListener('mousedown', () => {
+                runCrawlerBtn.style.transform = 'scale(0.95)';
+            });
+            
+            runCrawlerBtn.addEventListener('mouseup', () => {
+                runCrawlerBtn.style.transform = '';
+            });
+        }
+        if (cancelCrawlerBtn) {
+            cancelCrawlerBtn.addEventListener('click', () => this.cancelWebCrawler());
         }
         if (refreshDataBtn) {
             refreshDataBtn.addEventListener('click', () => this.refreshCrawlerData());
         }
         if (viewLogBtn) {
             viewLogBtn.addEventListener('click', () => this.viewCrawlerLog());
+        }
+        
+        // Add test button handler
+        const testBtn = document.getElementById('test-crawler-btn');
+        if (testBtn) {
+            testBtn.addEventListener('click', () => {
+                console.log('Test button clicked!');
+                alert('Test button works! The click event is functioning.');
+            });
         }
     }
 
@@ -3367,98 +3478,335 @@ class FlutterEarth {
     }
 
     async runWebCrawler() {
+        console.log('[DEBUG] runWebCrawler() called');
+        
         const progressDiv = document.getElementById('crawler-progress');
         const progressFill = document.getElementById('crawler-progress-fill');
         const messageDiv = document.getElementById('crawler-message');
+        const progressTime = document.getElementById('progress-time');
         const runBtn = document.getElementById('run-web-crawler');
+        const cancelBtn = document.getElementById('cancel-web-crawler');
+
+        console.log('[DEBUG] UI elements found:', {
+            progressDiv: !!progressDiv,
+            progressFill: !!progressFill,
+            messageDiv: !!messageDiv,
+            progressTime: !!progressTime,
+            runBtn: !!runBtn,
+            cancelBtn: !!cancelBtn
+        });
 
         if (this.crawlerRunning) {
-            this.showNotification('Web crawler is already running', 'warning');
+            this.showNotification('Data collection is already running', 'warning');
+            return;
+        }
+
+        // Show confirmation dialog
+        const confirmed = confirm(
+            '🕷️ Start Data Collection\n\n' +
+            'This will collect satellite data from Google Earth Engine.\n' +
+            '• Takes 2-5 minutes depending on connection\n' +
+            '• Downloads comprehensive dataset information\n' +
+            '• Generates ready-to-use Earth Engine code\n\n' +
+            'Click OK to start the data collection process.'
+        );
+
+        if (!confirmed) {
             return;
         }
 
         this.crawlerRunning = true;
-        this.updateCrawlerStatus('Running', 'running');
-        progressDiv.style.display = 'block';
-        runBtn.disabled = true;
-        messageDiv.textContent = 'Starting web crawler...';
+        this.updateCrawlerStatus('Starting data collection...', 'running');
+        
+        // Show progress UI
+        if (progressDiv) {
+            progressDiv.style.display = 'block';
+            console.log('[DEBUG] Progress div shown');
+        }
+        
+        if (runBtn) runBtn.disabled = true;
+        if (cancelBtn) cancelBtn.disabled = false;
+        if (messageDiv) messageDiv.textContent = 'Initializing data collection...';
+        if (progressTime) progressTime.textContent = 'Starting...';
         this.setCrawlerBottomBar(true, 0);
+        
         const consoleEl = document.getElementById('crawler-console');
         if (consoleEl) consoleEl.textContent = '';
-        this.logCrawlerMessage('Web crawler started.');
-        this.startCrawlerLogPolling();
+        this.logCrawlerMessage('🕷️ Data collection started at ' + new Date().toLocaleTimeString());
+        this.logCrawlerMessage('📡 Connecting to Google Earth Engine...');
 
         // Reset all steps
         document.querySelectorAll('.step').forEach(step => {
             step.className = 'step';
         });
 
+        // Update first step
+        this.updateCrawlerStep('init', 'active');
+
+        // Start crawler in background
+        let pollInterval = null;
+        let startTime = Date.now();
+        
         try {
+            // Call the real backend crawler
             if (window.electronAPI) {
+                console.log('[DEBUG] Electron API available, calling pythonRunCrawler');
                 const result = await window.electronAPI.pythonRunCrawler();
-                this.logCrawlerMessage('Backend crawler finished.');
-                if (result.status === 'success') {
-                    messageDiv.textContent = 'Web crawler completed successfully!';
-                    this.updateCrawlerStatus('Completed', 'ready');
-                    this.showNotification('Web crawler completed', 'success');
-                    document.querySelectorAll('.step').forEach(step => {
-                        step.classList.add('completed');
-                    });
-                    await this.refreshCrawlerData();
+                console.log('[DEBUG] Crawler result:', result);
+                
+                if (result.status === 'started') {
+                    console.log('[DEBUG] Crawler started successfully, beginning progress polling');
+                    // Start polling for progress
+                    this.startCrawlerLogPolling();
+                    
+                    // Start progress monitoring
+                    pollInterval = setInterval(async () => {
+                        try {
+                            console.log('[DEBUG] Polling for crawler progress...');
+                            // Use the specific crawler progress API
+                            const progressResult = await window.electronAPI.pythonCrawlerProgress();
+                            console.log('[DEBUG] Progress result:', progressResult);
+                            
+                            if (progressResult.status === 'success' && progressResult.progress) {
+                                const progress = progressResult.progress;
+                                
+                                // Update progress bar
+                                if (progressFill) {
+                                    const percent = progress.percentage || progress.percent || 0;
+                                    progressFill.style.width = percent + '%';
+                                    console.log('[DEBUG] Updated progress bar to:', percent + '%');
+                                }
+                                
+                                // Update message
+                                if (messageDiv) {
+                                    messageDiv.textContent = progress.message || 'Collecting data...';
+                                }
+                                
+                                // Update percentage display
+                                const percentageElement = document.getElementById('progress-percentage');
+                                if (percentageElement) {
+                                    percentageElement.textContent = Math.round(progress.percentage || progress.percent || 0) + '%';
+                                }
+                                
+                                // Update progress steps based on percentage
+                                this.updateCrawlerStepsFromProgress(progress.percentage || progress.percent || 0);
+                                
+                                // Update time display
+                                if (progressTime && startTime) {
+                                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                                    const elapsedText = this.formatTime(elapsed);
+                                    progressTime.textContent = `Elapsed: ${elapsedText}`;
+                                }
+                                
+                                // Update bottom progress bar
+                                this.setCrawlerBottomBar(true, progress.percentage || progress.percent || 0);
+                                
+                                // Log progress
+                                this.logCrawlerMessage(`[${new Date().toLocaleTimeString()}] ${progress.message}`);
+                                
+                                // Update satellite counts if available
+                                if (progress.datasets_found !== undefined) {
+                                    const totalDatasets = document.getElementById('total-datasets');
+                                    if (totalDatasets) totalDatasets.textContent = progress.datasets_found;
+                                }
+                                if (progress.satellites_found !== undefined) {
+                                    const totalSatellites = document.getElementById('total-satellites');
+                                    if (totalSatellites) totalSatellites.textContent = progress.satellites_found;
+                                }
+                                
+                                // Check if completed
+                                if (progress.status === 'completed' || (progress.percentage || progress.percent) >= 100) {
+                                    console.log('[DEBUG] Crawler completed');
+                                    clearInterval(pollInterval);
+                                    this.crawlerRunning = false;
+                                    if (runBtn) runBtn.disabled = false;
+                                    if (cancelBtn) cancelBtn.disabled = true;
+                                    
+                                    this.updateCrawlerStatus('Data collection completed', 'ready');
+                                    this.showNotification('Data collection completed successfully!', 'success');
+                                    
+                                    // Hide bottom progress bar after a delay
+                                    setTimeout(() => this.setCrawlerBottomBar(false, 0), 3000);
+                                    
+                                    // Refresh data
+                                    setTimeout(() => {
+                                        this.refreshCrawlerData();
+                                    }, 1000);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('[DEBUG] Progress polling error:', error);
+                        }
+                    }, 1000);
+                    
                 } else {
-                    throw new Error(result.message || 'Crawler failed');
+                    throw new Error(result.message || 'Failed to start crawler');
                 }
             } else {
-                await this.simulateWebCrawler(progressFill, messageDiv);
-                this.updateCrawlerStatus('Completed', 'ready');
-                this.showNotification('Web crawler completed', 'success');
+                // Fallback to simulation if Electron API not available
+                console.log('[DEBUG] Electron API not available, using simulation');
+                await this.simulateWebCrawler(progressFill, messageDiv, progressTime, startTime);
+                
+                // Reset UI state
+                this.crawlerRunning = false;
+                if (runBtn) runBtn.disabled = false;
+                if (cancelBtn) cancelBtn.disabled = true;
+                
+                this.updateCrawlerStatus('Data collection completed', 'ready');
+                this.showNotification('Data collection completed successfully!', 'success');
+                
+                // Hide bottom progress bar after a delay
+                setTimeout(() => this.setCrawlerBottomBar(false, 0), 3000);
+                
+                // Simulate loading some data
+                setTimeout(() => {
+                    this.refreshCrawlerData();
+                }, 1000);
             }
+            
         } catch (error) {
-            console.error('Web crawler error:', error);
-            messageDiv.textContent = 'Error: ' + error.message;
-            this.updateCrawlerStatus('Error', 'error');
-            this.showNotification('Web crawler failed: ' + error.message, 'error');
-            this.logCrawlerMessage('Error: ' + error.message);
-        } finally {
+            console.error('[DEBUG] Crawler error:', error);
+            if (pollInterval) clearInterval(pollInterval);
             this.crawlerRunning = false;
-            runBtn.disabled = false;
+            if (runBtn) runBtn.disabled = false;
+            if (cancelBtn) cancelBtn.disabled = true;
+            if (messageDiv) messageDiv.textContent = 'Error: ' + error.message;
+            this.updateCrawlerStatus('Error', 'error');
+            this.showNotification('Data collection failed: ' + error.message, 'error');
+            this.logCrawlerMessage('Error: ' + error.message);
             setTimeout(() => this.setCrawlerBottomBar(false, 0), 2000);
             this.stopCrawlerLogPolling();
         }
     }
 
-    async simulateWebCrawler(progressFill, messageDiv) {
+    // Optionally, add a cancel button handler
+    async cancelWebCrawler() {
+        if (window.electronAPI) {
+            await window.electronAPI.pythonCancelCrawler();
+            this.showNotification('Crawler cancelled', 'warning');
+        }
+    }
+
+    async simulateWebCrawler(progressFill, messageDiv, progressTime, startTime) {
         const steps = [
-            { name: 'init', message: 'Initializing web crawler...', duration: 1000 },
-            { name: 'connect', message: 'Connecting to Google Earth Engine...', duration: 1500 },
-            { name: 'fetch', message: 'Fetching catalog data...', duration: 2000 },
-            { name: 'process', message: 'Processing satellite information...', duration: 1500 },
-            { name: 'download', message: 'Downloading thumbnails...', duration: 2500 },
-            { name: 'save', message: 'Saving data to file...', duration: 1000 }
+            { name: 'init', message: 'Initializing data collection system...', duration: 1500 },
+            { name: 'connect', message: 'Connecting to Google Earth Engine catalog...', duration: 2000 },
+            { name: 'fetch', message: 'Fetching satellite dataset information...', duration: 3000 },
+            { name: 'process', message: 'Processing satellite details and capabilities...', duration: 2500 },
+            { name: 'download', message: 'Downloading satellite thumbnails and metadata...', duration: 3500 },
+            { name: 'save', message: 'Saving data to local storage...', duration: 1500 }
         ];
 
         for (let i = 0; i < steps.length; i++) {
             const step = steps[i];
+            
+            // Update step status
             this.updateCrawlerStep(step.name, 'active');
+            
+            // Update message and progress
             messageDiv.textContent = step.message;
             const progress = ((i + 1) / steps.length) * 100;
-            progressFill.style.width = progress + '%';
-            this.setCrawlerBottomBar(true, progress);
-            this.logCrawlerMessage(step.message);
+            if (progressFill) progressFill.style.width = progress + '%';
+            
+            // Update percentage display
             const percentageElement = document.getElementById('progress-percentage');
             if (percentageElement) {
                 percentageElement.textContent = Math.round(progress) + '%';
             }
+            
+            // Update time display
+            if (progressTime && startTime) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const elapsedText = this.formatTime(elapsed);
+                progressTime.textContent = `Elapsed: ${elapsedText}`;
+            }
+            
+            // Update bottom progress bar
+            this.setCrawlerBottomBar(true, progress);
+            
+            // Log with timestamp
+            const elapsed = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+            const elapsedText = this.formatTime(elapsed);
+            this.logCrawlerMessage(`[${elapsedText}] ${step.message}`);
+            
+            // Simulate some satellite data updates
+            if (i === 2) { // During fetch step
+                setTimeout(() => {
+                    const totalSatellites = document.getElementById('total-satellites');
+                    const totalDatasets = document.getElementById('total-datasets');
+                    if (totalSatellites) totalSatellites.textContent = '12';
+                    if (totalDatasets) totalDatasets.textContent = '156';
+                }, 1000);
+            }
+            
+            if (i === 3) { // During process step
+                setTimeout(() => {
+                    const totalSatellites = document.getElementById('total-satellites');
+                    const totalDatasets = document.getElementById('total-datasets');
+                    if (totalSatellites) totalSatellites.textContent = '24';
+                    if (totalDatasets) totalDatasets.textContent = '342';
+                }, 1000);
+            }
+            
+            // Wait for step duration
             await new Promise(resolve => setTimeout(resolve, step.duration));
+            
+            // Mark step as completed
             this.updateCrawlerStep(step.name, 'completed');
         }
-        this.logCrawlerMessage('Web crawler completed successfully!');
+        
+        // Final completion message
+        const totalTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+        const totalTimeText = this.formatTime(totalTime);
+        this.logCrawlerMessage(`✅ Data collection completed successfully in ${totalTimeText}`);
+        
+        if (progressTime) {
+            progressTime.textContent = `Completed in ${totalTimeText}`;
+        }
+        
+        // Update final stats
+        const totalSatellites = document.getElementById('total-satellites');
+        const totalDatasets = document.getElementById('total-datasets');
+        if (totalSatellites) totalSatellites.textContent = '32';
+        if (totalDatasets) totalDatasets.textContent = '487';
     }
 
     updateCrawlerStep(stepName, status) {
         const stepElement = document.querySelector(`[data-step="${stepName}"]`);
         if (stepElement) {
             stepElement.className = `step ${status}`;
+        }
+    }
+    
+    updateCrawlerStepsFromProgress(percent) {
+        // Map percentage to steps
+        const steps = [
+            { name: 'init', threshold: 10 },
+            { name: 'connect', threshold: 25 },
+            { name: 'fetch', threshold: 50 },
+            { name: 'process', threshold: 75 },
+            { name: 'download', threshold: 90 },
+            { name: 'save', threshold: 100 }
+        ];
+        
+        steps.forEach((step, index) => {
+            if (percent >= step.threshold) {
+                // Mark this step and all previous steps as completed
+                for (let i = 0; i <= index; i++) {
+                    this.updateCrawlerStep(steps[i].name, 'completed');
+                }
+                // Mark next step as active if not at the end
+                if (index < steps.length - 1 && percent < steps[index + 1].threshold) {
+                    this.updateCrawlerStep(steps[index + 1].name, 'active');
+                }
+            }
+        });
+        
+        // If at 100%, ensure all steps are completed
+        if (percent >= 100) {
+            steps.forEach(step => {
+                this.updateCrawlerStep(step.name, 'completed');
+            });
         }
     }
 
@@ -4047,330 +4395,16 @@ class FlutterEarth {
                 bandsGrid.innerHTML = '<p>No bands information available.</p>';
             }
         }
-
-        // Update code section
-        const codeBlock = document.getElementById('code-block');
-        if (codeBlock) {
-            if (firstDataset.code_snippet) {
-                codeBlock.innerHTML = `<code>${firstDataset.code_snippet}</code>`;
-            } else {
-                codeBlock.innerHTML = '<code>No code snippet available for this satellite.</code>';
-            }
-        }
-
-        // Enable/disable action buttons
-        const useForDownloadBtn = document.getElementById('use-for-download');
-        const viewThumbnailBtn = document.getElementById('view-thumbnail');
-        const copyCodeBtn = document.getElementById('copy-code-btn');
-
-        if (useForDownloadBtn) useForDownloadBtn.disabled = false;
-        if (viewThumbnailBtn) viewThumbnailBtn.disabled = !firstDataset.thumbnail_path;
-        if (copyCodeBtn) copyCodeBtn.disabled = !firstDataset.code_snippet;
-
-        // Update selected state in satellite grid
-        document.querySelectorAll('.satellite-card').forEach(card => {
-            card.classList.remove('selected');
-        });
-        
-        const selectedCard = Array.from(document.querySelectorAll('.satellite-card')).find(card => 
-            card.querySelector('.card-title')?.textContent === satelliteName
-        );
-        if (selectedCard) {
-            selectedCard.classList.add('selected');
-        }
-    }
-
-    // New method to update satellite grid
-    updateSatelliteGrid(data) {
-        const grid = document.getElementById('satellite-grid');
-        if (!grid || !data.satellites) return;
-
-        let html = '';
-        let totalDatasets = 0;
-
-        Object.entries(data.satellites).forEach(([satellite, datasets]) => {
-            const firstDataset = datasets[0];
-            totalDatasets += datasets.length;
-
-            const tags = [];
-            if (firstDataset.data_type) tags.push(firstDataset.data_type);
-            if (firstDataset.resolution) tags.push(firstDataset.resolution);
-
-            html += `
-                <div class="satellite-card" onclick="flutterEarth.showSensorDetails('${satellite}')">
-                    <div class="card-header">
-                        <h3 class="card-title">${satellite}</h3>
-                        <span class="card-badge">${datasets.length} datasets</span>
-                    </div>
-                    <div class="card-stats">
-                        <div class="card-stat">
-                            <span class="card-stat-value">${firstDataset.resolution || 'N/A'}</span>
-                            <span class="card-stat-label">Resolution</span>
-                        </div>
-                        <div class="card-stat">
-                            <span class="card-stat-value">${firstDataset.data_type || 'N/A'}</span>
-                            <span class="card-stat-label">Type</span>
-                        </div>
-                    </div>
-                    <p class="card-description">${firstDataset.description || 'No description available'}</p>
-                    <div class="card-tags">
-                        ${tags.map(tag => `<span class="card-tag">${tag}</span>`).join('')}
-                    </div>
-                </div>
-            `;
-        });
-
-        grid.innerHTML = html;
-
-        // Update header stats
-        const totalSatellites = document.getElementById('total-satellites');
-        const totalDatasetsElement = document.getElementById('total-datasets');
-        const lastUpdated = document.getElementById('last-updated');
-
-        if (totalSatellites) totalSatellites.textContent = Object.keys(data.satellites).length;
-        if (totalDatasetsElement) totalDatasetsElement.textContent = totalDatasets;
-        if (lastUpdated) lastUpdated.textContent = new Date().toLocaleDateString();
-    }
-
-    // Enhanced crawler progress with step tracking
-    async simulateWebCrawler(progressFill, messageDiv) {
-        const steps = [
-            { name: 'init', message: 'Initializing web crawler...', duration: 1000 },
-            { name: 'connect', message: 'Connecting to Google Earth Engine...', duration: 1500 },
-            { name: 'fetch', message: 'Fetching catalog data...', duration: 2000 },
-            { name: 'process', message: 'Processing satellite information...', duration: 1500 },
-            { name: 'download', message: 'Downloading thumbnails...', duration: 2500 },
-            { name: 'save', message: 'Saving data to file...', duration: 1000 }
-        ];
-
-        for (let i = 0; i < steps.length; i++) {
-            const step = steps[i];
-            
-            // Update step status
-            this.updateCrawlerStep(step.name, 'active');
-            
-            // Update message and progress
-            messageDiv.textContent = step.message;
-            const progress = ((i + 1) / steps.length) * 100;
-            progressFill.style.width = progress + '%';
-            
-            // Update percentage
-            const percentageElement = document.getElementById('progress-percentage');
-            if (percentageElement) {
-                percentageElement.textContent = Math.round(progress) + '%';
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, step.duration));
-            
-            // Mark step as completed
-            this.updateCrawlerStep(step.name, 'completed');
-        }
-    }
-
-    updateCrawlerStep(stepName, status) {
-        const stepElement = document.querySelector(`[data-step="${stepName}"]`);
-        if (stepElement) {
-            stepElement.className = `step ${status}`;
-        }
-    }
-
-    updateCrawlerStatus(status, type = 'ready') {
-        const statusDot = document.getElementById('status-dot');
-        const statusText = document.getElementById('crawler-status');
-        
-        if (statusDot) {
-            statusDot.className = `status-dot ${type}`;
-        }
-        
-        if (statusText) {
-            statusText.textContent = status;
-        }
-    }
-
-    // Setup new event listeners for the redesigned GUI
-    setupNewSatelliteEvents() {
-        // Close details panel
-        const closeDetails = document.getElementById('close-details');
-        if (closeDetails) {
-            closeDetails.addEventListener('click', () => {
-                const detailsPanel = document.getElementById('satellite-details-panel');
-                if (detailsPanel) {
-                    detailsPanel.classList.remove('show');
-                }
-            });
-        }
-
-        // Clear search
-        const clearSearch = document.getElementById('clear-search');
-        if (clearSearch) {
-            clearSearch.addEventListener('click', () => {
-                const searchInput = document.getElementById('satellite-search');
-                if (searchInput) {
-                    searchInput.value = '';
-                    this.filterSatellites('');
-                }
-            });
-        }
-
-        // Filter tabs
-        const filterTabs = document.querySelectorAll('.filter-tab');
-        filterTabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                filterTabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                this.filterSatellitesByCategory(tab.dataset.filter);
-            });
-        });
-
-        // View toggles
-        const viewToggles = document.querySelectorAll('.view-toggle');
-        viewToggles.forEach(toggle => {
-            toggle.addEventListener('click', () => {
-                viewToggles.forEach(t => t.classList.remove('active'));
-                toggle.classList.add('active');
-                this.switchGridView(toggle.dataset.view);
-            });
-        });
-
-        // Copy code button
-        const copyCodeBtn = document.getElementById('copy-code-btn');
-        if (copyCodeBtn) {
-            copyCodeBtn.addEventListener('click', () => this.copyCodeSnippet());
-        }
-
-        // Share satellite button
-        const shareSatelliteBtn = document.getElementById('share-satellite');
-        if (shareSatelliteBtn) {
-            shareSatelliteBtn.addEventListener('click', () => this.shareSatellite());
-        }
-    }
-
-    filterSatellitesByCategory(category) {
-        const cards = document.querySelectorAll('.satellite-card');
-        cards.forEach(card => {
-            if (category === 'all') {
-                card.style.display = 'block';
-            } else {
-                // This is a simplified filter - you can enhance it based on your data structure
-                const cardType = card.querySelector('.card-stat-value')?.textContent.toLowerCase();
-                if (cardType && cardType.includes(category)) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            }
-        });
-    }
-
-    switchGridView(view) {
-        const grid = document.getElementById('satellite-grid');
-        if (grid) {
-            if (view === 'list') {
-                grid.style.gridTemplateColumns = '1fr';
-            } else {
-                grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
-            }
-        }
-    }
-
-    shareSatellite() {
-        if (!this.selectedSatellite) {
-            this.showNotification('No satellite selected', 'warning');
-            return;
-        }
-
-        const satelliteData = this.crawlerData.satellites[this.selectedSatellite];
-        const shareText = `Check out ${this.selectedSatellite} satellite data:\n\n` +
-                         `Resolution: ${satelliteData[0].resolution || 'N/A'}\n` +
-                         `Type: ${satelliteData[0].data_type || 'N/A'}\n` +
-                         `Description: ${satelliteData[0].description || 'No description'}`;
-
-        if (navigator.share) {
-            navigator.share({
-                title: `${this.selectedSatellite} Satellite Data`,
-                text: shareText
-            });
-        } else {
-            // Fallback to clipboard
-            navigator.clipboard.writeText(shareText).then(() => {
-                this.showNotification('Satellite info copied to clipboard', 'success');
-            });
-        }
     }
 }
 
 // Initialize the application when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('[DEBUG] DOM Content Loaded - Initializing FlutterEarth');
-    
-    // Check if running in Electron (Node.js) environment
-    function isElectron() {
-        // Renderer process
-        if (typeof window !== 'undefined' && typeof window.process === 'object' && window.process.type === 'renderer') {
-            return true;
-        }
-        // Main process
-        if (typeof process !== 'undefined' && typeof process.versions === 'object' && !!process.versions.electron) {
-            return true;
-        }
-        // User agent
-        if (typeof navigator === 'object' && typeof navigator.userAgent === 'string' && navigator.userAgent.indexOf('Electron') >= 0) {
-            return true;
-        }
-        return false;
-    }
-    
-    // Initialize the main app
-    try {
-        window.flutterEarth = new FlutterEarth();
-        console.log('[DEBUG] FlutterEarth initialized successfully');
-    } catch (error) {
-        console.error('[DEBUG] Failed to initialize FlutterEarth:', error);
-    }
-    
-    // Setup map selector close button
-    const closeBtn = document.getElementById('map-selector-close');
-    if (closeBtn) {
-        closeBtn.onclick = () => {
-            const overlay = document.getElementById('map-selector-overlay');
-            if (overlay) overlay.style.display = 'none';
-        };
-    }
-    
-    // Log Electron status but don't show error box (allows browser testing)
-    if (!isElectron()) {
-        console.log('[DEBUG] Running in browser mode (Electron not detected)');
-    } else {
-        console.log('[DEBUG] Running in Electron mode');
-    }
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[DEBUG] DOM loaded, initializing FlutterEarth...');
+    window.flutterEarth = new FlutterEarth();
+    window.flutterEarth.init().then(() => {
+        console.log('[DEBUG] FlutterEarth initialization completed');
+    }).catch(error => {
+        console.error('[DEBUG] FlutterEarth initialization failed:', error);
+    });
 });
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = FlutterEarth;
-}
-
-// In Satellite Info tab logic:
-async function fetchCatalogData() {
-    const sources = [
-        '../backend/gee_catalog_data_enhanced.json',
-        '../backend/gee_catalog_data.json',
-        '../backend/gee_catalog_data_enhanced.json.gz',
-    ];
-    for (const src of sources) {
-        try {
-            if (src.endsWith('.gz')) {
-                const resp = await fetch(src);
-                if (!resp.ok) continue;
-                const arrayBuffer = await resp.arrayBuffer();
-                const text = pako.ungzip(new Uint8Array(arrayBuffer), { to: 'string' });
-                return JSON.parse(text);
-            } else {
-                const resp = await fetch(src);
-                if (!resp.ok) continue;
-                return await resp.json();
-            }
-        } catch (e) { continue; }
-    }
-    throw new Error('No catalog data found');
-}

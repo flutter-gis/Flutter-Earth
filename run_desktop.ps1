@@ -1,11 +1,19 @@
-Write-Host "Starting Flutter Earth Desktop Application..." -ForegroundColor Green
+# Flutter Earth Desktop App Launcher (PowerShell)
+# This script launches the Electron desktop application
+
+Write-Host "Flutter Earth Desktop App" -ForegroundColor Cyan
+Write-Host "=========================" -ForegroundColor Cyan
 Write-Host ""
 
-Set-Location frontend
-Write-Host "Changed to frontend directory" -ForegroundColor Yellow
-Write-Host ""
+# Change to the frontend directory
+Set-Location "frontend"
 
-Write-Host "Using local Node.js installation..." -ForegroundColor Yellow
-& "..\node-v22.17.0-win-x64\npm.cmd" start
+# Check if node_modules exists
+if (-not (Test-Path "node_modules")) {
+    Write-Host "Installing dependencies..." -ForegroundColor Yellow
+    & "..\node-v22.17.0-win-x64\npm.cmd" install
+}
 
-Read-Host "Press Enter to continue" 
+# Start the Electron app
+Write-Host "Starting Flutter Earth Desktop App..." -ForegroundColor Green
+& "..\node-v22.17.0-win-x64\npm.cmd" start 
