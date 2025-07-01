@@ -6,6 +6,7 @@
     <title>Flutter Earth</title>
     <link rel="stylesheet" href="flutter_earth.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <script src="flutter_earth.js" defer></script>
 </head>
 <body>
@@ -676,85 +677,304 @@
             <!-- Satellite Info View -->
             <div id="satelliteInfo-view" class="view-content">
                 <div class="satellite-info-container">
-                    <h2>Satellite Information</h2>
-                    <p class="description">Browse available satellites and their capabilities. Learn about different sensors and their resolutions.</p>
-                    
-                    <div class="satellite-content">
-                        <!-- Satellite Categories and Sensors List -->
-                        <div class="satellite-list-section">
-                            <h3>Satellites & Sensors</h3>
-                            <div class="satellite-controls">
-                                <div class="input-group">
-                                    <label for="satellite-category">Category:</label>
-                                    <select id="satellite-category">
-                                        <option value="optical">Optical</option>
-                                        <option value="radar">Radar</option>
-                                        <option value="thermal">Thermal</option>
-                                        <option value="multispectral">Multispectral</option>
-                                    </select>
+                    <!-- Header Section -->
+                    <div class="satellite-header">
+                        <div class="header-content">
+                            <h2>🛰️ Satellite Catalog</h2>
+                            <p class="description">Explore Earth observation satellites and their capabilities. Get real-time data from Google Earth Engine.</p>
+                        </div>
+                        <div class="header-stats">
+                            <div class="stat-item">
+                                <span class="stat-number" id="total-satellites">0</span>
+                                <span class="stat-label">Satellites</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="total-datasets">0</span>
+                                <span class="stat-label">Datasets</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="last-updated">-</span>
+                                <span class="stat-label">Last Updated</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Web Crawler Dashboard -->
+                    <div class="crawler-dashboard">
+                        <div class="dashboard-header">
+                            <h3>🕷️ Data Collection</h3>
+                            <div class="dashboard-status">
+                                <span class="status-dot" id="status-dot"></span>
+                                <span id="crawler-status" class="status-text">Ready</span>
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-content">
+                            <div class="crawler-info">
+                                <div class="info-card">
+                                    <div class="info-icon">📊</div>
+                                    <div class="info-content">
+                                        <h4>Data Source</h4>
+                                        <p>Google Earth Engine Catalog</p>
+                                    </div>
+                                </div>
+                                <div class="info-card">
+                                    <div class="info-icon">🔄</div>
+                                    <div class="info-content">
+                                        <h4>Update Frequency</h4>
+                                        <p>On-demand</p>
+                                    </div>
+                                </div>
+                                <div class="info-card">
+                                    <div class="info-icon">💾</div>
+                                    <div class="info-content">
+                                        <h4>Storage</h4>
+                                        <p>Local JSON + Thumbnails</p>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="sensor-list">
-                                <div id="sensor-list-container">
-                                    <!-- Sensor list will be populated by JavaScript -->
-                                </div>
+                            
+                            <div class="crawler-actions">
+                                <button id="run-web-crawler" class="crawler-btn primary">
+                                    <span class="btn-icon">🕷️</span>
+                                    <span class="btn-text">Run Web Crawler</span>
+                                </button>
+                                <button id="refresh-crawler-data" class="crawler-btn secondary">
+                                    <span class="btn-icon">🔄</span>
+                                    <span class="btn-text">Refresh Data</span>
+                                </button>
+                                <button id="view-crawler-log" class="crawler-btn secondary">
+                                    <span class="btn-icon">📋</span>
+                                    <span class="btn-text">View Log</span>
+                                </button>
                             </div>
                         </div>
 
-                        <!-- Sensor Details Display -->
-                        <div class="sensor-details-section">
-                            <h3>Sensor Details</h3>
-                            <div class="sensor-details">
-                                <div class="sensor-overview">
-                                    <h4 id="sensor-name">Select a sensor to view details</h4>
-                                    <div class="sensor-info-grid">
-                                        <div class="sensor-info-row">
-                                            <span class="sensor-label">Type:</span>
-                                            <span id="sensor-type" class="sensor-value">-</span>
-                                        </div>
-                                        <div class="sensor-info-row">
-                                            <span class="sensor-label">Resolution:</span>
-                                            <span id="sensor-resolution" class="sensor-value">-</span>
-                                        </div>
-                                        <div class="sensor-info-row">
-                                            <span class="sensor-label">Swath Width:</span>
-                                            <span id="sensor-swath" class="sensor-value">-</span>
-                                        </div>
-                                        <div class="sensor-info-row">
-                                            <span class="sensor-label">Revisit Time:</span>
-                                            <span id="sensor-revisit" class="sensor-value">-</span>
-                                        </div>
-                                        <div class="sensor-info-row">
-                                            <span class="sensor-label">Launch Date:</span>
-                                            <span id="sensor-launch" class="sensor-value">-</span>
-                                        </div>
-                                        <div class="sensor-info-row">
-                                            <span class="sensor-label">Status:</span>
-                                            <span id="sensor-status" class="sensor-value">-</span>
-                                        </div>
+                        <!-- Enhanced Progress Display -->
+                        <div id="crawler-progress" class="crawler-progress" style="display: none;">
+                            <div class="progress-header">
+                                <h4>🔄 Crawling in Progress</h4>
+                                <span class="progress-percentage" id="progress-percentage">0%</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div id="crawler-progress-fill" class="progress-fill" style="width: 0%"></div>
+                                </div>
+                                <div class="progress-steps">
+                                    <div class="step" data-step="init">
+                                        <span class="step-icon">🚀</span>
+                                        <span class="step-text">Initialize</span>
                                     </div>
-                                </div>
-                                
-                                <div class="sensor-description">
-                                    <h4>Description</h4>
-                                    <p id="sensor-description">Select a sensor from the list to view its detailed description and capabilities.</p>
-                                </div>
-                                
-                                <div class="sensor-bands">
-                                    <h4>Available Bands</h4>
-                                    <div id="sensor-bands-list">
-                                        <p>No bands information available.</p>
+                                    <div class="step" data-step="connect">
+                                        <span class="step-icon">🌐</span>
+                                        <span class="step-text">Connect</span>
                                     </div>
-                                </div>
-                                
-                                <div class="sensor-applications">
-                                    <h4>Applications</h4>
-                                    <div id="sensor-applications-list">
-                                        <p>No applications information available.</p>
+                                    <div class="step" data-step="fetch">
+                                        <span class="step-icon">📡</span>
+                                        <span class="step-text">Fetch Data</span>
+                                    </div>
+                                    <div class="step" data-step="process">
+                                        <span class="step-icon">⚙️</span>
+                                        <span class="step-text">Process</span>
+                                    </div>
+                                    <div class="step" data-step="download">
+                                        <span class="step-icon">📥</span>
+                                        <span class="step-text">Download</span>
+                                    </div>
+                                    <div class="step" data-step="save">
+                                        <span class="step-icon">💾</span>
+                                        <span class="step-text">Save</span>
                                     </div>
                                 </div>
                             </div>
+                            <div id="crawler-message" class="crawler-message">Initializing web crawler...</div>
                         </div>
+                    </div>
+
+                    <!-- Main Content Area -->
+                    <div class="satellite-main-content">
+                        <!-- Filters and Search -->
+                        <div class="filters-section">
+                            <div class="search-container">
+                                <div class="search-box">
+                                    <span class="search-icon">🔍</span>
+                                    <input id="satellite-search" type="text" placeholder="Search satellites, sensors, or applications...">
+                                    <button class="clear-search" id="clear-search">×</button>
+                                </div>
+                            </div>
+                            
+                            <div class="filter-tabs">
+                                <button class="filter-tab active" data-filter="all">
+                                    <span class="tab-icon">🌟</span>
+                                    <span class="tab-text">All</span>
+                                </button>
+                                <button class="filter-tab" data-filter="optical">
+                                    <span class="tab-icon">👁️</span>
+                                    <span class="tab-text">Optical</span>
+                                </button>
+                                <button class="filter-tab" data-filter="radar">
+                                    <span class="tab-icon">📡</span>
+                                    <span class="tab-text">Radar</span>
+                                </button>
+                                <button class="filter-tab" data-filter="thermal">
+                                    <span class="tab-icon">🔥</span>
+                                    <span class="tab-text">Thermal</span>
+                                </button>
+                                <button class="filter-tab" data-filter="multispectral">
+                                    <span class="tab-icon">🌈</span>
+                                    <span class="tab-text">Multispectral</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Satellite Grid -->
+                        <div class="satellite-grid-container">
+                            <div class="grid-header">
+                                <h3>Available Satellites</h3>
+                                <div class="grid-controls">
+                                    <button class="view-toggle active" data-view="grid">
+                                        <span class="toggle-icon">⊞</span>
+                                    </button>
+                                    <button class="view-toggle" data-view="list">
+                                        <span class="toggle-icon">☰</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="satellite-grid" id="satellite-grid">
+                                <!-- Satellites will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Satellite Details Panel -->
+                        <div class="satellite-details-panel" id="satellite-details-panel">
+                            <div class="panel-header">
+                                <h3>Satellite Details</h3>
+                                <button class="close-panel" id="close-details">×</button>
+                            </div>
+                            
+                            <div class="panel-content">
+                                <div class="satellite-hero">
+                                    <div class="satellite-thumbnail" id="satellite-thumbnail">
+                                        <img id="thumbnail-img" src="" alt="Satellite Thumbnail">
+                                        <div class="thumbnail-placeholder">
+                                            <span class="placeholder-icon">🛰️</span>
+                                            <span class="placeholder-text">No Image</span>
+                                        </div>
+                                    </div>
+                                    <div class="satellite-basic-info">
+                                        <h2 id="detail-satellite-name">Select a Satellite</h2>
+                                        <div class="satellite-tags" id="satellite-tags">
+                                            <!-- Tags will be populated here -->
+                                        </div>
+                                        <div class="satellite-stats">
+                                            <div class="stat">
+                                                <span class="stat-value" id="detail-resolution">-</span>
+                                                <span class="stat-label">Resolution</span>
+                                            </div>
+                                            <div class="stat">
+                                                <span class="stat-value" id="detail-datasets">-</span>
+                                                <span class="stat-label">Datasets</span>
+                                            </div>
+                                            <div class="stat">
+                                                <span class="stat-value" id="detail-status">-</span>
+                                                <span class="stat-label">Status</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="satellite-sections">
+                                    <div class="section">
+                                        <h4>📋 Overview</h4>
+                                        <p id="detail-description">Select a satellite to view its description and capabilities.</p>
+                                    </div>
+
+                                    <div class="section">
+                                        <h4>🎯 Applications</h4>
+                                        <div class="applications-grid" id="detail-applications">
+                                            <!-- Applications will be populated here -->
+                                        </div>
+                                    </div>
+
+                                    <div class="section">
+                                        <h4>📊 Bands & Sensors</h4>
+                                        <div class="bands-grid" id="detail-bands">
+                                            <!-- Bands will be populated here -->
+                                        </div>
+                                    </div>
+
+                                    <div class="section">
+                                        <h4>💻 Earth Engine Code</h4>
+                                        <div class="code-section" id="detail-code">
+                                            <div class="code-header">
+                                                <span>Ready-to-use code snippet</span>
+                                                <button class="copy-code-btn" id="copy-code-btn">
+                                                    <span class="copy-icon">📋</span>
+                                                    <span class="copy-text">Copy</span>
+                                                </button>
+                                            </div>
+                                            <pre class="code-block" id="code-block"><code>Select a satellite to view its Earth Engine code snippet.</code></pre>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="satellite-actions">
+                                    <button class="action-btn primary" id="use-for-download">
+                                        <span class="action-icon">📥</span>
+                                        <span class="action-text">Use for Download</span>
+                                    </button>
+                                    <button class="action-btn secondary" id="view-thumbnail">
+                                        <span class="action-icon">🖼️</span>
+                                        <span class="action-text">View Full Image</span>
+                                    </button>
+                                    <button class="action-btn secondary" id="share-satellite">
+                                        <span class="action-icon">📤</span>
+                                        <span class="action-text">Share</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Crawler Console and Bottom Progress Bar (hidden by default) -->
+                <div id="crawler-bottom-bar" class="crawler-bottom-bar" style="display: none;">
+                    <div class="crawler-bottom-left">
+                        <div class="crawler-console-section">
+                            <div class="console-label">Crawler Console</div>
+                            <pre id="crawler-console" class="crawler-console"></pre>
+                        </div>
+                        <div class="crawler-progress-section">
+                            <div class="progress-label">Progress</div>
+                            <div class="bottom-progress-bar">
+                                <div id="crawler-bottom-progress" class="bottom-progress-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="crawler-bottom-right">
+                        <div class="graph-label">Speed (datasets/sec)</div>
+                        <canvas id="crawler-speed-graph" width="220" height="60" style="background: #181c24; border-radius: 8px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- Download Console and Bottom Progress Bar (hidden by default) -->
+                <div id="download-bottom-bar" class="download-bottom-bar" style="display: none;">
+                    <div class="download-bottom-left">
+                        <div class="download-console-section">
+                            <div class="console-label">Download Console</div>
+                            <pre id="download-console" class="download-console"></pre>
+                        </div>
+                        <div class="download-progress-section">
+                            <div class="progress-label">Download Progress</div>
+                            <div class="bottom-progress-bar">
+                                <div id="download-bottom-progress" class="bottom-progress-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="download-bottom-right">
+                        <div class="graph-label">Speed (MB/s)</div>
+                        <canvas id="download-speed-graph" width="220" height="60" style="background: #181c24; border-radius: 8px;"></canvas>
                     </div>
                 </div>
             </div>
@@ -815,6 +1035,14 @@
         <div id="notification-popup" class="notification-popup" style="display: none;">
             <div class="notification-content">
                 <span id="notification-text"></span>
+            </div>
+        </div>
+
+        <!-- Thumbnail Modal -->
+        <div id="thumbnail-modal" class="thumbnail-modal">
+            <div class="thumbnail-content">
+                <button class="thumbnail-close" onclick="flutterEarth.hideThumbnailModal()">&times;</button>
+                <img id="thumbnail-image" src="" alt="Satellite Thumbnail">
             </div>
         </div>
     </div>

@@ -159,26 +159,26 @@ Every theme icon has its own **unique personality** through 20+ different animat
 
 ### 🛠️ **Installation**
 
-```bash
+   ```bash
 # Clone the repository
 git clone https://github.com/yourusername/flutter-earth.git
 cd flutter-earth
 
 # Install Python dependencies
-pip install -r requirements.txt
+   pip install -r requirements.txt
 
 # For Electron desktop app
 npm install
-```
+   ```
 
 ### 🎮 **Running Flutter Earth**
 
 #### **Web Version**
-```bash
-cd frontend
+   ```bash
+   cd frontend
 python -m http.server 8000
 # Open http://localhost:8000
-```
+   ```
 
 #### **Desktop Version**
 ```bash

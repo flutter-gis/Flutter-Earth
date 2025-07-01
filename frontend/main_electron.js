@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
+const fs = require('fs');
 
 let mainWindow;
 
@@ -46,6 +47,70 @@ ipcMain.handle('python-progress', async () => {
 
 ipcMain.handle('python-auth', async (event, keyFile, projectId) => {
   return await callPythonScript('auth', keyFile, projectId);
+});
+
+ipcMain.handle('python-run-crawler', async () => {
+  console.log('Received python-run-crawler request');
+  try {
+    const result = await callPythonScript('run-crawler');
+    console.log('Python crawler result:', result);
+    return result;
+  } catch (error) {
+    console.error('Python crawler error:', error);
+    return { status: 'error', message: error.message };
+  }
+});
+
+ipcMain.handle('save-crawler-data', async (event, data) => {
+  try {
+    // Write the updated data to a temp file
+    const tempPath = path.join(__dirname, '../backend/crawler_data/gee_catalog_data_enhanced_tmp.json');
+    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf-8');
+    // Call the backend Python script to compress and save
+    const scriptPath = path.join(__dirname, '../backend/earth_engine_processor.py');
+    return await new Promise((resolve) => {
+      const proc = spawn('python', [scriptPath, 'compress-crawler-data', tempPath], { shell: true });
+      let output = '';
+      let error = '';
+      proc.stdout.on('data', (data) => { output += data.toString(); });
+      proc.stderr.on('data', (data) => { error += data.toString(); });
+      proc.on('close', (code) => {
+        fs.unlinkSync(tempPath);
+        if (code === 0) {
+          resolve({ status: 'success', message: output });
+        } else {
+          resolve({ status: 'error', message: error || output });
+        }
+      });
+    });
+  } catch (err) {
+    return { status: 'error', message: err.message };
+  }
+});
+
+const getLatestCrawlerLogFile = () => {
+  const logsDir = path.join(__dirname, '../logs');
+  const files = fs.readdirSync(logsDir)
+    .filter(f => f.startsWith('gee_catalog_crawler_') && f.endsWith('.log'))
+    .map(f => ({
+      name: f,
+      time: fs.statSync(path.join(logsDir, f)).mtime.getTime()
+    }))
+    .sort((a, b) => b.time - a.time);
+  return files.length > 0 ? path.join(logsDir, files[0].name) : null;
+};
+
+ipcMain.handle('tail-crawler-log', async (event, numLines = 50) => {
+  try {
+    const logFile = getLatestCrawlerLogFile();
+    if (!logFile) return { status: 'error', message: 'No log file found' };
+    const data = fs.readFileSync(logFile, 'utf-8');
+    const lines = data.trim().split(/\r?\n/);
+    const lastLines = lines.slice(-numLines).join('\n');
+    return { status: 'success', log: lastLines };
+  } catch (err) {
+    return { status: 'error', message: err.message };
+  }
 });
 
 function callPythonScript(command, ...args) {

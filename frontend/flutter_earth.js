@@ -1,5 +1,7 @@
 // Flutter Earth JavaScript - Vanilla JS (No jQuery)
 
+// Note: pako library is loaded via CDN in HTML if needed for gzip decompression
+
 class FlutterEarth {
     constructor() {
         this.currentView = 'welcome';
@@ -10,6 +12,11 @@ class FlutterEarth {
         this.calendarTarget = null;
         this.downloadInProgress = false;
         this.isOfflineMode = false;
+        this.crawlerRunning = false;
+        this.selectedSatellite = null;
+        this.crawlerData = null;
+        this.crawlerSpeedSamples = [];
+        this.crawlerSpeedWindow = 60; // last 60 seconds
         
         this.init();
     }
@@ -437,7 +444,7 @@ class FlutterEarth {
     }
 
     gatherDownloadParams() {
-        return {
+        const params = {
             aoi: document.getElementById('aoi-input').value,
             startDate: document.getElementById('start-date').value,
             endDate: document.getElementById('end-date').value,
@@ -452,6 +459,25 @@ class FlutterEarth {
             overwriteExisting: document.getElementById('overwrite-existing').checked,
             cleanupTiles: document.getElementById('cleanup-tiles').checked
         };
+
+        // Add code snippet from web scraped data if available
+        if (this.crawlerData && this.crawlerData.satellites && params.sensor) {
+            const satelliteName = params.sensor.charAt(0).toUpperCase() + params.sensor.slice(1);
+            const satelliteData = this.crawlerData.satellites[satelliteName];
+            if (satelliteData && satelliteData[0]?.code_snippet) {
+                params.codeSnippet = satelliteData[0].code_snippet;
+                params.satelliteInfo = {
+                    name: satelliteName,
+                    resolution: satelliteData[0].resolution,
+                    dataType: satelliteData[0].data_type,
+                    description: satelliteData[0].description,
+                    bands: satelliteData[0].bands || [],
+                    applications: satelliteData[0].applications || []
+                };
+            }
+        }
+
+        return params;
     }
 
     updateDownloadLog(message) {
@@ -589,11 +615,17 @@ class FlutterEarth {
                     const view = item.dataset.view;
                     const panel = item.dataset.panel;
                     console.log(`[DEBUG] Sidebar item clicked:`, { view, panel, item: item.textContent.trim() });
+                    console.log(`[DEBUG] Sidebar item dataset:`, item.dataset);
+                    console.log(`[DEBUG] Sidebar item classes:`, item.className);
                     
                     if (view) {
+                        console.log(`[DEBUG] Switching to view: ${view}`);
                         this.switchView(view);
                     } else if (panel) {
+                        console.log(`[DEBUG] Showing panel: ${panel}`);
                         this.showPanel(panel);
+                    } else {
+                        console.warn(`[DEBUG] No view or panel found for sidebar item`);
                     }
                     
                     // Fun click effect
@@ -743,14 +775,8 @@ class FlutterEarth {
         const clearCacheSettingsBtn = document.getElementById('clear-cache-settings-btn');
         if (clearCacheSettingsBtn) clearCacheSettingsBtn.addEventListener('click', () => this.clearCacheAndLogs());
 
-        // Theme tabs
-        document.querySelectorAll('.theme-tab').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                document.querySelectorAll('.theme-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                this.switchThemeCategory(tab.dataset.category);
-            });
-        });
+        // Theme tabs - will be set up dynamically when settings view is shown
+        // (moved to switchView function for settings)
 
         // Theme options
         const useCharacterCatchphrases = document.getElementById('use-character-catchphrases');
@@ -1034,22 +1060,63 @@ class FlutterEarth {
 
             // --- THEME TABS & GRID LOGIC ---
             if (viewName === 'settings') {
-                this.initSettings(true); // force re-init
-                this.initializeThemeGrid(); // ensure theme grid is properly initialized
-                // Set the correct theme tab active
-                const currentTheme = this.currentTheme || 'default_dark';
-                let currentCategory = 'professional';
-                const theme = this.availableThemes.find(t => t.name === currentTheme);
-                if (theme) currentCategory = theme.category;
-                document.querySelectorAll('.theme-tab').forEach(tab => {
-                    if (tab.dataset.category === currentCategory) {
-                        tab.classList.add('active');
-                    } else {
-                        tab.classList.remove('active');
-                    }
-                });
-                // Populate the theme grid for the current category
-                this.updateThemeGrid(currentCategory);
+                console.log('[DEBUG] Settings view specific logic starting...');
+                
+                // Check if settings view is actually visible
+                const settingsView = document.getElementById('settings-view');
+                if (settingsView) {
+                    const computedStyle = window.getComputedStyle(settingsView);
+                    console.log('[DEBUG] Settings view display style:', computedStyle.display);
+                    console.log('[DEBUG] Settings view visibility:', computedStyle.visibility);
+                    console.log('[DEBUG] Settings view opacity:', computedStyle.opacity);
+                    console.log('[DEBUG] Settings view element found and accessible');
+                    
+                    // Force the view to be visible
+                    settingsView.style.display = 'block';
+                    settingsView.classList.add('active');
+                    console.log('[DEBUG] Forced settings view to be visible');
+                } else {
+                    console.error('[DEBUG] Settings view element NOT FOUND!');
+                }
+                
+                try {
+                    this.initSettings(true); // force re-init
+                    this.initializeThemeGrid(); // ensure theme grid is properly initialized
+                    
+                    // Set up theme tab event listeners dynamically
+                    const themeTabs = document.querySelectorAll('.theme-tab');
+                    console.log('[DEBUG] Found theme tabs:', themeTabs.length);
+                    themeTabs.forEach((tab, index) => {
+                        console.log(`[DEBUG] Theme tab ${index}:`, tab.textContent.trim(), tab.dataset.category);
+                        // Remove any existing listeners to prevent duplicates
+                        tab.removeEventListener('click', this.handleThemeTabClick);
+                        // Add new listener
+                        tab.addEventListener('click', this.handleThemeTabClick.bind(this));
+                    });
+                    
+                    // Set the correct theme tab active
+                    const currentTheme = this.currentTheme || 'default_dark';
+                    let currentCategory = 'all'; // Default to 'all' category
+                    const theme = this.availableThemes.find(t => t.name === currentTheme);
+                    if (theme) currentCategory = theme.category;
+                    
+                    console.log('[DEBUG] Setting active category:', currentCategory);
+                    document.querySelectorAll('.theme-tab').forEach(tab => {
+                        if (tab.dataset.category === currentCategory) {
+                            tab.classList.add('active');
+                            console.log('[DEBUG] Activated tab:', tab.textContent.trim());
+                        } else {
+                            tab.classList.remove('active');
+                        }
+                    });
+                    
+                    // Populate the theme grid for the current category
+                    this.updateThemeGrid(currentCategory);
+                    
+                    console.log('[DEBUG] Settings view logic completed successfully');
+                } catch (error) {
+                    console.error('[DEBUG] Error in settings view logic:', error);
+                }
             }
         } catch (error) {
             console.error('[DEBUG] Error in switchView:', error);
@@ -1275,143 +1342,57 @@ class FlutterEarth {
     }
 
     async loadSensorsFromCrawlerData() {
+        // Load and decompress the .json.gz file using pako
+        const gzUrl = '../backend/crawler_data/gee_catalog_data_enhanced.json.gz';
         try {
-            // Try to load from the crawler output file
-            const response = await fetch('../backend/gee_catalog_data_enhanced.json');
-            if (!response.ok) {
-                throw new Error('Crawler data not found');
-            }
-            
-            const data = await response.json();
-            console.log('[DEBUG] Loaded crawler data:', data);
-            
-            // Update sensor select dropdown
-            const sensorSelect = document.getElementById('sensor-select');
-            if (sensorSelect && data.satellites) {
-                let options = '<option value="">Choose a sensor...</option>';
-                
-                // Add satellites from crawler data
-                Object.keys(data.satellites).forEach(satellite => {
-                    const datasets = data.satellites[satellite];
-                    const datasetCount = datasets.length;
-                    options += `<option value="${satellite.toLowerCase()}">${satellite} (${datasetCount} datasets)</option>`;
-                });
-                
-                sensorSelect.innerHTML = options;
-            }
-            
-            // Store the data for use in other parts of the app
+            const response = await fetch(gzUrl);
+            if (!response.ok) throw new Error('Failed to fetch crawler data');
+            const arrayBuffer = await response.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const decompressed = window.pako.ungzip(uint8Array, { to: 'string' });
+            const data = JSON.parse(decompressed);
             this.crawlerData = data;
-            
-            // Update satellite info view
             this.updateSatelliteInfoView(data);
-            
-        } catch (error) {
-            console.warn('[DEBUG] Could not load crawler data:', error);
-            throw error;
+            return data;
+        } catch (err) {
+            this.showNotification('Failed to load crawler data: ' + err.message, 'error');
+            throw err;
+        }
+    }
+
+    async saveSensorsToCrawlerData(updatedData) {
+        // Send updated data to backend for recompression and saving
+        if (window.electronAPI && window.electronAPI.saveCrawlerData) {
+            try {
+                const result = await window.electronAPI.saveCrawlerData(updatedData);
+                if (result.status === 'success') {
+                    this.showNotification('Crawler data saved successfully', 'success');
+                } else {
+                    this.showNotification('Failed to save crawler data: ' + result.message, 'error');
+                }
+            } catch (err) {
+                this.showNotification('Failed to save crawler data: ' + err.message, 'error');
+            }
+        } else {
+            this.showNotification('Save not supported in this environment', 'warning');
         }
     }
 
     updateSatelliteInfoView(data) {
-        const sensorListContainer = document.getElementById('sensor-list-container');
-        if (!sensorListContainer || !data.satellites) return;
+        // Update the new satellite grid instead of the old sensor list
+        this.updateSatelliteGrid(data);
         
-        let html = '';
+        // Update crawler status
+        this.updateCrawlerStatus('Data Loaded', 'ready');
         
-        Object.entries(data.satellites).forEach(([satellite, datasets]) => {
-            const firstDataset = datasets[0];
-            const resolution = firstDataset.resolution || 'N/A';
-            const dataType = firstDataset.data_type || 'Satellite Imagery';
-            
-            html += `
-                <div class="sensor-item" onclick="flutterEarth.showSensorDetails('${satellite}')">
-                    <div class="sensor-item-content">
-                        <div class="sensor-name">${satellite}</div>
-                        <div class="sensor-type">${dataType}</div>
-                        <div class="sensor-resolution">${resolution} • ${datasets.length} datasets</div>
-                    </div>
-                </div>
-            `;
-        });
-        
-        sensorListContainer.innerHTML = html;
+        // Setup new event listeners if not already done
+        if (!this.newEventsSetup) {
+            this.setupNewSatelliteEvents();
+            this.newEventsSetup = true;
+        }
     }
 
-    showSensorDetails(satelliteName) {
-        if (!this.crawlerData || !this.crawlerData.satellites[satelliteName]) {
-            console.warn('[DEBUG] No data for satellite:', satelliteName);
-            return;
-        }
-        
-        const datasets = this.crawlerData.satellites[satelliteName];
-        const firstDataset = datasets[0];
-        
-        // Create or update sensor details section
-        let detailsSection = document.querySelector('.sensor-details-section');
-        if (!detailsSection) {
-            detailsSection = document.createElement('div');
-            detailsSection.className = 'sensor-details-section';
-            document.querySelector('.satellite-content').appendChild(detailsSection);
-        }
-        
-        detailsSection.innerHTML = `
-            <div class="sensor-details">
-                <h4>${satelliteName}</h4>
-                <div class="sensor-info-grid">
-                    <div class="sensor-info-row">
-                        <span class="sensor-label">Datasets:</span>
-                        <span class="sensor-value">${datasets.length}</span>
-                    </div>
-                    <div class="sensor-info-row">
-                        <span class="sensor-label">Resolution:</span>
-                        <span class="sensor-value">${firstDataset.resolution || 'N/A'}</span>
-                    </div>
-                    <div class="sensor-info-row">
-                        <span class="sensor-label">Data Type:</span>
-                        <span class="sensor-value">${firstDataset.data_type || 'N/A'}</span>
-                    </div>
-                    <div class="sensor-info-row">
-                        <span class="sensor-label">Coverage:</span>
-                        <span class="sensor-value">${firstDataset.coverage || 'N/A'}</span>
-                    </div>
-                    <div class="sensor-info-row">
-                        <span class="sensor-label">Publisher:</span>
-                        <span class="sensor-value">${firstDataset.publisher || 'N/A'}</span>
-                    </div>
-                </div>
-                
-                <div class="sensor-description">
-                    <h5>Description</h5>
-                    <p>${firstDataset.description || 'No description available'}</p>
-                </div>
-                
-                ${firstDataset.bands && firstDataset.bands.length > 0 ? `
-                <div class="sensor-bands">
-                    <h5>Available Bands</h5>
-                    <div class="band-list">
-                        ${firstDataset.bands.map(band => `<span class="band-item">${band}</span>`).join('')}
-                    </div>
-                </div>
-                ` : ''}
-                
-                ${firstDataset.applications && firstDataset.applications.length > 0 ? `
-                <div class="sensor-applications">
-                    <h5>Applications</h5>
-                    <div class="application-list">
-                        ${firstDataset.applications.map(app => `<span class="application-item">${app}</span>`).join('')}
-                    </div>
-                </div>
-                ` : ''}
-                
-                ${firstDataset.code_snippet ? `
-                <div class="sensor-code">
-                    <h5>Earth Engine Code Snippet</h5>
-                    <pre><code>${firstDataset.code_snippet}</code></pre>
-                </div>
-                ` : ''}
-            </div>
-        `;
-    }
+
 
     cancelDownload() {
         // Simplified download cancellation
@@ -1586,7 +1567,7 @@ class FlutterEarth {
             category: 'basic',
             background: '#F0F0F0',
             primary: '#0078D7',
-            emoji: '🌞',
+            emoji: '��',
             icon: '🌞',
             splashEffect: 'sunbeams',
             uiEffect: 'sunshine',
@@ -2005,6 +1986,31 @@ class FlutterEarth {
     currentThemeData = { options: {} };
     currentTheme = 'default_dark'; // Match the first theme in the array
 
+    // Handle theme tab clicks dynamically
+    handleThemeTabClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        try {
+            const category = e.target.dataset.category;
+            console.log('[DEBUG] Theme tab clicked:', category);
+            
+            // Update active tab
+            document.querySelectorAll('.theme-tab').forEach(tab => {
+                if (tab.dataset.category === category) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            // Update theme grid
+            this.updateThemeGrid(category);
+        } catch (error) {
+            console.error('[DEBUG] Error handling theme tab click:', error);
+        }
+    }
+
     // Add missing switchThemeCategory function
     switchThemeCategory(category) {
         console.log('[DEBUG] Switching theme category:', category);
@@ -2039,7 +2045,7 @@ class FlutterEarth {
         
         const themeGrid = document.getElementById('theme-grid');
         if (!themeGrid) {
-            console.error('[Theme] theme-grid element not found!');
+            console.warn('[Theme] theme-grid element not found, skipping grid update');
             return;
         }
         
@@ -2741,14 +2747,17 @@ class FlutterEarth {
     // --- Robust initSettings ---
     _settingsInitialized = false;
     initSettings(force = false) {
-        // Always rebuild the grid for debug
         console.log('[DEBUG] Initializing settings (all themes grid)');
+        
+        // Try to find theme grid, but don't fail if not found
         const themeGrid = document.getElementById('theme-grid');
         if (!themeGrid) {
-            console.error('[Theme] theme-grid element not found!');
-            return;
+            console.warn('[Theme] theme-grid element not found, but continuing with settings initialization');
+        } else {
+            console.log('[DEBUG] Found theme-grid element, updating grid');
+            this.updateThemeGrid();
         }
-        this.updateThemeGrid();
+        
         this.loadCurrentSettings();
     }
 
@@ -3058,6 +3067,15 @@ class FlutterEarth {
                 console.log('[DEBUG] Using fallback satellite data');
             });
         }
+        
+        // Setup web crawler event listeners
+        this.setupWebCrawlerEvents();
+        
+        // Setup satellite search functionality
+        this.setupSatelliteSearch();
+        
+        // Setup sensor action buttons
+        this.setupSensorActions();
     }
 
     initAboutView() {
@@ -3191,74 +3209,1126 @@ class FlutterEarth {
         `;
         document.head.appendChild(style);
     }
+
+    // Web Crawler Methods
+    setupWebCrawlerEvents() {
+        const runCrawlerBtn = document.getElementById('run-web-crawler');
+        const refreshDataBtn = document.getElementById('refresh-crawler-data');
+        const viewLogBtn = document.getElementById('view-crawler-log');
+
+        if (runCrawlerBtn) {
+            runCrawlerBtn.addEventListener('click', () => this.runWebCrawler());
+        }
+        if (refreshDataBtn) {
+            refreshDataBtn.addEventListener('click', () => this.refreshCrawlerData());
+        }
+        if (viewLogBtn) {
+            viewLogBtn.addEventListener('click', () => this.viewCrawlerLog());
+        }
+    }
+
+    logCrawlerMessage(msg) {
+        const consoleEl = document.getElementById('crawler-console');
+        if (consoleEl) {
+            consoleEl.textContent += msg + '\n';
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+    }
+
+    setCrawlerBottomBar(visible, percent = 0) {
+        const bar = document.getElementById('crawler-bottom-bar');
+        const progress = document.getElementById('crawler-bottom-progress');
+        if (bar) bar.style.display = visible ? 'flex' : 'none';
+        if (progress) progress.style.width = percent + '%';
+    }
+
+    startCrawlerLogPolling() {
+        if (this.crawlerLogInterval) return;
+        this.crawlerLogInterval = setInterval(async () => {
+            if (window.electronAPI && window.electronAPI.tailCrawlerLog) {
+                const result = await window.electronAPI.tailCrawlerLog(50);
+                if (result.status === 'success') {
+                    const consoleEl = document.getElementById('crawler-console');
+                    if (consoleEl) {
+                        consoleEl.textContent = result.log;
+                        consoleEl.scrollTop = consoleEl.scrollHeight;
+                    }
+                    // Parse progress and update speed samples
+                    this.parseAndUpdateCrawlerSpeed(result.log);
+                    // Optionally, update progress bar from log content
+                    const progress = this.parseProgressFromLog(result.log);
+                    this.setCrawlerBottomBar(true, progress);
+                }
+            }
+        }, 1000);
+    }
+
+    stopCrawlerLogPolling() {
+        if (this.crawlerLogInterval) {
+            clearInterval(this.crawlerLogInterval);
+            this.crawlerLogInterval = null;
+        }
+    }
+
+    parseProgressFromLog(log) {
+        // Try to extract a percentage from the last log lines
+        const match = log.match(/(\d{1,3}\.\d)%/);
+        if (match) {
+            return Math.min(100, parseFloat(match[1]));
+        }
+        return 0;
+    }
+
+    parseAndUpdateCrawlerSpeed(log) {
+        // Look for the last [PROGRESS] line
+        const lines = log.split(/\r?\n/);
+        let lastProgress = null;
+        for (let i = lines.length - 1; i >= 0; i--) {
+            if (lines[i].includes('[PROGRESS]')) {
+                lastProgress = lines[i];
+                break;
+            }
+        }
+        if (lastProgress) {
+            // Example: [PROGRESS] 12/100 datasets processed | 5/10 satellites | Elapsed: 34s
+            const match = lastProgress.match(/\[PROGRESS\] (\d+)\/(\d+) datasets processed \| (\d+)\/(\d+) satellites \| Elapsed: (\d+)s/);
+            if (match) {
+                const current = parseInt(match[1]);
+                const total = parseInt(match[2]);
+                const elapsed = parseInt(match[5]);
+                // Calculate speed (datasets/sec)
+                let speed = 0;
+                if (elapsed > 0) speed = current / elapsed;
+                // Add to rolling window
+                this.crawlerSpeedSamples.push({ t: Date.now(), speed });
+                if (this.crawlerSpeedSamples.length > this.crawlerSpeedWindow) {
+                    this.crawlerSpeedSamples.shift();
+                }
+                // Draw the graph
+                this.drawCrawlerSpeedGraph();
+                // Optionally, update estimated time left
+                const timeLeft = speed > 0 ? Math.round((total - current) / speed) : 0;
+                this.updateCrawlerTimeLeft(timeLeft, current, total);
+            }
+        }
+    }
+
+    drawCrawlerSpeedGraph() {
+        const canvas = document.getElementById('crawler-speed-graph');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Draw background
+        ctx.fillStyle = '#181c24';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Draw line
+        const samples = this.crawlerSpeedSamples;
+        if (samples.length < 2) return;
+        const maxSpeed = Math.max(...samples.map(s => s.speed), 1);
+        ctx.strokeStyle = '#4fc3f7';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < samples.length; i++) {
+            const x = (i / (this.crawlerSpeedWindow - 1)) * (canvas.width - 10) + 5;
+            const y = canvas.height - 5 - (samples[i].speed / maxSpeed) * (canvas.height - 10);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        // Draw axis
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(5, canvas.height - 5);
+        ctx.lineTo(canvas.width - 5, canvas.height - 5);
+        ctx.stroke();
+        // Draw max speed label
+        ctx.fillStyle = '#b8e1ff';
+        ctx.font = '10px monospace';
+        ctx.fillText(maxSpeed.toFixed(2), 5, 10);
+    }
+
+    updateCrawlerTimeLeft(timeLeft, current, total) {
+        // Optionally show time left in the progress label
+        const label = document.querySelector('.progress-label');
+        if (label) {
+            if (timeLeft > 0 && current < total) {
+                label.textContent = `Progress (ETA: ${this.formatTime(timeLeft)})`;
+            } else {
+                label.textContent = 'Progress';
+            }
+        }
+    }
+
+    formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return m > 0 ? `${m}m ${s}s` : `${s}s`;
+    }
+
+    async runWebCrawler() {
+        const progressDiv = document.getElementById('crawler-progress');
+        const progressFill = document.getElementById('crawler-progress-fill');
+        const messageDiv = document.getElementById('crawler-message');
+        const runBtn = document.getElementById('run-web-crawler');
+
+        if (this.crawlerRunning) {
+            this.showNotification('Web crawler is already running', 'warning');
+            return;
+        }
+
+        this.crawlerRunning = true;
+        this.updateCrawlerStatus('Running', 'running');
+        progressDiv.style.display = 'block';
+        runBtn.disabled = true;
+        messageDiv.textContent = 'Starting web crawler...';
+        this.setCrawlerBottomBar(true, 0);
+        const consoleEl = document.getElementById('crawler-console');
+        if (consoleEl) consoleEl.textContent = '';
+        this.logCrawlerMessage('Web crawler started.');
+        this.startCrawlerLogPolling();
+
+        // Reset all steps
+        document.querySelectorAll('.step').forEach(step => {
+            step.className = 'step';
+        });
+
+        try {
+            if (window.electronAPI) {
+                const result = await window.electronAPI.pythonRunCrawler();
+                this.logCrawlerMessage('Backend crawler finished.');
+                if (result.status === 'success') {
+                    messageDiv.textContent = 'Web crawler completed successfully!';
+                    this.updateCrawlerStatus('Completed', 'ready');
+                    this.showNotification('Web crawler completed', 'success');
+                    document.querySelectorAll('.step').forEach(step => {
+                        step.classList.add('completed');
+                    });
+                    await this.refreshCrawlerData();
+                } else {
+                    throw new Error(result.message || 'Crawler failed');
+                }
+            } else {
+                await this.simulateWebCrawler(progressFill, messageDiv);
+                this.updateCrawlerStatus('Completed', 'ready');
+                this.showNotification('Web crawler completed', 'success');
+            }
+        } catch (error) {
+            console.error('Web crawler error:', error);
+            messageDiv.textContent = 'Error: ' + error.message;
+            this.updateCrawlerStatus('Error', 'error');
+            this.showNotification('Web crawler failed: ' + error.message, 'error');
+            this.logCrawlerMessage('Error: ' + error.message);
+        } finally {
+            this.crawlerRunning = false;
+            runBtn.disabled = false;
+            setTimeout(() => this.setCrawlerBottomBar(false, 0), 2000);
+            this.stopCrawlerLogPolling();
+        }
+    }
+
+    async simulateWebCrawler(progressFill, messageDiv) {
+        const steps = [
+            { name: 'init', message: 'Initializing web crawler...', duration: 1000 },
+            { name: 'connect', message: 'Connecting to Google Earth Engine...', duration: 1500 },
+            { name: 'fetch', message: 'Fetching catalog data...', duration: 2000 },
+            { name: 'process', message: 'Processing satellite information...', duration: 1500 },
+            { name: 'download', message: 'Downloading thumbnails...', duration: 2500 },
+            { name: 'save', message: 'Saving data to file...', duration: 1000 }
+        ];
+
+        for (let i = 0; i < steps.length; i++) {
+            const step = steps[i];
+            this.updateCrawlerStep(step.name, 'active');
+            messageDiv.textContent = step.message;
+            const progress = ((i + 1) / steps.length) * 100;
+            progressFill.style.width = progress + '%';
+            this.setCrawlerBottomBar(true, progress);
+            this.logCrawlerMessage(step.message);
+            const percentageElement = document.getElementById('progress-percentage');
+            if (percentageElement) {
+                percentageElement.textContent = Math.round(progress) + '%';
+            }
+            await new Promise(resolve => setTimeout(resolve, step.duration));
+            this.updateCrawlerStep(step.name, 'completed');
+        }
+        this.logCrawlerMessage('Web crawler completed successfully!');
+    }
+
+    updateCrawlerStep(stepName, status) {
+        const stepElement = document.querySelector(`[data-step="${stepName}"]`);
+        if (stepElement) {
+            stepElement.className = `step ${status}`;
+        }
+    }
+
+    updateCrawlerStatus(status, type = 'ready') {
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('crawler-status');
+        
+        if (statusDot) {
+            statusDot.className = `status-dot ${type}`;
+        }
+        
+        if (statusText) {
+            statusText.textContent = status;
+        }
+    }
+
+    updateSatelliteGrid(data) {
+        const grid = document.getElementById('satellite-grid');
+        if (!grid || !data.satellites) return;
+
+        let html = '';
+        let totalDatasets = 0;
+
+        Object.entries(data.satellites).forEach(([satellite, datasets]) => {
+            const firstDataset = datasets[0];
+            totalDatasets += datasets.length;
+
+            const tags = [];
+            if (firstDataset.data_type) tags.push(firstDataset.data_type);
+            if (firstDataset.resolution) tags.push(firstDataset.resolution);
+
+            html += `
+                <div class="satellite-card" onclick="flutterEarth.showSensorDetails('${satellite}')">
+                    <div class="card-header">
+                        <h3 class="card-title">${satellite}</h3>
+                        <span class="card-badge">${datasets.length} datasets</span>
+                    </div>
+                    <div class="card-stats">
+                        <div class="card-stat">
+                            <span class="card-stat-value">${firstDataset.resolution || 'N/A'}</span>
+                            <span class="card-stat-label">Resolution</span>
+                        </div>
+                        <div class="card-stat">
+                            <span class="card-stat-value">${firstDataset.data_type || 'N/A'}</span>
+                            <span class="card-stat-label">Type</span>
+                        </div>
+                    </div>
+                    <p class="card-description">${firstDataset.description || 'No description available'}</p>
+                    <div class="card-tags">
+                        ${tags.map(tag => `<span class="card-tag">${tag}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        grid.innerHTML = html;
+
+        // Update header stats
+        const totalSatellites = document.getElementById('total-satellites');
+        const totalDatasetsElement = document.getElementById('total-datasets');
+        const lastUpdated = document.getElementById('last-updated');
+
+        if (totalSatellites) totalSatellites.textContent = Object.keys(data.satellites).length;
+        if (totalDatasetsElement) totalDatasetsElement.textContent = totalDatasets;
+        if (lastUpdated) lastUpdated.textContent = new Date().toLocaleDateString();
+    }
+
+    setupNewSatelliteEvents() {
+        // Close details panel
+        const closeDetails = document.getElementById('close-details');
+        if (closeDetails) {
+            closeDetails.addEventListener('click', () => {
+                const detailsPanel = document.getElementById('satellite-details-panel');
+                if (detailsPanel) {
+                    detailsPanel.classList.remove('show');
+                }
+            });
+        }
+
+        // Clear search
+        const clearSearch = document.getElementById('clear-search');
+        if (clearSearch) {
+            clearSearch.addEventListener('click', () => {
+                const searchInput = document.getElementById('satellite-search');
+                if (searchInput) {
+                    searchInput.value = '';
+                    this.filterSatellites('');
+                }
+            });
+        }
+
+        // Filter tabs
+        const filterTabs = document.querySelectorAll('.filter-tab');
+        filterTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                filterTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                this.filterSatellitesByCategory(tab.dataset.filter);
+            });
+        });
+
+        // View toggles
+        const viewToggles = document.querySelectorAll('.view-toggle');
+        viewToggles.forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                viewToggles.forEach(t => t.classList.remove('active'));
+                toggle.classList.add('active');
+                this.switchGridView(toggle.dataset.view);
+            });
+        });
+
+        // Copy code button
+        const copyCodeBtn = document.getElementById('copy-code-btn');
+        if (copyCodeBtn) {
+            copyCodeBtn.addEventListener('click', () => this.copyCodeSnippet());
+        }
+
+        // Share satellite button
+        const shareSatelliteBtn = document.getElementById('share-satellite');
+        if (shareSatelliteBtn) {
+            shareSatelliteBtn.addEventListener('click', () => this.shareSatellite());
+        }
+    }
+
+    filterSatellitesByCategory(category) {
+        const cards = document.querySelectorAll('.satellite-card');
+        cards.forEach(card => {
+            if (category === 'all') {
+                card.style.display = 'block';
+            } else {
+                const cardType = card.querySelector('.card-stat-value')?.textContent.toLowerCase();
+                if (cardType && cardType.includes(category)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    switchGridView(view) {
+        const grid = document.getElementById('satellite-grid');
+        if (grid) {
+            if (view === 'list') {
+                grid.style.gridTemplateColumns = '1fr';
+            } else {
+                grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+            }
+        }
+    }
+
+    shareSatellite() {
+        if (!this.selectedSatellite) {
+            this.showNotification('No satellite selected', 'warning');
+            return;
+        }
+
+        const satelliteData = this.crawlerData.satellites[this.selectedSatellite];
+        const shareText = `Check out ${this.selectedSatellite} satellite data:\n\n` +
+                         `Resolution: ${satelliteData[0].resolution || 'N/A'}\n` +
+                         `Type: ${satelliteData[0].data_type || 'N/A'}\n` +
+                         `Description: ${satelliteData[0].description || 'No description'}`;
+
+        if (navigator.share) {
+            navigator.share({
+                title: `${this.selectedSatellite} Satellite Data`,
+                text: shareText
+            });
+        } else {
+            navigator.clipboard.writeText(shareText).then(() => {
+                this.showNotification('Satellite info copied to clipboard', 'success');
+            });
+        }
+    }
+
+    async refreshCrawlerData() {
+        try {
+            await this.loadSensorsFromCrawlerData();
+            this.showNotification('Satellite data refreshed', 'success');
+        } catch (error) {
+            console.error('Error refreshing crawler data:', error);
+            this.showNotification('Failed to refresh data', 'error');
+        }
+    }
+
+    viewCrawlerLog() {
+        this.showNotification('Crawler log viewer coming soon', 'info');
+    }
+
+    // Satellite Search Methods
+    setupSatelliteSearch() {
+        const searchInput = document.getElementById('satellite-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', this.debounce((e) => {
+                this.filterSatellites(e.target.value);
+            }, 300));
+        }
+    }
+
+    filterSatellites(searchTerm) {
+        const sensorItems = document.querySelectorAll('.sensor-item');
+        const searchLower = searchTerm.toLowerCase();
+
+        sensorItems.forEach(item => {
+            const sensorName = item.querySelector('.sensor-name')?.textContent.toLowerCase() || '';
+            const sensorType = item.querySelector('.sensor-type')?.textContent.toLowerCase() || '';
+            
+            if (sensorName.includes(searchLower) || sensorType.includes(searchLower)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    // Sensor Action Methods
+    setupSensorActions() {
+        const useForDownloadBtn = document.getElementById('use-for-download');
+        const viewThumbnailBtn = document.getElementById('view-thumbnail');
+        const copyCodeBtn = document.getElementById('copy-code-snippet');
+
+        if (useForDownloadBtn) {
+            console.log('[DEBUG] Setting up useForDownload button event listener');
+            useForDownloadBtn.addEventListener('click', () => {
+                console.log('[DEBUG] useForDownload button clicked!');
+                this.useForDownload();
+            });
+        } else {
+            console.error('[DEBUG] useForDownload button not found!');
+        }
+        if (viewThumbnailBtn) {
+            viewThumbnailBtn.addEventListener('click', () => this.viewThumbnail());
+        }
+        if (copyCodeBtn) {
+            copyCodeBtn.addEventListener('click', () => this.copyCodeSnippet());
+        }
+    }
+
+    useForDownload() {
+        console.log('[DEBUG] useForDownload called (catalog/crawler mode)');
+        this.showNotification('Starting satellite catalog download...', 'info');
+
+        // Switch to download view to show progress
+        this.switchView('download');
+        this.initializeDownloadMonitoring();
+
+        // Call the backend to run the crawler (fetch catalog)
+        if (window.electronAPI && window.electronAPI.pythonRunCrawler) {
+            window.electronAPI.pythonRunCrawler()
+                .then(result => {
+                    if (result.status === 'success') {
+                        this.showNotification('Satellite catalog download started.', 'success');
+                        this.updateDownloadStatus('Satellite catalog download started.', 'success');
+                        this.startDownloadMonitoring();
+                    } else {
+                        this.showNotification('Catalog download failed: ' + result.message, 'error');
+                        this.updateDownloadStatus('Catalog download failed: ' + result.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    this.showNotification('Catalog download error: ' + error.message, 'error');
+                    this.updateDownloadStatus('Catalog download error: ' + error.message, 'error');
+                });
+        } else {
+            this.showNotification('Electron API not available', 'error');
+            this.updateDownloadStatus('Electron API not available', 'error');
+        }
+    }
+
+    initializeDownloadMonitoring() {
+        // Initialize download monitoring variables
+        this.downloadInProgress = true;
+        this.downloadStartTime = Date.now();
+        this.downloadSpeedSamples = [];
+        this.downloadSpeedWindow = 30; // 30 samples for rolling average
+        this.downloadProgress = 0;
+        this.downloadStatus = 'Starting...';
+        
+        // Show download bottom bar
+        this.setDownloadBottomBar(true, 0);
+        
+        // Clear download console
+        const consoleEl = document.getElementById('download-console');
+        if (consoleEl) {
+            consoleEl.textContent = '';
+        }
+        
+        this.logDownloadMessage('Download started.');
+    }
+
+    setDownloadBottomBar(visible, percent = 0) {
+        const bar = document.getElementById('download-bottom-bar');
+        const progress = document.getElementById('download-bottom-progress');
+        if (bar) bar.style.display = visible ? 'flex' : 'none';
+        if (progress) progress.style.width = percent + '%';
+    }
+
+    startDownloadMonitoring() {
+        if (this.downloadLogInterval) return;
+        this.downloadLogInterval = setInterval(async () => {
+            if (window.electronAPI && window.electronAPI.pythonProgress) {
+                const result = await window.electronAPI.pythonProgress();
+                if (result.status === 'success') {
+                    const progress = result.progress;
+                    this.updateDownloadProgress(progress);
+                    
+                    if (progress.message) {
+                        this.logDownloadMessage(progress.message);
+                    }
+                    
+                    if (progress.completed || progress.error) {
+                        this.stopDownloadMonitoring();
+                        
+                        if (progress.error) {
+                            this.updateDownloadStatus('Download failed: ' + progress.error, 'error');
+                            this.logDownloadMessage('ERROR: ' + progress.error);
+                        } else {
+                            this.updateDownloadStatus('Download completed', 'success');
+                            this.logDownloadMessage('Download completed successfully');
+                        }
+                    }
+                }
+            }
+        }, 1000);
+    }
+
+    stopDownloadMonitoring() {
+        if (this.downloadLogInterval) {
+            clearInterval(this.downloadLogInterval);
+            this.downloadLogInterval = null;
+        }
+        this.downloadInProgress = false;
+        setTimeout(() => this.setDownloadBottomBar(false, 0), 2000);
+    }
+
+    updateDownloadProgress(progress) {
+        // Update progress bar
+        const progressPercent = progress.percentage || 0;
+        this.downloadProgress = progressPercent;
+        this.setDownloadBottomBar(true, progressPercent);
+        
+        // Update download status
+        this.downloadStatus = progress.message || 'Downloading...';
+        
+        // Calculate speed and update graph
+        if (progress.bytes_downloaded && progress.elapsed_time) {
+            const speed = progress.bytes_downloaded / progress.elapsed_time; // bytes per second
+            const speedMBps = speed / (1024 * 1024); // Convert to MB/s
+            
+            // Add to rolling window
+            this.downloadSpeedSamples.push({ t: Date.now(), speed: speedMBps });
+            if (this.downloadSpeedSamples.length > this.downloadSpeedWindow) {
+                this.downloadSpeedSamples.shift();
+            }
+            
+            // Draw the speed graph
+            this.drawDownloadSpeedGraph();
+            
+            // Update time estimation
+            if (progress.total_bytes && speed > 0) {
+                const remainingBytes = progress.total_bytes - progress.bytes_downloaded;
+                const timeLeft = remainingBytes / speed;
+                this.updateDownloadTimeLeft(timeLeft, progress.bytes_downloaded, progress.total_bytes);
+            }
+        }
+    }
+
+    drawDownloadSpeedGraph() {
+        const canvas = document.getElementById('download-speed-graph');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw background
+        ctx.fillStyle = '#181c24';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw line
+        const samples = this.downloadSpeedSamples;
+        if (samples.length < 2) return;
+        
+        const maxSpeed = Math.max(...samples.map(s => s.speed), 1);
+        ctx.strokeStyle = '#4fc3f7';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        for (let i = 0; i < samples.length; i++) {
+            const x = (i / (this.downloadSpeedWindow - 1)) * (canvas.width - 10) + 5;
+            const y = canvas.height - 5 - (samples[i].speed / maxSpeed) * (canvas.height - 10);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        
+        // Draw axis
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(5, canvas.height - 5);
+        ctx.lineTo(canvas.width - 5, canvas.height - 5);
+        ctx.stroke();
+        
+        // Draw max speed label
+        ctx.fillStyle = '#b8e1ff';
+        ctx.font = '10px monospace';
+        ctx.fillText(maxSpeed.toFixed(2) + ' MB/s', 5, 10);
+    }
+
+    updateDownloadTimeLeft(timeLeft, downloaded, total) {
+        const label = document.querySelector('.download-progress-section .progress-label');
+        if (label) {
+            if (timeLeft > 0 && downloaded < total) {
+                label.textContent = `Download Progress (ETA: ${this.formatTime(timeLeft)})`;
+            } else {
+                label.textContent = 'Download Progress';
+            }
+        }
+    }
+
+    logDownloadMessage(msg) {
+        const consoleEl = document.getElementById('download-console');
+        if (consoleEl) {
+            const timestamp = new Date().toLocaleTimeString();
+            consoleEl.textContent += `[${timestamp}] ${msg}\n`;
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+    }
+
+    viewThumbnail() {
+        if (!this.selectedSatellite || !this.crawlerData) {
+            this.showNotification('No satellite or thumbnail data available', 'warning');
+            return;
+        }
+
+        const satelliteData = this.crawlerData.satellites[this.selectedSatellite];
+        if (!satelliteData || !satelliteData[0]?.thumbnail_path) {
+            this.showNotification('No thumbnail available for this satellite', 'warning');
+            return;
+        }
+
+        const thumbnailPath = satelliteData[0].thumbnail_path;
+        const modal = document.getElementById('thumbnail-modal');
+        const image = document.getElementById('thumbnail-image');
+
+        if (modal && image) {
+            image.src = thumbnailPath;
+            modal.classList.add('show');
+        }
+    }
+
+    hideThumbnailModal() {
+        const modal = document.getElementById('thumbnail-modal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+    }
+
+    copyCodeSnippet() {
+        if (!this.selectedSatellite || !this.crawlerData) {
+            this.showNotification('No satellite or code snippet available', 'warning');
+            return;
+        }
+
+        const satelliteData = this.crawlerData.satellites[this.selectedSatellite];
+        if (!satelliteData || !satelliteData[0]?.code_snippet) {
+            this.showNotification('No code snippet available for this satellite', 'warning');
+            return;
+        }
+
+        const codeSnippet = satelliteData[0].code_snippet;
+        
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(codeSnippet).then(() => {
+                this.showNotification('Code snippet copied to clipboard', 'success');
+            }).catch(() => {
+                this.fallbackCopyTextToClipboard(codeSnippet);
+            });
+        } else {
+            this.fallbackCopyTextToClipboard(codeSnippet);
+        }
+    }
+
+    fallbackCopyTextToClipboard(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            this.showNotification('Code snippet copied to clipboard', 'success');
+        } catch (err) {
+            this.showNotification('Failed to copy code snippet', 'error');
+        }
+        
+        document.body.removeChild(textArea);
+    }
+
+    // Enhanced showSensorDetails method for new GUI
+    showSensorDetails(satelliteName) {
+        if (!this.crawlerData || !this.crawlerData.satellites[satelliteName]) {
+            console.warn('[DEBUG] No data for satellite:', satelliteName);
+            return;
+        }
+
+        this.selectedSatellite = satelliteName;
+        const datasets = this.crawlerData.satellites[satelliteName];
+        const firstDataset = datasets[0];
+
+        // Show the details panel
+        const detailsPanel = document.getElementById('satellite-details-panel');
+        if (detailsPanel) {
+            detailsPanel.classList.add('show');
+        }
+
+        // Update satellite hero section
+        const detailName = document.getElementById('detail-satellite-name');
+        const detailResolution = document.getElementById('detail-resolution');
+        const detailDatasets = document.getElementById('detail-datasets');
+        const detailStatus = document.getElementById('detail-status');
+        const detailDescription = document.getElementById('detail-description');
+
+        if (detailName) detailName.textContent = satelliteName;
+        if (detailResolution) detailResolution.textContent = firstDataset.resolution || 'N/A';
+        if (detailDatasets) detailDatasets.textContent = datasets.length;
+        if (detailStatus) detailStatus.textContent = firstDataset.status || 'Active';
+        if (detailDescription) detailDescription.textContent = firstDataset.description || 'No description available';
+
+        // Update thumbnail
+        const thumbnailImg = document.getElementById('thumbnail-img');
+        const thumbnailPlaceholder = document.querySelector('.thumbnail-placeholder');
+        if (firstDataset.thumbnail_path) {
+            if (thumbnailImg) {
+                thumbnailImg.src = firstDataset.thumbnail_path;
+                thumbnailImg.style.display = 'block';
+            }
+            if (thumbnailPlaceholder) {
+                thumbnailPlaceholder.style.display = 'none';
+            }
+        } else {
+            if (thumbnailImg) {
+                thumbnailImg.style.display = 'none';
+            }
+            if (thumbnailPlaceholder) {
+                thumbnailPlaceholder.style.display = 'flex';
+            }
+        }
+
+        // Update satellite tags
+        const satelliteTags = document.getElementById('satellite-tags');
+        if (satelliteTags) {
+            const tags = [];
+            if (firstDataset.data_type) tags.push(firstDataset.data_type);
+            if (firstDataset.resolution) tags.push(firstDataset.resolution);
+            if (firstDataset.coverage) tags.push(firstDataset.coverage);
+            
+            satelliteTags.innerHTML = tags.map(tag => 
+                `<span class="card-tag">${tag}</span>`
+            ).join('');
+        }
+
+        // Update applications
+        const applicationsGrid = document.getElementById('detail-applications');
+        if (applicationsGrid) {
+            if (firstDataset.applications && firstDataset.applications.length > 0) {
+                applicationsGrid.innerHTML = firstDataset.applications.map(app => 
+                    `<div class="application-item">${app}</div>`
+                ).join('');
+            } else {
+                applicationsGrid.innerHTML = '<p>No applications information available.</p>';
+            }
+        }
+
+        // Update bands
+        const bandsGrid = document.getElementById('detail-bands');
+        if (bandsGrid) {
+            if (firstDataset.bands && firstDataset.bands.length > 0) {
+                bandsGrid.innerHTML = firstDataset.bands.map(band => 
+                    `<div class="band-item">${band}</div>`
+                ).join('');
+            } else {
+                bandsGrid.innerHTML = '<p>No bands information available.</p>';
+            }
+        }
+
+        // Update code section
+        const codeBlock = document.getElementById('code-block');
+        if (codeBlock) {
+            if (firstDataset.code_snippet) {
+                codeBlock.innerHTML = `<code>${firstDataset.code_snippet}</code>`;
+            } else {
+                codeBlock.innerHTML = '<code>No code snippet available for this satellite.</code>';
+            }
+        }
+
+        // Enable/disable action buttons
+        const useForDownloadBtn = document.getElementById('use-for-download');
+        const viewThumbnailBtn = document.getElementById('view-thumbnail');
+        const copyCodeBtn = document.getElementById('copy-code-btn');
+
+        if (useForDownloadBtn) useForDownloadBtn.disabled = false;
+        if (viewThumbnailBtn) viewThumbnailBtn.disabled = !firstDataset.thumbnail_path;
+        if (copyCodeBtn) copyCodeBtn.disabled = !firstDataset.code_snippet;
+
+        // Update selected state in satellite grid
+        document.querySelectorAll('.satellite-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        
+        const selectedCard = Array.from(document.querySelectorAll('.satellite-card')).find(card => 
+            card.querySelector('.card-title')?.textContent === satelliteName
+        );
+        if (selectedCard) {
+            selectedCard.classList.add('selected');
+        }
+    }
+
+    // New method to update satellite grid
+    updateSatelliteGrid(data) {
+        const grid = document.getElementById('satellite-grid');
+        if (!grid || !data.satellites) return;
+
+        let html = '';
+        let totalDatasets = 0;
+
+        Object.entries(data.satellites).forEach(([satellite, datasets]) => {
+            const firstDataset = datasets[0];
+            totalDatasets += datasets.length;
+
+            const tags = [];
+            if (firstDataset.data_type) tags.push(firstDataset.data_type);
+            if (firstDataset.resolution) tags.push(firstDataset.resolution);
+
+            html += `
+                <div class="satellite-card" onclick="flutterEarth.showSensorDetails('${satellite}')">
+                    <div class="card-header">
+                        <h3 class="card-title">${satellite}</h3>
+                        <span class="card-badge">${datasets.length} datasets</span>
+                    </div>
+                    <div class="card-stats">
+                        <div class="card-stat">
+                            <span class="card-stat-value">${firstDataset.resolution || 'N/A'}</span>
+                            <span class="card-stat-label">Resolution</span>
+                        </div>
+                        <div class="card-stat">
+                            <span class="card-stat-value">${firstDataset.data_type || 'N/A'}</span>
+                            <span class="card-stat-label">Type</span>
+                        </div>
+                    </div>
+                    <p class="card-description">${firstDataset.description || 'No description available'}</p>
+                    <div class="card-tags">
+                        ${tags.map(tag => `<span class="card-tag">${tag}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        grid.innerHTML = html;
+
+        // Update header stats
+        const totalSatellites = document.getElementById('total-satellites');
+        const totalDatasetsElement = document.getElementById('total-datasets');
+        const lastUpdated = document.getElementById('last-updated');
+
+        if (totalSatellites) totalSatellites.textContent = Object.keys(data.satellites).length;
+        if (totalDatasetsElement) totalDatasetsElement.textContent = totalDatasets;
+        if (lastUpdated) lastUpdated.textContent = new Date().toLocaleDateString();
+    }
+
+    // Enhanced crawler progress with step tracking
+    async simulateWebCrawler(progressFill, messageDiv) {
+        const steps = [
+            { name: 'init', message: 'Initializing web crawler...', duration: 1000 },
+            { name: 'connect', message: 'Connecting to Google Earth Engine...', duration: 1500 },
+            { name: 'fetch', message: 'Fetching catalog data...', duration: 2000 },
+            { name: 'process', message: 'Processing satellite information...', duration: 1500 },
+            { name: 'download', message: 'Downloading thumbnails...', duration: 2500 },
+            { name: 'save', message: 'Saving data to file...', duration: 1000 }
+        ];
+
+        for (let i = 0; i < steps.length; i++) {
+            const step = steps[i];
+            
+            // Update step status
+            this.updateCrawlerStep(step.name, 'active');
+            
+            // Update message and progress
+            messageDiv.textContent = step.message;
+            const progress = ((i + 1) / steps.length) * 100;
+            progressFill.style.width = progress + '%';
+            
+            // Update percentage
+            const percentageElement = document.getElementById('progress-percentage');
+            if (percentageElement) {
+                percentageElement.textContent = Math.round(progress) + '%';
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, step.duration));
+            
+            // Mark step as completed
+            this.updateCrawlerStep(step.name, 'completed');
+        }
+    }
+
+    updateCrawlerStep(stepName, status) {
+        const stepElement = document.querySelector(`[data-step="${stepName}"]`);
+        if (stepElement) {
+            stepElement.className = `step ${status}`;
+        }
+    }
+
+    updateCrawlerStatus(status, type = 'ready') {
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('crawler-status');
+        
+        if (statusDot) {
+            statusDot.className = `status-dot ${type}`;
+        }
+        
+        if (statusText) {
+            statusText.textContent = status;
+        }
+    }
+
+    // Setup new event listeners for the redesigned GUI
+    setupNewSatelliteEvents() {
+        // Close details panel
+        const closeDetails = document.getElementById('close-details');
+        if (closeDetails) {
+            closeDetails.addEventListener('click', () => {
+                const detailsPanel = document.getElementById('satellite-details-panel');
+                if (detailsPanel) {
+                    detailsPanel.classList.remove('show');
+                }
+            });
+        }
+
+        // Clear search
+        const clearSearch = document.getElementById('clear-search');
+        if (clearSearch) {
+            clearSearch.addEventListener('click', () => {
+                const searchInput = document.getElementById('satellite-search');
+                if (searchInput) {
+                    searchInput.value = '';
+                    this.filterSatellites('');
+                }
+            });
+        }
+
+        // Filter tabs
+        const filterTabs = document.querySelectorAll('.filter-tab');
+        filterTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                filterTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                this.filterSatellitesByCategory(tab.dataset.filter);
+            });
+        });
+
+        // View toggles
+        const viewToggles = document.querySelectorAll('.view-toggle');
+        viewToggles.forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                viewToggles.forEach(t => t.classList.remove('active'));
+                toggle.classList.add('active');
+                this.switchGridView(toggle.dataset.view);
+            });
+        });
+
+        // Copy code button
+        const copyCodeBtn = document.getElementById('copy-code-btn');
+        if (copyCodeBtn) {
+            copyCodeBtn.addEventListener('click', () => this.copyCodeSnippet());
+        }
+
+        // Share satellite button
+        const shareSatelliteBtn = document.getElementById('share-satellite');
+        if (shareSatelliteBtn) {
+            shareSatelliteBtn.addEventListener('click', () => this.shareSatellite());
+        }
+    }
+
+    filterSatellitesByCategory(category) {
+        const cards = document.querySelectorAll('.satellite-card');
+        cards.forEach(card => {
+            if (category === 'all') {
+                card.style.display = 'block';
+            } else {
+                // This is a simplified filter - you can enhance it based on your data structure
+                const cardType = card.querySelector('.card-stat-value')?.textContent.toLowerCase();
+                if (cardType && cardType.includes(category)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    switchGridView(view) {
+        const grid = document.getElementById('satellite-grid');
+        if (grid) {
+            if (view === 'list') {
+                grid.style.gridTemplateColumns = '1fr';
+            } else {
+                grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+            }
+        }
+    }
+
+    shareSatellite() {
+        if (!this.selectedSatellite) {
+            this.showNotification('No satellite selected', 'warning');
+            return;
+        }
+
+        const satelliteData = this.crawlerData.satellites[this.selectedSatellite];
+        const shareText = `Check out ${this.selectedSatellite} satellite data:\n\n` +
+                         `Resolution: ${satelliteData[0].resolution || 'N/A'}\n` +
+                         `Type: ${satelliteData[0].data_type || 'N/A'}\n` +
+                         `Description: ${satelliteData[0].description || 'No description'}`;
+
+        if (navigator.share) {
+            navigator.share({
+                title: `${this.selectedSatellite} Satellite Data`,
+                text: shareText
+            });
+        } else {
+            // Fallback to clipboard
+            navigator.clipboard.writeText(shareText).then(() => {
+                this.showNotification('Satellite info copied to clipboard', 'success');
+            });
+        }
+    }
 }
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[DEBUG] DOM Content Loaded - Initializing FlutterEarth');
-    window.flutterEarth = new FlutterEarth();
-});
-
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = FlutterEarth;
-}
-
-// Check if running in Electron (Node.js) environment
-function isElectron() {
-    // Renderer process
-    if (typeof window !== 'undefined' && typeof window.process === 'object' && window.process.type === 'renderer') {
-        return true;
+    
+    // Check if running in Electron (Node.js) environment
+    function isElectron() {
+        // Renderer process
+        if (typeof window !== 'undefined' && typeof window.process === 'object' && window.process.type === 'renderer') {
+            return true;
+        }
+        // Main process
+        if (typeof process !== 'undefined' && typeof process.versions === 'object' && !!process.versions.electron) {
+            return true;
+        }
+        // User agent
+        if (typeof navigator === 'object' && typeof navigator.userAgent === 'string' && navigator.userAgent.indexOf('Electron') >= 0) {
+            return true;
+        }
+        return false;
     }
-    // Main process
-    if (typeof process !== 'undefined' && typeof process.versions === 'object' && !!process.versions.electron) {
-        return true;
+    
+    // Initialize the main app
+    try {
+        window.flutterEarth = new FlutterEarth();
+        console.log('[DEBUG] FlutterEarth initialized successfully');
+    } catch (error) {
+        console.error('[DEBUG] Failed to initialize FlutterEarth:', error);
     }
-    // User agent
-    if (typeof navigator === 'object' && typeof navigator.userAgent === 'string' && navigator.userAgent.indexOf('Electron') >= 0) {
-        return true;
-    }
-    return false;
-}
-
-// Simplified error handling
-function showLatexErrorBox() {
-    const latexBox = document.createElement('div');
-    latexBox.style.cssText = `
-        background: #fffbe6;
-        border: 2px solid #e0c200;
-        padding: 24px;
-        margin: 32px auto;
-        max-width: 600px;
-        font-family: serif;
-        font-size: 1.1em;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    `;
-    latexBox.innerHTML = `
-        <b style="font-size:1.2em;">Electron/Node.js Not Detected</b><br><br>
-        The application could not detect Electron (Node.js) running.<br>
-        This usually means the Electron dependencies are missing or failed to install.<br><br>
-        <strong>Manual Fix:</strong><br>
-        1. Download Electron from:<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;https://github.com/electron/electron/releases<br>
-        2. Extract the ZIP and place it in:<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;frontend/node_modules/electron<br>
-        3. Try running the app again.<br><br>
-        See the README for full instructions.
-    `;
-    document.body.prepend(latexBox);
-}
-
-// Check for Electron on page load
-window.addEventListener('DOMContentLoaded', function() {
-    if (!isElectron()) {
-        console.warn('[DEBUG] Electron not detected - showing error box');
-        showLatexErrorBox();
-    }
-}); 
-
-// Add this after DOMContentLoaded or in your init function:
-document.addEventListener('DOMContentLoaded', function() {
+    
+    // Setup map selector close button
     const closeBtn = document.getElementById('map-selector-close');
     if (closeBtn) {
         closeBtn.onclick = () => {
@@ -3266,4 +4336,41 @@ document.addEventListener('DOMContentLoaded', function() {
             if (overlay) overlay.style.display = 'none';
         };
     }
-}); 
+    
+    // Log Electron status but don't show error box (allows browser testing)
+    if (!isElectron()) {
+        console.log('[DEBUG] Running in browser mode (Electron not detected)');
+    } else {
+        console.log('[DEBUG] Running in Electron mode');
+    }
+});
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = FlutterEarth;
+}
+
+// In Satellite Info tab logic:
+async function fetchCatalogData() {
+    const sources = [
+        '../backend/gee_catalog_data_enhanced.json',
+        '../backend/gee_catalog_data.json',
+        '../backend/gee_catalog_data_enhanced.json.gz',
+    ];
+    for (const src of sources) {
+        try {
+            if (src.endsWith('.gz')) {
+                const resp = await fetch(src);
+                if (!resp.ok) continue;
+                const arrayBuffer = await resp.arrayBuffer();
+                const text = pako.ungzip(new Uint8Array(arrayBuffer), { to: 'string' });
+                return JSON.parse(text);
+            } else {
+                const resp = await fetch(src);
+                if (!resp.ok) continue;
+                return await resp.json();
+            }
+        } catch (e) { continue; }
+    }
+    throw new Error('No catalog data found');
+}

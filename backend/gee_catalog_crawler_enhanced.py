@@ -11,10 +11,13 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from urllib.parse import urljoin, urlparse
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 import re
 from typing import Dict, List, Optional, Any
 import sys
+import gzip
+import argparse
+import shutil
 
 class EnhancedGEECatalogCrawler:
     def __init__(self, base_url: str = "https://developers.google.com/earth-engine/datasets/catalog"):
@@ -37,6 +40,11 @@ class EnhancedGEECatalogCrawler:
         self.total_pages = 0
         self.current_page = 0
         self.total_datasets = 0
+        
+        self.data_dir = Path("backend/crawler_data")
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.thumbnail_dir = self.data_dir / "thumbnails"
+        self.thumbnail_dir.mkdir(parents=True, exist_ok=True)
         
     def setup_logging(self):
         """Setup logging configuration"""
@@ -63,19 +71,66 @@ class EnhancedGEECatalogCrawler:
         if current == total:
             print()  # New line when complete
         
-    def get_page_content(self, url: str) -> Optional[BeautifulSoup]:
-        """Fetch and parse a web page"""
-        try:
-            self.logger.info(f"Fetching: {url}")
-            response = self.session.get(url, timeout=30)
-            response.raise_for_status()
-            return BeautifulSoup(response.content, 'html.parser')
-        except requests.RequestException as e:
-            self.logger.error(f"Error fetching {url}: {e}")
-            return None
+    def get_page_content(self, url: str, retries: int = 3, backoff: float = 2.0) -> Optional[BeautifulSoup]:
+        for attempt in range(retries):
+            try:
+                self.logger.info(f"Fetching: {url}")
+                response = self.session.get(url, timeout=30)
+                response.raise_for_status()
+                return BeautifulSoup(response.content, 'html.parser')
+            except requests.RequestException as e:
+                self.logger.error(f"Error fetching {url} (attempt {attempt+1}/{retries}): {e}")
+                if attempt < retries - 1:
+                    time.sleep(backoff * (2 ** attempt))
+                else:
+                    return None
     
+    def extract_thumbnail_url(self, card_element) -> str:
+        """Try to extract a thumbnail/preview image URL from the card element."""
+        from bs4 import Tag
+        # Only operate if card_element is a Tag
+        if not isinstance(card_element, Tag):
+            return ''
+        # Try common image tags
+        img = card_element.find('img') if hasattr(card_element, 'find') else None
+        if img and isinstance(img, Tag):
+            src = img.get('src')
+            if isinstance(src, str):
+                return src
+        # Try meta/preview links
+        preview = card_element.find('a', href=True) if hasattr(card_element, 'find') else None
+        if preview and isinstance(preview, Tag):
+            href = preview.get('href')
+            if isinstance(href, str) and ('.jpg' in href or '.png' in href):
+                return href
+        return ''
+
+    def download_thumbnail(self, url: str, dataset_id: str) -> str:
+        """Download the thumbnail image and return the local path, or empty string on failure."""
+        if not url or not dataset_id:
+            return ''
+        try:
+            # Normalize URL
+            if url.startswith('//'):
+                url = 'https:' + url
+            elif url.startswith('/'):
+                url = 'https://developers.google.com' + url
+            # Get file extension
+            ext = url.split('.')[-1].split('?')[0]
+            local_path = self.thumbnail_dir / f"{dataset_id}.{ext}"
+            # Download
+            resp = self.session.get(url, stream=True, timeout=15)
+            resp.raise_for_status()
+            with open(local_path, 'wb') as f:
+                shutil.copyfileobj(resp.raw, f)
+            return str(local_path)
+        except Exception as e:
+            self.logger.warning(f"Failed to download thumbnail for {dataset_id}: {e}")
+            return ''
+
     def extract_dataset_from_card(self, card_element) -> Dict[str, Any]:
         """Extract essential dataset information from a dataset card element"""
+        from bs4 import Tag
         dataset_info = {
             # Essential fields for frontend
             'name': '',
@@ -97,16 +152,16 @@ class EnhancedGEECatalogCrawler:
             'start_date': '',
             'end_date': '',
             'applications': [],
-            'limitations': ''
+            'limitations': '',
+            'thumbnail': '',
         }
-        
         try:
             # Extract name and link from the main heading
-            name_link = card_element.find('a')
-            if name_link:
+            name_link = card_element.find('a') if isinstance(card_element, Tag) else None
+            if name_link and isinstance(name_link, Tag):
                 dataset_info['name'] = name_link.get_text(strip=True)
-                link = urljoin(self.base_url, name_link.get('href', ''))
-                
+                href = name_link.get('href') if isinstance(name_link, Tag) else None
+                link = urljoin(self.base_url, href) if isinstance(href, str) else None
                 # Extract dataset ID from URL
                 if link:
                     parsed_url = urlparse(link)
@@ -114,22 +169,18 @@ class EnhancedGEECatalogCrawler:
                     if len(path_parts) > 0:
                         dataset_info['dataset_id'] = path_parts[-1]
                         dataset_info['collection_id'] = dataset_info['dataset_id']
-            
             # Extract description
-            description_elem = card_element.find('p') or card_element.find('div', class_='description')
-            if description_elem:
+            description_elem = (card_element.find('p') if isinstance(card_element, Tag) else None) or \
+                              (card_element.find('div', class_='description') if isinstance(card_element, Tag) else None)
+            if description_elem and isinstance(description_elem, Tag):
                 dataset_info['description'] = description_elem.get_text(strip=True)
-            
             # Extract tags and categorize
-            tags_section = card_element.find_all('a', href=re.compile(r'/earth-engine/datasets/tags/'))
+            tags_section = card_element.find_all('a', href=re.compile(r'/earth-engine/datasets/tags/')) if isinstance(card_element, Tag) else []
             if tags_section:
-                dataset_info['tags'] = [tag.get_text(strip=True) for tag in tags_section]
-                
+                dataset_info['tags'] = [tag.get_text(strip=True) for tag in tags_section if isinstance(tag, Tag)]
                 # Categorize tags and extract satellites
                 for tag in dataset_info['tags']:
                     tag_lower = tag.lower()
-                    
-                    # Satellite detection
                     satellite_keywords = [
                         'landsat', 'modis', 'sentinel', 'aster', 'alos', 'srtm', 'gpm', 
                         'grace', 'jason', 'cryosat', 'icesat', 'quikscat', 'seawinds',
@@ -141,37 +192,9 @@ class EnhancedGEECatalogCrawler:
                         'meteosat', 'fy', 'fengyun', 'gaofen', 'zy', 'tianhui', 'superview',
                         'jilin', 'changguang'
                     ]
-                    
                     for keyword in satellite_keywords:
                         if keyword in tag_lower:
                             dataset_info['satellites'].append(tag)
-                            break
-                    
-                    # Data type categorization
-                    if any(keyword in tag_lower for keyword in ['elevation', 'dem', 'topography', 'srtm']):
-                        dataset_info['data_type'] = 'Elevation/Topography'
-                    elif any(keyword in tag_lower for keyword in ['imagery', 'satellite', 'optical']):
-                        dataset_info['data_type'] = 'Satellite Imagery'
-                    elif any(keyword in tag_lower for keyword in ['climate', 'weather', 'temperature', 'precipitation']):
-                        dataset_info['data_type'] = 'Climate/Weather'
-                    elif any(keyword in tag_lower for keyword in ['vegetation', 'ndvi', 'evi', 'lai']):
-                        dataset_info['data_type'] = 'Vegetation'
-                    elif any(keyword in tag_lower for keyword in ['water', 'ocean', 'hydrology', 'flood']):
-                        dataset_info['data_type'] = 'Water/Hydrology'
-                    elif any(keyword in tag_lower for keyword in ['soil', 'geology', 'mineral']):
-                        dataset_info['data_type'] = 'Soil/Geology'
-                    elif any(keyword in tag_lower for keyword in ['population', 'demographics', 'settlement']):
-                        dataset_info['data_type'] = 'Population/Demographics'
-                    elif any(keyword in tag_lower for keyword in ['fire', 'burn', 'wildfire']):
-                        dataset_info['data_type'] = 'Fire/Burn'
-                    elif any(keyword in tag_lower for keyword in ['administrative', 'boundaries', 'political']):
-                        dataset_info['data_type'] = 'Administrative'
-                    elif any(keyword in tag_lower for keyword in ['agriculture', 'crop', 'farming']):
-                        dataset_info['data_type'] = 'Agriculture'
-                    elif any(keyword in tag_lower for keyword in ['atmospheric', 'aerosol', 'air']):
-                        dataset_info['data_type'] = 'Atmospheric'
-                    elif any(keyword in tag_lower for keyword in ['cryosphere', 'ice', 'snow', 'glacier']):
-                        dataset_info['data_type'] = 'Cryosphere'
             
             # Extract resolution information from description
             description_text = dataset_info['description'].lower()
@@ -281,9 +304,13 @@ class EnhancedGEECatalogCrawler:
                 if keyword in description_text:
                     dataset_info['applications'].append(keyword)
             
-        except Exception as e:
-            self.logger.error(f"Error extracting dataset info: {e}")
+            # Extract thumbnail URL and download
+            thumb_url = self.extract_thumbnail_url(card_element)
+            if thumb_url and dataset_info['dataset_id']:
+                dataset_info['thumbnail'] = self.download_thumbnail(thumb_url, dataset_info['dataset_id'])
             
+        except Exception as e:
+            self.logger.error(f"Error extracting dataset from card: {e}")
         return dataset_info
     
     def generate_code_snippet(self, dataset_info: Dict[str, Any]) -> str:
@@ -323,54 +350,27 @@ Export.image.toDrive({{
     
     def crawl_catalog_page(self, page_url: str) -> List[Dict[str, Any]]:
         """Crawl a single catalog page"""
+        from bs4 import Tag
+        datasets = []
         soup = self.get_page_content(page_url)
         if not soup:
-            return []
-        
-        datasets = []
-        
-        # Look for dataset cards or table rows
-        # Method 1: Look for table rows (traditional catalog layout)
-        table_rows = soup.find_all('tr')
-        if table_rows:
-            for row in table_rows:
-                if row.find('th'):  # Skip header rows
-                    continue
-                    
-                cells = row.find_all('td')
-                if len(cells) >= 2:
-                    dataset_info = self.extract_dataset_from_card(row)
-                    if dataset_info['name']:
-                        datasets.append(dataset_info)
-                        self.logger.info(f"Extracted dataset (table): {dataset_info['name']}")
-        
-        # Method 2: Look for dataset cards (modern layout)
-        if not datasets:
-            cards = soup.find_all(['div', 'article'], class_=re.compile(r'(card|dataset|item)'))
-            if not cards:
-                cards = soup.find_all('div', recursive=True)
-                cards = [card for card in cards if card.find('a') and len(card.get_text(strip=True)) > 50]
-            
-            for card in cards[:50]:  # Limit to avoid too many false positives
-                dataset_info = self.extract_dataset_from_card(card)
-                if dataset_info['name'] and len(dataset_info['name']) > 5:
-                    datasets.append(dataset_info)
-                    self.logger.info(f"Extracted dataset (card): {dataset_info['name']}")
-        
-        # Method 3: Look for any links that might be datasets
-        if not datasets:
-            links = soup.find_all('a', href=re.compile(r'/earth-engine/datasets/catalog/'))
-            for link in links:
-                parent = link.parent
-                if parent:
-                    dataset_info = self.extract_dataset_from_card(parent)
-                    if dataset_info['name'] and len(dataset_info['name']) > 5:
-                        datasets.append(dataset_info)
-                        self.logger.info(f"Extracted dataset (link): {dataset_info['name']}")
-        
+            return datasets
+        # Find all dataset cards
+        cards = soup.find_all('div', class_='devsite-article-body') if hasattr(soup, 'find_all') else []
+        for card in cards:
+            if isinstance(card, Tag):
+                for child in card.find_all('div', recursive=False) if hasattr(card, 'find_all') else []:
+                    if isinstance(child, Tag):
+                        dataset_info = self.extract_dataset_from_card(child)
+                        if dataset_info['name']:
+                            # Download thumbnail if available
+                            thumb_url = self.extract_thumbnail_url(child)
+                            if thumb_url:
+                                dataset_info['thumbnail'] = self.download_thumbnail(thumb_url, dataset_info['dataset_id'])
+                            datasets.append(dataset_info)
+                            self.logger.info(f"Extracted dataset (link): {dataset_info['name']}")
         # Update progress
         self.total_datasets += len(datasets)
-        
         return datasets
     
     def crawl_all_pages(self) -> List[Dict[str, Any]]:
@@ -379,50 +379,98 @@ Export.image.toDrive({{
         page_num = 1
         consecutive_empty_pages = 0
         max_consecutive_empty = 5  # Stop after 5 consecutive empty pages
-        
+        start_time = time.time()
+
         print(f"\n🌍 Starting to crawl all available pages...")
         print("=" * 60)
         print("The crawler will continue until no more datasets are found.")
         print("=" * 60)
-        
+
+        # Pre-scan phase: count total datasets and satellites
+        print("[PRESCAN] Scanning catalog to count total datasets and satellites...")
+        prescan_datasets = []
+        prescan_page = 1
+        prescan_consecutive_empty = 0
+        while True:
+            if prescan_page == 1:
+                page_url = self.base_url
+            else:
+                page_url = f"{self.base_url}?page={prescan_page}"
+            soup = self.get_page_content(page_url)
+            if not soup:
+                break
+            cards = soup.find_all('div', class_='devsite-article-body') if hasattr(soup, 'find_all') else []
+            found = 0
+            for card in cards:
+                from bs4 import Tag
+                if isinstance(card, Tag):
+                    for child in card.find_all('div', recursive=False) if hasattr(card, 'find_all') else []:
+                        if isinstance(child, Tag):
+                            dataset_info = self.extract_dataset_from_card(child)
+                            if dataset_info['name']:
+                                prescan_datasets.append(dataset_info)
+                                found += 1
+            if found == 0:
+                prescan_consecutive_empty += 1
+                if prescan_consecutive_empty >= max_consecutive_empty:
+                    break
+            else:
+                prescan_consecutive_empty = 0
+            prescan_page += 1
+            if prescan_page > 10000:
+                break
+        total_datasets = len(prescan_datasets)
+        unique_satellites = set()
+        for d in prescan_datasets:
+            for s in d.get('satellites', []):
+                unique_satellites.add(s)
+        total_satellites = len(unique_satellites)
+        print(f"[PRESCAN] Total datasets: {total_datasets}")
+        print(f"[PRESCAN] Total satellites: {total_satellites}")
+        self.logger.info(f"[PRESCAN] Total datasets: {total_datasets}")
+        self.logger.info(f"[PRESCAN] Total satellites: {total_satellites}")
+        print(f"[PROGRESS] 0/{total_datasets} datasets processed | 0/{total_satellites} satellites | Elapsed: 0s")
+        self.logger.info(f"[PROGRESS] 0/{total_datasets} datasets processed | 0/{total_satellites} satellites | Elapsed: 0s")
+
+        # Now do the actual crawl and download, logging progress for each
+        all_datasets = []
+        processed_satellites = set()
+        processed_datasets = 0
+        page_num = 1
+        consecutive_empty_pages = 0
         while True:
             if page_num == 1:
                 page_url = self.base_url
             else:
                 page_url = f"{self.base_url}?page={page_num}"
-            
-            # Update progress
             self.current_page = page_num
             print(f'\r🌍 Crawling Page {page_num} | Datasets found: {self.total_datasets} | Empty pages: {consecutive_empty_pages}', end='', flush=True)
-            
             self.logger.info(f"Crawling page {page_num}: {page_url}")
             page_datasets = self.crawl_catalog_page(page_url)
-            
             if not page_datasets:
                 consecutive_empty_pages += 1
                 self.logger.info(f"No datasets found on page {page_num} (empty page #{consecutive_empty_pages})")
-                
-                # Stop if we've had too many consecutive empty pages
                 if consecutive_empty_pages >= max_consecutive_empty:
                     print(f"\n✅ No more datasets found after {consecutive_empty_pages} consecutive empty pages.")
                     break
             else:
-                consecutive_empty_pages = 0  # Reset counter when we find data
-                all_datasets.extend(page_datasets)
+                consecutive_empty_pages = 0
+                for dataset in page_datasets:
+                    all_datasets.append(dataset)
+                    processed_datasets += 1
+                    for s in dataset.get('satellites', []):
+                        processed_satellites.add(s)
+                    elapsed = int(time.time() - start_time)
+                    print(f"[PROGRESS] {processed_datasets}/{total_datasets} datasets processed | {len(processed_satellites)}/{total_satellites} satellites | Elapsed: {elapsed}s")
+                    self.logger.info(f"[PROGRESS] {processed_datasets}/{total_datasets} datasets processed | {len(processed_satellites)}/{total_satellites} satellites | Elapsed: {elapsed}s")
                 self.logger.info(f"Found {len(page_datasets)} datasets on page {page_num}")
-            
-            # Be respectful with rate limiting
             time.sleep(1)
             page_num += 1
-            
-            # Safety check - don't go forever (but much higher limit)
             if page_num > 10000:
                 print(f"\n⚠️ Safety limit reached (10000 pages). Stopping to prevent infinite loop.")
                 break
-        
         print(f"\n✅ Crawling completed! Found {len(all_datasets)} total datasets across {page_num-1} pages.")
         print("=" * 60)
-        
         self.datasets = all_datasets
         return all_datasets
     
@@ -464,10 +512,8 @@ Export.image.toDrive({{
         print(f"   🛰️ Satellites: {len(self.satellites)}")
         print(f"   🏢 Publishers: {len(self.publishers)}")
     
-    def save_to_json(self, filename: str = "gee_catalog_data_enhanced.json"):
-        """Save extracted data to JSON file"""
-        print(f"\n💾 Saving data to {filename}...")
-        
+    def save_to_json_gz(self, filename: str = "gee_catalog_data_enhanced.json.gz"):
+        """Save the extracted catalog data to a compressed .json.gz file"""
         output_data = {
             'metadata': {
                 'crawl_date': datetime.now().isoformat(),
@@ -490,35 +536,53 @@ Export.image.toDrive({{
                 'datasets_with_code_snippets': len([d for d in self.datasets if d['code_snippet']])
             }
         }
-        
-        output_path = Path(filename)
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(output_data, f, indent=2, ensure_ascii=False)
-        
-        print(f"✅ Data saved successfully to: {output_path}")
-        self.logger.info(f"Enhanced data saved to {output_path}")
-        return output_path
+        out_path = self.data_dir / filename
+        with gzip.open(out_path, 'wt', encoding='utf-8') as f:
+            json.dump(output_data, f, ensure_ascii=False, indent=2)
+        self.logger.info(f"Saved compressed catalog data to {out_path}")
+        print(f"✅ Data saved successfully to: {out_path}")
+        return out_path
+
+    def save_all_outputs(self, prefix: str = "gee_catalog_data"):
+        # Only save compressed JSON for frontend
+        self.save_to_json_gz(f"{prefix}_enhanced.json.gz")
+
+def run_crawler():
+    """Entry point for external scripts to run the crawler and save outputs."""
+    try:
+        crawler = EnhancedGEECatalogCrawler()
+        datasets = crawler.crawl_all_pages()
+        crawler.categorize_datasets()
+        crawler.save_all_outputs()
+        return {
+            "status": "success",
+            "message": "Web crawler completed successfully",
+            "total_datasets": len(datasets),
+            "total_satellites": len(crawler.satellites),
+            "output_file": str(crawler.data_dir / "gee_catalog_data_enhanced.json.gz")
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Web crawler error: {str(e)}"
+        }
 
 def main():
-    """Main function to run the enhanced crawler"""
+    parser = argparse.ArgumentParser(description="Enhanced GEE Catalog Crawler")
+    parser.add_argument('--prefix', type=str, default='gee_catalog_data', help='Output file prefix')
+    parser.add_argument('--headless', action='store_true', help='Enable headless browser mode (future)')
+    args = parser.parse_args()
+    start_time = time.time()
     crawler = EnhancedGEECatalogCrawler()
-    
     print("🚀 Starting Enhanced Google Earth Engine Data Catalog Crawler")
     print("=" * 60)
-    print("This crawler will extract essential dataset information")
-    print("from the Earth Engine Data Catalog with code snippets.")
+    print("This crawler will extract essential dataset information\nfrom the Earth Engine Data Catalog with code snippets.")
     print("=" * 60)
-    
-    # Crawl all pages (no limit - goes until nothing left)
     datasets = crawler.crawl_all_pages()
-    
-    # Categorize the datasets
     crawler.categorize_datasets()
-    
-    # Save to JSON
-    json_file = crawler.save_to_json()
-    
-    # Print final summary
+    crawler.save_all_outputs(args.prefix)
+    elapsed = time.time() - start_time
+    print(f"\n⏱️ Total crawl time: {elapsed:.2f} seconds")
     print("\n" + "=" * 60)
     print("🎉 CRAWLER COMPLETED SUCCESSFULLY!")
     print("=" * 60)
@@ -526,22 +590,18 @@ def main():
     print(f"🛰️ Satellites found: {len(crawler.satellites)}")
     print(f"📁 Categories found: {len(crawler.categories)}")
     print(f"🏢 Publishers found: {len(crawler.publishers)}")
-    
     if crawler.satellites:
         print(f"\n🛰️ Top satellites:")
         for satellite, datasets_list in sorted(crawler.satellites.items(), key=lambda x: len(x[1]), reverse=True)[:5]:
             print(f"   {satellite}: {len(datasets_list)} datasets")
-    
     if crawler.categories:
         print(f"\n📁 Top categories:")
         for category, datasets_list in sorted(crawler.categories.items(), key=lambda x: len(x[1]), reverse=True)[:5]:
             print(f"   {category}: {len(datasets_list)} datasets")
-    
     if crawler.publishers:
         print(f"\n🏢 Top publishers:")
         for publisher, datasets_list in sorted(crawler.publishers.items(), key=lambda x: len(x[1]), reverse=True)[:5]:
             print(f"   {publisher}: {len(datasets_list)} datasets")
-    
     if crawler.datasets:
         print(f"\n📋 Sample dataset:")
         sample = crawler.datasets[0]
@@ -550,8 +610,7 @@ def main():
         print(f"   Satellites: {', '.join(sample['satellites'][:3])}")
         print(f"   Resolution: {sample['resolution']}")
         print(f"   Code snippet: {'Yes' if sample['code_snippet'] else 'No'}")
-    
-    print(f"\n💾 Data saved to: {json_file}")
+    print(f"\n💾 Data saved to: backend/{args.prefix}_enhanced.json.gz")
     print("🌐 Open catalog_viewer.html to browse the data")
     print("=" * 60)
     
