@@ -5,9 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flutter Earth</title>
     <link rel="stylesheet" href="flutter_earth.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="flutter_earth_enhanced.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="generated_themes.js"></script>
     <script src="flutter_earth.js" defer></script>
+    <script src="theme_effects.js" defer></script>
 </head>
 <body>
     <div id="app" class="app-window">
@@ -254,14 +257,7 @@
                             <h3>Appearance</h3>
                             <div class="theme-selection">
                                 <!-- Theme Category Tabs -->
-                                <div class="theme-tabs">
-                                    <button class="theme-tab active" data-category="all">🌟 All Themes</button>
-                                    <button class="theme-tab" data-category="basic">🌍 Basic</button>
-                                    <button class="theme-tab" data-category="mlp">🦄 My Little Pony</button>
-                                    <button class="theme-tab" data-category="mc">⛏️ Minecraft</button>
-                                    <button class="theme-tab" data-category="queer_pride">🏳️‍🌈 Queer Pride</button>
-                                    <button class="theme-tab" data-category="unity_pride">🤝 Unity Pride</button>
-                                </div>
+                                <div id="theme-tab-container"></div>
                                 <!-- Theme Grid: Show filtered themes -->
                                 <div id="theme-grid" class="theme-grid">
                                     <!-- All themes will be populated by JavaScript -->
@@ -890,13 +886,6 @@
                             
                             <div class="panel-content">
                                 <div class="satellite-hero">
-                                    <div class="satellite-thumbnail" id="satellite-thumbnail">
-                                        <img id="thumbnail-img" src="" alt="Satellite Thumbnail">
-                                        <div class="thumbnail-placeholder">
-                                            <span class="placeholder-icon">🛰️</span>
-                                            <span class="placeholder-text">No Image</span>
-                                        </div>
-                                    </div>
                                     <div class="satellite-basic-info">
                                         <h2 id="detail-satellite-name">Select a Satellite</h2>
                                         <div class="satellite-tags" id="satellite-tags">
@@ -958,10 +947,6 @@
                                     <button class="action-btn primary" id="use-for-download">
                                         <span class="action-icon">📥</span>
                                         <span class="action-text">Use for Download</span>
-                                    </button>
-                                    <button class="action-btn secondary" id="view-thumbnail">
-                                        <span class="action-icon">🖼️</span>
-                                        <span class="action-text">View Full Image</span>
                                     </button>
                                     <button class="action-btn secondary" id="share-satellite">
                                         <span class="action-icon">📤</span>
@@ -1070,14 +1055,6 @@
         <div id="notification-popup" class="notification-popup" style="display: none;">
             <div class="notification-content">
                 <span id="notification-text"></span>
-            </div>
-        </div>
-
-        <!-- Thumbnail Modal -->
-        <div id="thumbnail-modal" class="thumbnail-modal">
-            <div class="thumbnail-content">
-                <button class="thumbnail-close" onclick="flutterEarth.hideThumbnailModal()">&times;</button>
-                <img id="thumbnail-image" src="" alt="Satellite Thumbnail">
             </div>
         </div>
     </div>

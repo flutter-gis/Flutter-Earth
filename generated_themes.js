@@ -1,7 +1,7 @@
 // Auto-generated theme definitions
 // Generated from Python THEMES dictionary
 
-window.availableThemes = [
+const availableThemes = [
     {
         name: 'default_dark',
         display_name: 'Default (Dark)',
@@ -1046,7 +1046,7 @@ window.availableThemes = [
         icon: '🎉',
         splashEffect: 'confetti',
         uiEffect: 'partyConfetti',
-        welcomeMessage: "Let's get this party started!",
+        welcomeMessage: 'Let's get this party started!',
         splashText: 'Flutter Earth - Pinkie Pie',
         notificationMessage: 'Flutter Earth - Pinkie Pie',
         colors: {
@@ -1140,7 +1140,7 @@ window.availableThemes = [
         icon: '🦋',
         splashEffect: 'fade',
         uiEffect: 'none',
-        welcomeMessage: "Welcome, if that's okay...",
+        welcomeMessage: 'Welcome, if that's okay...',
         splashText: 'Flutter Earth - Fluttershy',
         notificationMessage: 'Flutter Earth - Fluttershy',
         colors: {
@@ -2165,3 +2165,8 @@ window.availableThemes = [
 }
     }
 ];
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = availableThemes;
+}

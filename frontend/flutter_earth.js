@@ -2,6 +2,9 @@
 
 // Note: pako library is loaded via CDN in HTML if needed for gzip decompression
 
+// The generated themes will be loaded via script tag in HTML
+// import availableThemes from './generated_themes.js';
+
 class FlutterEarth {
     constructor() {
         this.currentView = 'welcome';
@@ -19,6 +22,7 @@ class FlutterEarth {
         this.crawlerSpeedWindow = 60; // last 60 seconds
         
         this.init();
+        this.setDefaultTheme(); // Ensure a sensible default theme is set on load
     }
 
     async init() {
@@ -1091,63 +1095,17 @@ class FlutterEarth {
 
             // --- THEME TABS & GRID LOGIC ---
             if (viewName === 'settings') {
-                console.log('[DEBUG] Settings view specific logic starting...');
-                
-                // Check if settings view is actually visible
-                const settingsView = document.getElementById('settings-view');
-                if (settingsView) {
-                    const computedStyle = window.getComputedStyle(settingsView);
-                    console.log('[DEBUG] Settings view display style:', computedStyle.display);
-                    console.log('[DEBUG] Settings view visibility:', computedStyle.visibility);
-                    console.log('[DEBUG] Settings view opacity:', computedStyle.opacity);
-                    console.log('[DEBUG] Settings view element found and accessible');
-                    
-                    // Force the view to be visible
-                    settingsView.style.display = 'block';
-                    settingsView.classList.add('active');
-                    console.log('[DEBUG] Forced settings view to be visible');
-                } else {
-                    console.error('[DEBUG] Settings view element NOT FOUND!');
-                }
-                
-                try {
-                    this.initSettings(true); // force re-init
-                    this.initializeThemeGrid(); // ensure theme grid is properly initialized
-                    
-                    // Set up theme tab event listeners dynamically
-                    const themeTabs = document.querySelectorAll('.theme-tab');
-                    console.log('[DEBUG] Found theme tabs:', themeTabs.length);
-                    themeTabs.forEach((tab, index) => {
-                        console.log(`[DEBUG] Theme tab ${index}:`, tab.textContent.trim(), tab.dataset.category);
-                        // Remove any existing listeners to prevent duplicates
-                        tab.removeEventListener('click', this.handleThemeTabClick);
-                        // Add new listener
-                        tab.addEventListener('click', this.handleThemeTabClick.bind(this));
-                    });
-                    
-                    // Set the correct theme tab active
-                    const currentTheme = this.currentTheme || 'default_dark';
-                    let currentCategory = 'all'; // Default to 'all' category
-                    const theme = this.availableThemes.find(t => t.name === currentTheme);
-                    if (theme) currentCategory = theme.category;
-                    
-                    console.log('[DEBUG] Setting active category:', currentCategory);
-                    document.querySelectorAll('.theme-tab').forEach(tab => {
-                        if (tab.dataset.category === currentCategory) {
-                            tab.classList.add('active');
-                            console.log('[DEBUG] Activated tab:', tab.textContent.trim());
-                        } else {
-                            tab.classList.remove('active');
-                        }
-                    });
-                    
-                    // Populate the theme grid for the current category
-                    this.updateThemeGrid(currentCategory);
-                    
-                    console.log('[DEBUG] Settings view logic completed successfully');
-                } catch (error) {
-                    console.error('[DEBUG] Error in settings view logic:', error);
-                }
+                console.log('[DEBUG] Showing settings view, initializing theme tabs and grid');
+                this.waitForThemes().then(themesLoaded => {
+                    if (!themesLoaded) {
+                        console.error('[DEBUG] No availableThemes found after waiting!');
+                        const grid = document.getElementById('theme-grid');
+                        if (grid) grid.innerHTML = '<div style="color:red">No themes found. Check generated_themes.js loading.</div>';
+                    } else {
+                        this.initializeThemeTabs();
+                        this.updateThemeGrid('all');
+                    }
+                });
             }
             
             // --- SATELLITE INFO VIEW LOGIC ---
@@ -1183,6 +1141,24 @@ class FlutterEarth {
         } catch (error) {
             console.error('[DEBUG] Error in switchView:', error);
             this.showNotification('Error switching view: ' + error.message, 'error');
+        }
+        // Show top bar only on welcome view
+        const topBar = document.getElementById('top-bar');
+        if (topBar) {
+            if (viewName === 'welcome') {
+                topBar.style.display = '';
+            } else {
+                topBar.style.display = 'none';
+            }
+        }
+        // Hide satellite thumbnail/modal if not in satelliteInfo view
+        if (viewName !== 'satelliteInfo') {
+            const thumbModal = document.getElementById('satellite-thumbnail-modal');
+            if (thumbModal) thumbModal.style.display = 'none';
+            const thumbImg = document.getElementById('thumbnail-img');
+            if (thumbImg) thumbImg.style.display = 'none';
+            const thumbPlaceholder = document.querySelector('.thumbnail-placeholder');
+            if (thumbPlaceholder) thumbPlaceholder.style.display = 'none';
         }
     }
 
@@ -1607,444 +1583,6 @@ class FlutterEarth {
     }
 
     // Theme Methods - Using generated themes from Python config
-    availableThemes = [
-        {
-            name: 'default_dark',
-            display_name: 'Default (Dark)',
-            category: 'basic',
-            background: '#2E2E2E',
-            primary: '#5A9BD5',
-            emoji: '🌑',
-            icon: '🌑',
-            splashEffect: 'stars',
-            uiEffect: 'nightGlow',
-            iconAnimation: 'twinkle',
-            welcomeMessage: 'Welcome to Flutter Earth',
-            splashText: 'Flutter Earth',
-            notificationMessage: 'Flutter Earth'
-        },
-        {
-            name: 'light',
-            display_name: 'Light',
-            category: 'basic',
-            background: '#F0F0F0',
-            primary: '#0078D7',
-            emoji: '��',
-            icon: '🌞',
-            splashEffect: 'sunbeams',
-            uiEffect: 'sunshine',
-            iconAnimation: 'pulse',
-            welcomeMessage: 'Welcome to Flutter Earth',
-            splashText: 'Flutter Earth',
-            notificationMessage: 'Flutter Earth'
-        },
-        {
-            name: 'twilight_sparkle',
-            display_name: 'Twilight Sparkle',
-            category: 'mlp',
-            background: '#2c1a4d',
-            primary: '#6c4a8e',
-            emoji: '📚',
-            icon: '📚',
-            splashEffect: 'magic',
-            uiEffect: 'magicSparkle',
-            iconAnimation: 'magic',
-            welcomeMessage: 'Greetings, Everypony!',
-            splashText: "Twilight's Flutter Earth Study",
-            notificationMessage: "Twilight's Flutter Earth Study"
-        },
-        {
-            name: 'pinkie_pie',
-            display_name: 'Pinkie Pie',
-            category: 'mlp',
-            background: '#ffe6f2',
-            primary: '#ff80c0',
-            emoji: '🎉',
-            icon: '🎉',
-            splashEffect: 'confetti',
-            uiEffect: 'partyConfetti',
-            iconAnimation: 'bounce',
-            welcomeMessage: 'Okie Dokie Lokie!',
-            splashText: "Pinkie Pie's Super Duper Party App!",
-            notificationMessage: "Pinkie Pie's Super Duper Party App!"
-        },
-        {
-            name: 'fluttershy',
-            display_name: 'Fluttershy',
-            category: 'mlp',
-            background: '#f3e5f5',
-            primary: '#ffb3d9',
-            emoji: '🦋',
-            icon: '🦋',
-            splashEffect: 'fade',
-            uiEffect: 'none',
-            iconAnimation: 'float',
-            welcomeMessage: 'Oh, hello there...',
-            splashText: "Fluttershy's Gentle Earth Explorer",
-            notificationMessage: "Fluttershy's Gentle Earth Explorer"
-        },
-        {
-            name: 'rainbow_dash',
-            display_name: 'Rainbow Dash',
-            category: 'mlp',
-            background: '#e3f2fd',
-            primary: '#2196f3',
-            emoji: '🌈',
-            icon: '🌈',
-            splashEffect: 'rainbow',
-            uiEffect: 'rainbowTrail',
-            iconAnimation: 'rainbow',
-            welcomeMessage: 'Hey there!',
-            splashText: "Rainbow Dash's Awesome Earth Explorer",
-            notificationMessage: "Rainbow Dash's Awesome Earth Explorer"
-        },
-        {
-            name: 'applejack',
-            display_name: 'Applejack',
-            category: 'mlp',
-            background: '#fff3e0',
-            primary: '#ff9800',
-            emoji: '🍎',
-            icon: '🍎',
-            splashEffect: 'fade',
-            uiEffect: 'none',
-            iconAnimation: 'shake',
-            welcomeMessage: 'Howdy!',
-            splashText: "Applejack's Honest Earth Explorer",
-            notificationMessage: "Applejack's Honest Earth Explorer"
-        },
-        {
-            name: 'rarity',
-            display_name: 'Rarity',
-            category: 'mlp',
-            background: '#f3e5f5',
-            primary: '#9c27b0',
-            emoji: '💎',
-            icon: '💎',
-            splashEffect: 'fade',
-            uiEffect: 'none',
-            iconAnimation: 'sparkle',
-            welcomeMessage: 'Darling!',
-            splashText: "Rarity's Fabulous Earth Explorer",
-            notificationMessage: "Rarity's Fabulous Earth Explorer"
-        },
-        {
-            name: 'princess_celestia',
-            display_name: 'Princess Celestia',
-            category: 'mlp',
-            background: '#fff8e1',
-            primary: '#ffd54f',
-            emoji: '☀️',
-            icon: '☀️',
-            splashEffect: 'sunbeams',
-            uiEffect: 'sunshine',
-            iconAnimation: 'glow',
-            welcomeMessage: 'Greetings, my little pony!',
-            splashText: "Celestia's Solar Surveyor",
-            notificationMessage: "Celestia's Solar Surveyor"
-        },
-        {
-            name: 'princess_luna',
-            display_name: 'Princess Luna',
-            category: 'mlp',
-            background: '#23213a',
-            primary: '#3949ab',
-            emoji: '🌙',
-            icon: '🌙',
-            splashEffect: 'stars',
-            uiEffect: 'nightGlow',
-            iconAnimation: 'moonPhase',
-            welcomeMessage: 'Good evening, dreamer!',
-            splashText: "Luna's Lunar Mapper",
-            notificationMessage: "Luna's Lunar Mapper"
-        },
-        {
-            name: 'trixie',
-            display_name: 'Trixie',
-            category: 'mlp',
-            background: '#e1bee7',
-            primary: '#7c43bd',
-            emoji: '🎩',
-            icon: '🎩',
-            splashEffect: 'fade',
-            uiEffect: 'none',
-            iconAnimation: 'magic',
-            welcomeMessage: 'Behold, the Great and Powerful Trixie!',
-            splashText: "The Great and Powerful Trixie's Map!",
-            notificationMessage: "The Great and Powerful Trixie's Map!"
-        },
-        {
-            name: 'starlight_glimmer',
-            display_name: 'Starlight Glimmer',
-            category: 'mlp',
-            background: '#e0f7fa',
-            primary: '#ba68c8',
-            emoji: '⭐',
-            icon: '⭐',
-            splashEffect: 'sunbeams',
-            uiEffect: 'sunshine',
-            iconAnimation: 'twinkle',
-            welcomeMessage: 'Welcome, friend!',
-            splashText: "Starlight's Equality Explorer",
-            notificationMessage: "Starlight's Equality Explorer"
-        },
-        {
-            name: 'derpy_hooves',
-            display_name: 'Derpy Hooves',
-            category: 'mlp',
-            background: '#e0e0e0',
-            primary: '#ffd600',
-            emoji: '🧁',
-            icon: '🧁',
-            splashEffect: 'fade',
-            uiEffect: 'none',
-            iconAnimation: 'wiggle',
-            welcomeMessage: 'Muffins!',
-            splashText: "Derpy's Muffin Mapper",
-            notificationMessage: "Derpy's Muffin Mapper"
-        },
-        {
-            name: 'steve',
-            display_name: 'Steve',
-            category: 'mc',
-            background: '#7ec850',
-            primary: '#3c763d',
-            emoji: '🧑‍🌾',
-            icon: '⛏️',
-            splashEffect: 'blocky',
-            uiEffect: 'blockyOverlay',
-            iconAnimation: 'blockyJump',
-            welcomeMessage: "Let's Mine!",
-            splashText: 'Ready to build?',
-            notificationMessage: 'Ready to build?'
-        },
-        {
-            name: 'alex_minecraft',
-            display_name: 'Alex (Minecraft)',
-            category: 'mc',
-            background: '#f4e2d8',
-            primary: '#e67e22',
-            emoji: '🧑‍🦰',
-            icon: '🪓',
-            splashEffect: 'blocky',
-            uiEffect: 'blockyOverlay',
-            iconAnimation: 'blockyJump',
-            welcomeMessage: 'Adventure awaits!',
-            splashText: "Let's craft something new!",
-            notificationMessage: "Let's craft something new!"
-        },
-        {
-            name: 'creeper_minecraft',
-            display_name: 'Creeper (Minecraft)',
-            category: 'mc',
-            background: '#3fa63f',
-            primary: '#1a4d1a',
-            emoji: '💣',
-            icon: '💣',
-            splashEffect: 'explode',
-            uiEffect: 'creeperShake',
-            iconAnimation: 'explode',
-            welcomeMessage: "That's a nice app you have...",
-            splashText: 'Sssss... Boom!',
-            notificationMessage: 'Sssss... Boom!'
-        },
-        {
-            name: 'zombie_minecraft',
-            display_name: 'Zombie (Minecraft)',
-            category: 'mc',
-            background: '#4caf50',
-            primary: '#1b5e20',
-            emoji: '🧟',
-            icon: '🧟',
-            splashEffect: 'blocky',
-            uiEffect: 'blockyOverlay',
-            iconAnimation: 'shuffle',
-            welcomeMessage: 'Brains...',
-            splashText: 'Grrr! Stay safe!',
-            notificationMessage: 'Grrr! Stay safe!'
-        },
-        {
-            name: 'wlw_pride',
-            display_name: 'WLW Pride',
-            category: 'queer_pride',
-            background: '#d52d00',
-            primary: '#a30262',
-            emoji: '👭',
-            icon: '👭',
-            splashEffect: 'rainbow',
-            uiEffect: 'rainbowTrail',
-            iconAnimation: 'heartbeat',
-            welcomeMessage: 'WLW Pride!',
-            splashText: 'Love wins! Celebrate love!',
-            notificationMessage: 'Love wins! Celebrate love!'
-        },
-        {
-            name: 'mlm_pride',
-            display_name: 'MLM Pride',
-            category: 'queer_pride',
-            background: '#078d70',
-            primary: '#26ceaa',
-            emoji: '👬',
-            icon: '👬',
-            splashEffect: 'rainbow',
-            uiEffect: 'rainbowTrail',
-            iconAnimation: 'heartbeat',
-            welcomeMessage: 'MLM Pride!',
-            splashText: 'Love wins! Celebrate love!',
-            notificationMessage: 'Love wins! Celebrate love!'
-        },
-        {
-            name: 'nonbinary_pride',
-            display_name: 'Nonbinary Pride',
-            category: 'queer_pride',
-            background: '#fff430',
-            primary: '#9c59d1',
-            emoji: '⚧️',
-            icon: '⚧️',
-            splashEffect: 'trans',
-            uiEffect: 'transWave',
-            iconAnimation: 'transWave',
-            welcomeMessage: 'Nonbinary and proud!',
-            splashText: 'Be you, be bright!',
-            notificationMessage: 'Be you, be bright!'
-        },
-        {
-            name: 'genderqueer_pride',
-            display_name: 'Genderqueer Pride',
-            category: 'queer_pride',
-            background: '#b57edc',
-            primary: '#4a8123',
-            emoji: '🏳️‍🌈',
-            icon: '🏳️‍🌈',
-            splashEffect: 'rainbow',
-            uiEffect: 'rainbowTrail',
-            iconAnimation: 'rainbow',
-            welcomeMessage: 'Genderqueer and proud!',
-            splashText: 'Be yourself, always!',
-            notificationMessage: 'Be yourself, always!'
-        },
-        {
-            name: 'pan_pride',
-            display_name: 'Pan Pride',
-            category: 'queer_pride',
-            background: '#ff218c',
-            primary: '#ffd800',
-            emoji: '💖',
-            icon: '💖',
-            splashEffect: 'rainbow',
-            uiEffect: 'rainbowTrail',
-            iconAnimation: 'pulse',
-            welcomeMessage: 'Pan and proud!',
-            splashText: 'All the love, all the colors!',
-            notificationMessage: 'All the love, all the colors!'
-        },
-        {
-            name: 'ace_pride',
-            display_name: 'Ace Pride',
-            category: 'queer_pride',
-            background: '#a3a3a3',
-            primary: '#000000',
-            emoji: '🖤',
-            icon: '🤍',
-            splashEffect: 'stars',
-            uiEffect: 'nightGlow',
-            iconAnimation: 'twinkle',
-            welcomeMessage: 'Ace and proud!',
-            splashText: 'You are valid and awesome!',
-            notificationMessage: 'You are valid and awesome!'
-        },
-        {
-            name: 'aro_pride',
-            display_name: 'Aro Pride',
-            category: 'queer_pride',
-            background: '#3da542',
-            primary: '#a8d47a',
-            emoji: '💚',
-            icon: '💚',
-            splashEffect: 'rainbow',
-            uiEffect: 'rainbowTrail',
-            iconAnimation: 'pulse',
-            welcomeMessage: 'Aro and proud!',
-            splashText: 'Aromantic joy for all!',
-            notificationMessage: 'Aromantic joy for all!'
-        },
-        {
-            name: 'black_pride',
-            display_name: 'Black Pride',
-            category: 'queer_pride',
-            background: '#000000',
-            primary: '#f9d71c',
-            emoji: '✊🏿',
-            icon: '✊🏿',
-            splashEffect: 'fade',
-            uiEffect: 'nightGlow',
-            iconAnimation: 'fistPump',
-            welcomeMessage: 'Black Pride!',
-            splashText: 'Unity and strength always!',
-            notificationMessage: 'Unity and strength always!'
-        },
-        {
-            name: 'global_unity',
-            display_name: 'Global Unity',
-            category: 'unity_pride',
-            background: '#1e3a8a',
-            primary: '#fbbf24',
-            emoji: '🌍',
-            icon: '🌍',
-            splashEffect: 'rainbow',
-            uiEffect: 'rainbowTrail',
-            iconAnimation: 'rotate',
-            welcomeMessage: 'One World, One People!',
-            splashText: 'United we stand, divided we fall!',
-            notificationMessage: 'United we stand, divided we fall!'
-        },
-        {
-            name: 'cultural_unity',
-            display_name: 'Cultural Unity',
-            category: 'unity_pride',
-            background: '#dc2626',
-            primary: '#fbbf24',
-            emoji: '🎭',
-            icon: '🎭',
-            splashEffect: 'rainbow',
-            uiEffect: 'rainbowTrail',
-            iconAnimation: 'dance',
-            welcomeMessage: 'Celebrating our differences!',
-            splashText: 'Diversity is our strength!',
-            notificationMessage: 'Diversity is our strength!'
-        },
-        {
-            name: 'generational_unity',
-            display_name: 'Generational Unity',
-            category: 'unity_pride',
-            background: '#059669',
-            primary: '#fbbf24',
-            emoji: '👨‍👩‍👧‍👦',
-            icon: '👨‍👩‍👧‍👦',
-            splashEffect: 'rainbow',
-            uiEffect: 'rainbowTrail',
-            iconAnimation: 'heartbeat',
-            welcomeMessage: 'Bridging generations!',
-            splashText: 'Past, present, and future together!',
-            notificationMessage: 'Past, present, and future together!'
-        },
-        {
-            name: 'humanitarian_unity',
-            display_name: 'Humanitarian Unity',
-            category: 'unity_pride',
-            background: '#7c3aed',
-            primary: '#fbbf24',
-            emoji: '🤝',
-            icon: '🤝',
-            splashEffect: 'rainbow',
-            uiEffect: 'rainbowTrail',
-            iconAnimation: 'handshake',
-            welcomeMessage: 'Helping hands unite!',
-            splashText: 'Compassion connects us all!',
-            notificationMessage: 'Compassion connects us all!'
-        }
-    ];
-
     currentThemeData = { options: {} };
     currentTheme = 'default_dark'; // Match the first theme in the array
 
@@ -2095,331 +1633,30 @@ class FlutterEarth {
 
     // Ensure theme grid is initialized when settings view is shown
     initializeThemeGrid() {
-        console.log('[DEBUG] Initializing theme grid...');
-        setTimeout(() => {
-            this.updateThemeGrid();
-        }, 100);
+        this.initializeThemeTabs();
+        this.updateThemeGrid('all');
     }
 
     // --- Enhanced updateThemeGrid with better previews ---
-    updateThemeGrid(category = null) {
-        console.log('[DEBUG] updateThemeGrid called with category:', category);
-        
-        const themeGrid = document.getElementById('theme-grid');
-        if (!themeGrid) {
-            console.warn('[Theme] theme-grid element not found, skipping grid update');
-            return;
+    updateThemeGrid(category = 'all') {
+        const grid = document.getElementById('theme-grid');
+        if (!grid) return;
+        let themesToShow = window.availableThemes;
+        if (category && category !== 'all') {
+            themesToShow = window.availableThemes.filter(t => t.category === category);
         }
-        
-        console.log('[DEBUG] Found theme-grid element');
-        themeGrid.innerHTML = '';
-        let rendered = 0;
-        
-        try {
-            console.log('[DEBUG] Available themes count:', this.availableThemes.length);
-            
-            // Filter themes by category if specified, otherwise show all
-            const themesToShow = category ? 
-                this.availableThemes.filter(theme => theme.category === category) : 
-                this.availableThemes;
-            
-            console.log('[DEBUG] Themes to show count:', themesToShow.length);
-            console.log('[DEBUG] Themes to show:', themesToShow.map(t => t.name));
-            
-            themesToShow.forEach((theme, index) => {
-                console.log(`[DEBUG] Processing theme ${index + 1}:`, theme.name);
-                
-                try {
-                    // Calculate contrast color for text
-                    const bg = theme.background || '#fff';
-                    const fg = theme.primary || '#222';
-                    
-                    function luminance(hex) {
-                        hex = hex.replace('#', '');
-                        const r = parseInt(hex.substring(0,2),16);
-                        const g = parseInt(hex.substring(2,4),16);
-                        const b = parseInt(hex.substring(4,6),16);
-                        return 0.299*r + 0.587*g + 0.114*b;
-                    }
-                    
-                    let textColor = luminance(bg) > 180 ? '#222' : '#fff';
-                    let cardBg = bg;
-                    if (Math.abs(luminance(bg) - luminance(fg)) < 60) {
-                        cardBg = fg;
-                        textColor = luminance(fg) > 180 ? '#222' : '#fff';
-                    }
-                    
-                    const themeItem = document.createElement('div');
-                    themeItem.className = 'theme-item';
-                    themeItem.dataset.theme = theme.name;
-                    themeItem.style.cssText = `
-                        background: ${cardBg};
-                        color: ${textColor};
-                        border: 2px solid ${theme.primary};
-                        border-radius: 12px;
-                        padding: 16px;
-                        margin: 8px;
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                        position: relative;
-                        overflow: hidden;
-                        min-width: 200px;
-                        text-align: center;
-                        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-                    `;
-                    
-                    // Create enhanced theme preview
-                    themeItem.innerHTML = `
-                        <div class="theme-preview-header theme-icon-animated theme-icon-${theme.iconAnimation || 'pulse'}" style="
-                            font-size: 3em;
-                            margin-bottom: 12px;
-                            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                        ">${theme.icon || theme.emoji}</div>
-                        
-                        <div class="theme-preview-gradient" style="
-                            background: linear-gradient(135deg, ${theme.background} 0%, ${theme.primary} 100%);
-                            height: 60px;
-                            border-radius: 8px;
-                            margin: 12px 0;
-                            position: relative;
-                            overflow: hidden;
-                        ">
-                            <div class="theme-preview-pattern" style="
-                                position: absolute;
-                                top: 0;
-                                left: 0;
-                                right: 0;
-                                bottom: 0;
-                                opacity: 0.3;
-                                background-image: ${theme.category === 'mlp' ? 'radial-gradient(circle, white 1px, transparent 1px)' :
-                                                 theme.category === 'minecraft' ? 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%)' :
-                                                 theme.category === 'pride' ? 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)' :
-                                                 'none'};
-                                background-size: ${theme.category === 'mlp' ? '20px 20px' : '30px 30px'};
-                            "></div>
-                        </div>
-                        
-                        <div class="theme-info">
-                            <div class="theme-name" style="
-                                font-weight: bold;
-                                font-size: 1.1em;
-                                margin-bottom: 4px;
-                                text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-                            ">${theme.display_name}</div>
-                            <div class="theme-category" style="
-                                font-size: 0.9em;
-                                opacity: 0.8;
-                                margin-bottom: 8px;
-                            ">${this.getCategoryDisplayName(theme.category)}</div>
-                            <div class="theme-description" style="
-                                font-size: 0.8em;
-                                opacity: 0.7;
-                                font-style: italic;
-                            ">${theme.welcomeMessage}</div>
-                        </div>
-                        
-                        ${theme.name === this.currentTheme ? `
-                            <div class="theme-selected-indicator" style="
-                                position: absolute;
-                                top: 8px;
-                                right: 8px;
-                                background: ${theme.primary};
-                                color: ${textColor};
-                                border-radius: 50%;
-                                width: 24px;
-                                height: 24px;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                font-size: 14px;
-                                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                            ">✓</div>
-                        ` : ''}
-                    `;
-                    
-                    // Add hover effects
-                    themeItem.addEventListener('mouseenter', () => {
-                        themeItem.style.transform = 'translateY(-4px) scale(1.02)';
-                        themeItem.style.boxShadow = `0 8px 16px rgba(0,0,0,0.2), 0 0 20px ${theme.primary}40`;
-                    });
-                    
-                    themeItem.addEventListener('mouseleave', () => {
-                        themeItem.style.transform = 'translateY(0) scale(1)';
-                        themeItem.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-                    });
-                    
-                    themeItem.addEventListener('click', () => this.selectTheme(theme.name));
-                    
-                    if (theme.name === this.currentTheme) {
-                        themeItem.classList.add('selected');
-                        themeItem.style.borderColor = theme.primary;
-                        themeItem.style.boxShadow = `0 4px 8px rgba(0,0,0,0.1), 0 0 0 2px ${theme.primary}40`;
-                    }
-                    
-                    themeGrid.appendChild(themeItem);
-                    rendered++;
-                    console.log(`[DEBUG] Successfully rendered theme: ${theme.name}`);
-                    
-                } catch (themeError) {
-                    console.error(`[DEBUG] Error rendering theme ${theme.name}:`, themeError);
-                }
-            });
-            
-            // Add CSS animations for theme effects
-            if (!document.querySelector('#theme-animations')) {
-                const style = document.createElement('style');
-                style.id = 'theme-animations';
-                style.textContent = `
-                    @keyframes pulse {
-                        0%, 100% { transform: scale(1); }
-                        50% { transform: scale(1.1); }
-                    }
-                    @keyframes rainbow {
-                        0% { filter: hue-rotate(0deg); }
-                        100% { filter: hue-rotate(360deg); }
-                    }
-                    @keyframes twinkle {
-                        0%, 100% { opacity: 1; }
-                        50% { opacity: 0.5; }
-                    }
-                    @keyframes confetti {
-                        0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-                        100% { transform: translateY(10px) rotate(360deg); opacity: 0; }
-                    }
-                    @keyframes bounce {
-                        0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
-                        40%, 43% { transform: translate3d(0,-30px,0); }
-                        70% { transform: translate3d(0,-15px,0); }
-                        90% { transform: translate3d(0,-4px,0); }
-                    }
-                    @keyframes float {
-                        0%, 100% { transform: translateY(0px); }
-                        50% { transform: translateY(-10px); }
-                    }
-                    @keyframes shake {
-                        0%, 100% { transform: translateX(0); }
-                        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-                        20%, 40%, 60%, 80% { transform: translateX(5px); }
-                    }
-                    @keyframes sparkle {
-                        0%, 100% { opacity: 1; transform: scale(1) rotate(0deg); }
-                        25% { opacity: 0.8; transform: scale(1.1) rotate(90deg); }
-                        50% { opacity: 0.6; transform: scale(1.2) rotate(180deg); }
-                        75% { opacity: 0.8; transform: scale(1.1) rotate(270deg); }
-                    }
-                    @keyframes glow {
-                        0%, 100% { filter: brightness(1) drop-shadow(0 0 5px currentColor); }
-                        50% { filter: brightness(1.3) drop-shadow(0 0 15px currentColor); }
-                    }
-                    @keyframes moonPhase {
-                        0% { content: "🌑"; }
-                        25% { content: "🌒"; }
-                        50% { content: "🌕"; }
-                        75% { content: "🌘"; }
-                        100% { content: "🌑"; }
-                    }
-                    @keyframes wiggle {
-                        0%, 100% { transform: rotate(-3deg); }
-                        50% { transform: rotate(3deg); }
-                    }
-                    @keyframes blockyJump {
-                        0%, 100% { transform: translateY(0) scale(1); }
-                        50% { transform: translateY(-8px) scale(1.05); }
-                    }
-                    @keyframes explode {
-                        0% { transform: scale(1) rotate(0deg); }
-                        50% { transform: scale(1.5) rotate(180deg); }
-                        100% { transform: scale(1) rotate(360deg); }
-                    }
-                    @keyframes shuffle {
-                        0%, 100% { transform: translateX(0) rotate(0deg); }
-                        25% { transform: translateX(-5px) rotate(-5deg); }
-                        75% { transform: translateX(5px) rotate(5deg); }
-                    }
-                    @keyframes heartbeat {
-                        0%, 100% { transform: scale(1); }
-                        14% { transform: scale(1.1); }
-                        28% { transform: scale(1); }
-                        42% { transform: scale(1.1); }
-                        70% { transform: scale(1); }
-                    }
-                    @keyframes transWave {
-                        0% { filter: hue-rotate(0deg) brightness(1); }
-                        25% { filter: hue-rotate(90deg) brightness(1.1); }
-                        50% { filter: hue-rotate(180deg) brightness(1.2); }
-                        75% { filter: hue-rotate(270deg) brightness(1.1); }
-                        100% { filter: hue-rotate(360deg) brightness(1); }
-                    }
-                    @keyframes fistPump {
-                        0%, 100% { transform: translateY(0) rotate(0deg); }
-                        25% { transform: translateY(-5px) rotate(-10deg); }
-                        75% { transform: translateY(-5px) rotate(10deg); }
-                    }
-                    @keyframes rotate {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                    @keyframes dance {
-                        0%, 100% { transform: translateY(0) rotate(0deg); }
-                        25% { transform: translateY(-8px) rotate(-5deg); }
-                        50% { transform: translateY(-12px) rotate(0deg); }
-                        75% { transform: translateY(-8px) rotate(5deg); }
-                    }
-                    @keyframes handshake {
-                        0%, 100% { transform: translateY(0) rotate(0deg); }
-                        25% { transform: translateY(-3px) rotate(-15deg); }
-                        75% { transform: translateY(-3px) rotate(15deg); }
-                    }
-                    @keyframes magic {
-                        0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
-                        25% { transform: scale(1.1) rotate(90deg); filter: brightness(1.2); }
-                        50% { transform: scale(1.2) rotate(180deg); filter: brightness(1.4); }
-                        75% { transform: scale(1.1) rotate(270deg); filter: brightness(1.2); }
-                    }
-                    
-                    /* Theme icon animation classes */
-                    .theme-icon-animated {
-                        animation-duration: 2s;
-                        animation-iteration-count: infinite;
-                        animation-timing-function: ease-in-out;
-                    }
-                    
-                    .theme-icon-pulse { animation-name: pulse; }
-                    .theme-icon-rainbow { animation-name: rainbow; }
-                    .theme-icon-twinkle { animation-name: twinkle; }
-                    .theme-icon-bounce { animation-name: bounce; }
-                    .theme-icon-float { animation-name: float; }
-                    .theme-icon-shake { animation-name: shake; }
-                    .theme-icon-sparkle { animation-name: sparkle; }
-                    .theme-icon-glow { animation-name: glow; }
-                    .theme-icon-moonPhase { animation-name: moonPhase; }
-                    .theme-icon-wiggle { animation-name: wiggle; }
-                    .theme-icon-blockyJump { animation-name: blockyJump; }
-                    .theme-icon-explode { animation-name: explode; }
-                    .theme-icon-shuffle { animation-name: shuffle; }
-                    .theme-icon-heartbeat { animation-name: heartbeat; }
-                    .theme-icon-transWave { animation-name: transWave; }
-                    .theme-icon-fistPump { animation-name: fistPump; }
-                    .theme-icon-rotate { animation-name: rotate; }
-                    .theme-icon-dance { animation-name: dance; }
-                    .theme-icon-handshake { animation-name: handshake; }
-                    .theme-icon-magic { animation-name: magic; }
-                `;
-                document.head.appendChild(style);
-            }
-            
-        } catch (err) {
-            console.error('[Theme] Error rendering theme grid:', err);
-            themeGrid.innerHTML = `<div style="color:red;padding:2em;text-align:center;">Theme grid error: ${err.message}</div>`;
-            return;
-        }
-        
-        if (rendered === 0) {
-            console.error('[DEBUG] No themes were rendered!');
-            themeGrid.innerHTML = '<div style="color:red;padding:2em;text-align:center;">No themes could be rendered. Check console for errors.</div>';
-        } else {
-            console.log(`[Theme] Successfully rendered ${rendered} theme(s) in grid (${category ? 'category: ' + category : 'all themes'})`);
-        }
+        console.log('[DEBUG] Updating theme grid for category:', category, 'Themes:', themesToShow.map(t => t.name));
+        grid.innerHTML = '';
+        themesToShow.forEach(theme => {
+            const card = document.createElement('div');
+            card.className = 'theme-card';
+            card.innerHTML = `
+                <div class="theme-card-icon">${theme.icon || theme.emoji}</div>
+                <div class="theme-card-title">${theme.display_name}</div>
+            `;
+            card.addEventListener('click', () => this.applyTheme(theme.name));
+            grid.appendChild(card);
+        });
     }
 
     selectTheme(themeName) {
@@ -2428,22 +1665,28 @@ class FlutterEarth {
     }
 
     applyTheme(themeName) {
-        const theme = this.availableThemes.find(t => t.name === themeName);
+        const theme = window.availableThemes.find(t => t.name === themeName);
         if (!theme) return;
-        
-        console.log('[DEBUG] Applying theme:', themeName);
-        
         this.currentTheme = themeName;
         document.documentElement.setAttribute('data-theme', themeName);
+        // Set all theme colors as CSS variables
+        if (theme.colors) {
+            Object.entries(theme.colors).forEach(([key, value]) => {
+                document.documentElement.style.setProperty(`--${key.replace(/_/g, '-')}`, value);
+            });
+        }
+        // Conditionally apply enhanced-theme class
+        const advancedThemes = [
+            'unity_pride', 'cyberpunk', 'ocean_depths', 'sunset_vibes',
+            'forest_mist', 'neon_dreams', 'aurora_borealis'
+        ].concat(window.availableThemes.filter(t => t.category === 'mlp').map(t => t.name));
+        if (advancedThemes.includes(themeName)) {
+            document.documentElement.classList.add('enhanced-theme');
+        } else {
+            document.documentElement.classList.remove('enhanced-theme');
+        }
         
-        // Update CSS custom properties
-        document.documentElement.style.setProperty('--primary', theme.primary);
-        document.documentElement.style.setProperty('--primary-dark', theme.primary);
-        document.documentElement.style.setProperty('--background', theme.background);
-        document.documentElement.style.setProperty('--widget-bg', theme.background);
-        
-        // Show theme splash
-        this.showThemeSplash(theme);
+        console.log('[DEBUG] Applying theme:', themeName);
         
         // Update welcome message
         if (this.currentView === 'welcome') {
@@ -2802,7 +2045,7 @@ class FlutterEarth {
     }
 
     getThemeNotification(themeName) {
-        const theme = this.availableThemes.find(t => t.name === themeName);
+        const theme = window.availableThemes.find(t => t.name === themeName);
         return theme ? theme.notificationMessage : `Theme ${themeName} applied!`;
     }
 
@@ -2821,6 +2064,8 @@ class FlutterEarth {
         }
         
         this.loadCurrentSettings();
+        this.initializeThemeTabs();
+        this.updateThemeGrid('all');
     }
 
     loadCurrentSettings() {
@@ -3048,6 +2293,8 @@ class FlutterEarth {
             'pride': '🏳️‍🌈 Pride',
             'special': '✨ Special',
             'minecraft': '⛏️ Minecraft',
+            'gaming': '🎮 Gaming',
+            'nature': '🌿 Nature',
             'other': '⭐ Other',
         };
         return map[category] || (category ? category.charAt(0).toUpperCase() + category.slice(1) : 'Unknown');
@@ -4395,6 +3642,78 @@ class FlutterEarth {
                 bandsGrid.innerHTML = '<p>No bands information available.</p>';
             }
         }
+    }
+
+    // --- THEME TABS & GRID LOGIC ---
+    // Dynamically generate theme tabs from availableThemes categories
+    getUniqueThemeCategories() {
+        const categories = new Set(window.availableThemes.map(t => t.category));
+        return ['all', ...Array.from(categories)];
+    }
+
+    initializeThemeTabs() {
+        const categories = this.getUniqueThemeCategories();
+        const tabContainer = document.getElementById('theme-tab-container');
+        if (!tabContainer) return;
+        tabContainer.innerHTML = '';
+        console.log('[DEBUG] Creating theme tabs for categories:', categories);
+        categories.forEach(category => {
+            const tab = document.createElement('button');
+            tab.className = 'theme-tab';
+            tab.dataset.category = category;
+            tab.textContent = category === 'all' ? 'All Themes' : this.getCategoryDisplayName(category);
+            tab.addEventListener('click', () => {
+                console.log('[DEBUG] Tab clicked:', category);
+                this.switchThemeCategory(category);
+            });
+            tabContainer.appendChild(tab);
+        });
+    }
+
+    switchThemeCategory(category) {
+        console.log('[DEBUG] Switching theme category to:', category);
+        document.querySelectorAll('.theme-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.category === category);
+        });
+        this.updateThemeGrid(category);
+    }
+
+    updateThemeGrid(category = 'all') {
+        const grid = document.getElementById('theme-grid');
+        if (!grid) return;
+        let themesToShow = window.availableThemes;
+        if (category && category !== 'all') {
+            themesToShow = window.availableThemes.filter(t => t.category === category);
+        }
+        console.log('[DEBUG] Updating theme grid for category:', category, 'Themes:', themesToShow.map(t => t.name));
+        grid.innerHTML = '';
+        themesToShow.forEach(theme => {
+            const card = document.createElement('div');
+            card.className = 'theme-card';
+            card.innerHTML = `
+                <div class="theme-card-icon">${theme.icon || theme.emoji}</div>
+                <div class="theme-card-title">${theme.display_name}</div>
+            `;
+            card.addEventListener('click', () => this.applyTheme(theme.name));
+            grid.appendChild(card);
+        });
+    }
+
+    // On app load, set a sensible default theme
+    setDefaultTheme() {
+        const currentTheme = this.currentTheme || 'default_dark';
+        this.applyTheme(currentTheme);
+    }
+
+    // Call setDefaultTheme in the constructor or init method
+
+    // Add this function to FlutterEarth class:
+    async waitForThemes(maxRetries = 10, delayMs = 100) {
+        for (let i = 0; i < maxRetries; i++) {
+            if (window.availableThemes && window.availableThemes.length > 0) return true;
+            await new Promise(res => setTimeout(res, delayMs));
+        }
+        return false;
     }
 }
 
