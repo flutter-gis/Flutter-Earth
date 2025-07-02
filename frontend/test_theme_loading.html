@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Loading Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .theme-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+        .theme-item {
+            padding: 5px;
+            margin: 2px 0;
+            background: white;
+            border-radius: 3px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Theme Loading Test</h1>
+        <p>This page tests if themes are loading correctly from generated_themes.js</p>
+        
+        <div id="status"></div>
+        
+        <button onclick="testThemeLoading()">Test Theme Loading</button>
+        <button onclick="showThemeDetails()">Show Theme Details</button>
+        <button onclick="clearResults()">Clear Results</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <!-- Load the themes -->
+    <script src="generated_themes.js"></script>
+    
+    <script>
+        function testThemeLoading() {
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            
+            statusDiv.innerHTML = '<div class="status info">Testing theme loading...</div>';
+            
+            // Test 1: Check if window.availableThemes exists
+            if (typeof window.availableThemes === 'undefined') {
+                statusDiv.innerHTML = '<div class="status error">❌ window.availableThemes is undefined</div>';
+                return;
+            }
+            
+            // Test 2: Check if it's an array
+            if (!Array.isArray(window.availableThemes)) {
+                statusDiv.innerHTML = '<div class="status error">❌ window.availableThemes is not an array</div>';
+                return;
+            }
+            
+            // Test 3: Check if it has themes
+            if (window.availableThemes.length === 0) {
+                statusDiv.innerHTML = '<div class="status error">❌ window.availableThemes is empty</div>';
+                return;
+            }
+            
+            // Test 4: Check theme structure
+            const firstTheme = window.availableThemes[0];
+            const requiredFields = ['name', 'display_name', 'category', 'background', 'primary'];
+            const missingFields = requiredFields.filter(field => !firstTheme.hasOwnProperty(field));
+            
+            if (missingFields.length > 0) {
+                statusDiv.innerHTML = `<div class="status error">❌ First theme missing required fields: ${missingFields.join(', ')}</div>`;
+                return;
+            }
+            
+            // All tests passed
+            statusDiv.innerHTML = `<div class="status success">✅ Themes loaded successfully! Found ${window.availableThemes.length} themes</div>`;
+            
+            // Show theme list
+            const themeList = window.availableThemes.map(theme => 
+                `<div class="theme-item">
+                    <strong>${theme.display_name}</strong> (${theme.name}) - ${theme.category}
+                </div>`
+            ).join('');
+            
+            resultsDiv.innerHTML = `
+                <h3>Loaded Themes (${window.availableThemes.length}):</h3>
+                <div class="theme-list">${themeList}</div>
+            `;
+        }
+        
+        function showThemeDetails() {
+            const resultsDiv = document.getElementById('results');
+            
+            if (!window.availableThemes || window.availableThemes.length === 0) {
+                resultsDiv.innerHTML = '<div class="status error">No themes available</div>';
+                return;
+            }
+            
+            const details = window.availableThemes.map(theme => `
+                <div class="theme-item">
+                    <h4>${theme.display_name}</h4>
+                    <p><strong>Name:</strong> ${theme.name}</p>
+                    <p><strong>Category:</strong> ${theme.category}</p>
+                    <p><strong>Background:</strong> ${theme.background}</p>
+                    <p><strong>Primary:</strong> ${theme.primary}</p>
+                    <p><strong>Emoji:</strong> ${theme.emoji || 'N/A'}</p>
+                    <p><strong>Icon:</strong> ${theme.icon || 'N/A'}</p>
+                </div>
+            `).join('');
+            
+            resultsDiv.innerHTML = `
+                <h3>Theme Details:</h3>
+                <div class="theme-list">${details}</div>
+            `;
+        }
+        
+        function clearResults() {
+            document.getElementById('status').innerHTML = '';
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        // Auto-test on page load
+        window.addEventListener('load', () => {
+            setTimeout(testThemeLoading, 100);
+        });
+    </script>
+</body>
+</html> 

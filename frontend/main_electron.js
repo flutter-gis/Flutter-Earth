@@ -16,6 +16,9 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 700,
     icon: path.join(__dirname, '../logo.png'), // Set the window/taskbar icon
+    fullscreen: true, // Open in fullscreen
+    frame: false,     // Hide the Electron window bar
+    autoHideMenuBar: true, // Hide the menu bar
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -26,7 +29,7 @@ function createWindow() {
     }
   });
   
-  mainWindow.setMenuBarVisibility(true);
+  mainWindow.setMenuBarVisibility(false);
   mainWindow.loadFile('flutter_earth.html');
 }
 

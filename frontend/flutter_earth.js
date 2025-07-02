@@ -7,6 +7,7 @@
 
 class FlutterEarth {
     constructor() {
+        console.log('[DEBUG] FlutterEarth constructor called');
         this.currentView = 'welcome';
         this.connectionStatus = 'offline';
         this.statusBarText = 'Initializing...';
@@ -21,6 +22,7 @@ class FlutterEarth {
         this.crawlerSpeedSamples = [];
         this.crawlerSpeedWindow = 60; // last 60 seconds
         
+        console.log('[DEBUG] FlutterEarth constructor completed, calling init()');
         this.init();
         this.setDefaultTheme(); // Ensure a sensible default theme is set on load
     }
@@ -28,37 +30,57 @@ class FlutterEarth {
     async init() {
         console.log('[DEBUG] FlutterEarth.init() started');
         
-        // Wait for DOM to be fully loaded
-        if (document.readyState === 'loading') {
-            await new Promise(resolve => {
-                document.addEventListener('DOMContentLoaded', resolve);
-            });
+        try {
+            // Wait for DOM to be fully loaded
+            if (document.readyState === 'loading') {
+                await new Promise(resolve => {
+                    document.addEventListener('DOMContentLoaded', resolve);
+                });
+            }
+            
+            // Initialize views first - ensure welcome view is visible
+            this.initializeViews();
+            console.log('[DEBUG] Views initialized');
+            
+            // Setup event listeners immediately
+            this.setupEventListeners();
+            console.log('[DEBUG] Event listeners setup');
+            
+            // Initialize other components
+            this.loadSensors();
+            this.setupCalendar();
+            
+            // Try to load themes (but don't block)
+            console.log('[DEBUG] Attempting to load themes...');
+            const themesLoaded = await this.waitForThemes(10, 50); // Reduced wait time
+            if (!themesLoaded) {
+                console.warn('[DEBUG] No availableThemes found, continuing without themes');
+                console.warn('[DEBUG] window.availableThemes:', window.availableThemes);
+                console.warn('[DEBUG] typeof window.availableThemes:', typeof window.availableThemes);
+            } else {
+                console.log('[DEBUG] Themes loaded successfully:', window.availableThemes.length, 'themes found');
+                // Initialize settings only after themes are loaded
+                this.initSettings();
+            }
+            
+            this.initSatelliteInfo();
+            this.initAboutView();
+            
+            // Try to initialize Earth Engine (but don't block the UI)
+            this.initializeEarthEngineAsync();
+            
+            // Show a simple notification that the app is ready
+            setTimeout(() => {
+                this.showNotification('Flutter Earth is ready!', 'success');
+            }, 1000);
+            
+            console.log('[DEBUG] FlutterEarth.init() completed successfully');
+        } catch (error) {
+            console.error('[DEBUG] Error in FlutterEarth.init():', error);
+            // Even if there's an error, make sure the basic UI is functional
+            this.initializeViews();
+            this.setupEventListeners();
         }
-        
-        // Initialize views first - ensure welcome view is visible
-        this.initializeViews();
-        console.log('[DEBUG] Views initialized');
-        
-        // Setup event listeners
-        this.setupEventListeners();
-        console.log('[DEBUG] Event listeners setup');
-        
-        // Initialize other components
-        this.loadSensors();
-        this.setupCalendar();
-        this.initSettings();
-        this.initSatelliteInfo();
-        this.initAboutView();
-        
-        // Try to initialize Earth Engine (but don't block the UI)
-        this.initializeEarthEngineAsync();
-        
-        // Show a simple notification that the app is ready
-        setTimeout(() => {
-            this.showNotification('Flutter Earth is ready!', 'success');
-        }, 1000);
-        
-        console.log('[DEBUG] FlutterEarth.init() completed');
     }
 
     // Show a unique splash screen for the theme on startup
@@ -358,11 +380,11 @@ class FlutterEarth {
             console.error('[DEBUG] Welcome view not found!');
         }
         
-        // Set default active sidebar item
-        const welcomeSidebarItem = document.querySelector('.sidebar-item[data-view="welcome"]');
-        if (welcomeSidebarItem) {
-            welcomeSidebarItem.classList.add('active');
-            console.log('[DEBUG] Welcome sidebar item activated');
+        // Set default active toolbar item
+        const welcomeToolbarItem = document.querySelector('.toolbar-item[data-view="welcome"]');
+        if (welcomeToolbarItem) {
+            welcomeToolbarItem.classList.add('active');
+            console.log('[DEBUG] Welcome toolbar item activated');
         }
     }
 
@@ -631,43 +653,44 @@ class FlutterEarth {
     setupEventListeners() {
         console.log('[DEBUG] Setting up event listeners');
         
-        // Sidebar navigation
-        const sidebarItems = document.querySelectorAll('.sidebar-item');
-        console.log(`[DEBUG] Found ${sidebarItems.length} sidebar items`);
-        
-        sidebarItems.forEach((item, index) => {
-            console.log(`[DEBUG] Setting up sidebar item ${index}:`, item.textContent.trim(), item.dataset);
-            
+        // Toolbar navigation (was sidebar)
+        const toolbarItems = document.querySelectorAll('.toolbar-item');
+        console.log(`[DEBUG] Found ${toolbarItems.length} toolbar items`);
+        toolbarItems.forEach((item, index) => {
+            console.log(`[DEBUG] Setting up event listener for toolbar item ${index}:`, item.dataset.view);
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
-                try {
-                    const view = item.dataset.view;
-                    const panel = item.dataset.panel;
-                    console.log(`[DEBUG] Sidebar item clicked:`, { view, panel, item: item.textContent.trim() });
-                    console.log(`[DEBUG] Sidebar item dataset:`, item.dataset);
-                    console.log(`[DEBUG] Sidebar item classes:`, item.className);
-                    
-                    if (view) {
-                        console.log(`[DEBUG] Switching to view: ${view}`);
-                        this.switchView(view);
-                    } else if (panel) {
-                        console.log(`[DEBUG] Showing panel: ${panel}`);
-                        this.showPanel(panel);
-                    } else {
-                        console.warn(`[DEBUG] No view or panel found for sidebar item`);
-                    }
-                    
-                    // Fun click effect
-                    this.createClickEffect(e.clientX, e.clientY);
-                } catch (error) {
-                    console.error('[DEBUG] Error handling sidebar click:', error);
-                    this.showNotification('Error switching view: ' + error.message, 'error');
+                const view = item.dataset.view;
+                const panel = item.dataset.panel;
+                console.log(`[DEBUG] Toolbar item clicked: view=${view}, panel=${panel}`);
+                if (view) {
+                    this.switchView(view);
+                } else if (panel) {
+                    this.showPanel(panel);
                 }
+                this.moveToolbarIndicator(item);
+                this.animateToolbarItem(item);
             });
         });
-
+        // Move indicator to active on load
+        setTimeout(() => {
+            const active = document.querySelector('.toolbar-item.active') || toolbarItems[0];
+            if (active) {
+                this.moveToolbarIndicator(active);
+                this.animateToolbarItem(active);
+            }
+        }, 100);
+        // Toolbar animation dropdown
+        const animationSelect = document.getElementById('toolbar-animation-select');
+        if (animationSelect) {
+            animationSelect.addEventListener('change', () => {
+                this.setToolbarAnimation(animationSelect.value);
+            });
+            // Set default
+            this.setToolbarAnimation(animationSelect.value);
+        }
+        
         // Help button opens help popup
         const helpBtn = document.getElementById('help-button');
         if (helpBtn) {
@@ -805,6 +828,20 @@ class FlutterEarth {
         if (reloadSettingsBtn) reloadSettingsBtn.addEventListener('click', () => this.reloadSettings());
         const clearCacheSettingsBtn = document.getElementById('clear-cache-settings-btn');
         if (clearCacheSettingsBtn) clearCacheSettingsBtn.addEventListener('click', () => this.clearCacheAndLogs());
+        // New: Auth button in settings
+        const authSettingsBtn = document.getElementById('auth-settings-btn');
+        if (authSettingsBtn) authSettingsBtn.addEventListener('click', () => this.showAuthDialog());
+        // New: Key file upload in settings
+        const settingsKeyFile = document.getElementById('settings-key-file');
+        if (settingsKeyFile) {
+            settingsKeyFile.addEventListener('change', (e) => {
+                const fileInput = document.getElementById('auth-key-file');
+                if (fileInput && e.target.files && e.target.files.length > 0) {
+                    // If the auth dialog is open, set the file
+                    fileInput.files = e.target.files;
+                }
+            });
+        }
 
         // Theme tabs - will be set up dynamically when settings view is shown
         // (moved to switchView function for settings)
@@ -875,6 +912,22 @@ class FlutterEarth {
         }
         
         console.log('[DEBUG] Event listeners setup completed');
+    }
+
+    moveToolbarIndicator(item) {
+        const indicator = document.getElementById('toolbar-indicator');
+        if (!indicator || !item) {
+            console.log('[DEBUG] moveToolbarIndicator: indicator or item not found', { indicator: !!indicator, item: !!item });
+            return;
+        }
+        const rect = item.getBoundingClientRect();
+        const parentRect = item.parentElement.getBoundingClientRect();
+        indicator.style.left = (rect.left - parentRect.left) + 'px';
+        indicator.style.width = rect.width + 'px';
+        // Set active class
+        document.querySelectorAll('.toolbar-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        console.log('[DEBUG] moveToolbarIndicator: moved indicator to', item.dataset.view);
     }
 
     // Fun Effects and Easter Eggs
@@ -1050,15 +1103,27 @@ class FlutterEarth {
             allViews.forEach(view => {
                 view.classList.remove('active');
                 view.style.display = 'none';
+                view.style.opacity = '0';
+                view.style.transform = 'translateY(20px)';
+                console.log(`[DEBUG] Hidden view: ${view.id}`);
             });
         
             // Show selected view
             const targetView = document.getElementById(`${viewName}-view`);
             console.log(`[DEBUG] Looking for view: ${viewName}-view, found:`, targetView);
             if (targetView) {
+                // Force immediate display and active state
                 targetView.style.display = 'block';
+                targetView.style.opacity = '1';
+                targetView.style.transform = 'translateY(0)';
                 targetView.classList.add('active');
                 console.log(`[DEBUG] Successfully switched to ${viewName}-view`);
+                console.log(`[DEBUG] View computed styles:`, {
+                    display: getComputedStyle(targetView).display,
+                    opacity: getComputedStyle(targetView).opacity,
+                    transform: getComputedStyle(targetView).transform,
+                    visibility: getComputedStyle(targetView).visibility
+                });
             } else {
                 console.warn(`[DEBUG] View not found: ${viewName}-view`);
                 // Fallback: show welcome view if target missing
@@ -1074,17 +1139,17 @@ class FlutterEarth {
                 }
             }
         
-            // Update sidebar active state
-            document.querySelectorAll('.sidebar-item').forEach(item => {
+            // Update toolbar active state
+            document.querySelectorAll('.toolbar-item').forEach(item => {
                 item.classList.remove('active');
             });
             
-            const activeSidebarItem = document.querySelector(`.sidebar-item[data-view="${viewName}"]`);
-            if (activeSidebarItem) {
-                activeSidebarItem.classList.add('active');
-                console.log(`[DEBUG] Set sidebar item active: ${viewName}`);
+            const activeToolbarItem = document.querySelector(`.toolbar-item[data-view="${viewName}"]`);
+            if (activeToolbarItem) {
+                activeToolbarItem.classList.add('active');
+                console.log(`[DEBUG] Set toolbar item active: ${viewName}`);
             } else {
-                console.warn(`[DEBUG] Sidebar item not found for view: ${viewName}`);
+                console.warn(`[DEBUG] Toolbar item not found for view: ${viewName}`);
             }
         
             // Update current view tracking
@@ -2053,6 +2118,15 @@ class FlutterEarth {
     _settingsInitialized = false;
     initSettings(force = false) {
         console.log('[DEBUG] Initializing settings (all themes grid)');
+        
+        // Check if themes are available
+        if (!window.availableThemes || !Array.isArray(window.availableThemes) || window.availableThemes.length === 0) {
+            console.error('[DEBUG] No themes available for settings initialization!');
+            console.error('[DEBUG] window.availableThemes:', window.availableThemes);
+            return;
+        }
+        
+        console.log('[DEBUG] Found', window.availableThemes.length, 'themes for initialization');
         
         // Try to find theme grid, but don't fail if not found
         const themeGrid = document.getElementById('theme-grid');
@@ -3647,14 +3721,28 @@ class FlutterEarth {
     // --- THEME TABS & GRID LOGIC ---
     // Dynamically generate theme tabs from availableThemes categories
     getUniqueThemeCategories() {
+        if (!window.availableThemes || !Array.isArray(window.availableThemes)) {
+            console.error('[DEBUG] No themes available for category extraction!');
+            return ['all'];
+        }
+        
         const categories = new Set(window.availableThemes.map(t => t.category));
         return ['all', ...Array.from(categories)];
     }
 
     initializeThemeTabs() {
+        if (!window.availableThemes || !Array.isArray(window.availableThemes)) {
+            console.error('[DEBUG] No themes available for tab initialization!');
+            return;
+        }
+        
         const categories = this.getUniqueThemeCategories();
         const tabContainer = document.getElementById('theme-tab-container');
-        if (!tabContainer) return;
+        if (!tabContainer) {
+            console.warn('[DEBUG] Theme tab container not found');
+            return;
+        }
+        
         tabContainer.innerHTML = '';
         console.log('[DEBUG] Creating theme tabs for categories:', categories);
         categories.forEach(category => {
@@ -3680,12 +3768,29 @@ class FlutterEarth {
 
     updateThemeGrid(category = 'all') {
         const grid = document.getElementById('theme-grid');
-        if (!grid) return;
+        if (!grid) {
+            console.warn('[DEBUG] Theme grid element not found');
+            return;
+        }
+        
+        if (!window.availableThemes || !Array.isArray(window.availableThemes)) {
+            console.error('[DEBUG] No themes available for grid update!');
+            grid.innerHTML = '<div class="theme-error">No themes found. Check generated_themes.js loading.</div>';
+            return;
+        }
+        
         let themesToShow = window.availableThemes;
         if (category && category !== 'all') {
             themesToShow = window.availableThemes.filter(t => t.category === category);
         }
-        console.log('[DEBUG] Updating theme grid for category:', category, 'Themes:', themesToShow.map(t => t.name));
+        
+        console.log('[DEBUG] Updating theme grid for category:', category, 'Themes:', themesToShow.length, 'themes');
+        
+        if (themesToShow.length === 0) {
+            grid.innerHTML = '<div class="theme-error">No themes found for category: ' + category + '</div>';
+            return;
+        }
+        
         grid.innerHTML = '';
         themesToShow.forEach(theme => {
             const card = document.createElement('div');
@@ -3715,15 +3820,36 @@ class FlutterEarth {
         }
         return false;
     }
+
+    setToolbarAnimation(style) {
+        const toolbarItems = document.querySelectorAll('.toolbar-item');
+        toolbarItems.forEach(item => {
+            item.classList.remove('glow', 'bounce', 'slide', 'pulse', 'spin', 'flip', 'shake', 'wiggle', 'color', 'fade', 'pop', 'rubber', 'swing', 'rotate', 'none');
+            item.classList.add(style);
+        });
+    }
+
+    animateToolbarItem(item) {
+        const animationSelect = document.getElementById('toolbar-animation-select');
+        const style = animationSelect ? animationSelect.value : 'glow';
+        item.classList.remove('glow', 'bounce', 'slide', 'pulse', 'spin', 'flip', 'shake', 'wiggle', 'color', 'fade', 'pop', 'rubber', 'swing', 'rotate', 'none');
+        void item.offsetWidth; // force reflow for animation restart
+        item.classList.add(style);
+    }
 }
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[DEBUG] DOM loaded, initializing FlutterEarth...');
-    window.flutterEarth = new FlutterEarth();
-    window.flutterEarth.init().then(() => {
-        console.log('[DEBUG] FlutterEarth initialization completed');
-    }).catch(error => {
-        console.error('[DEBUG] FlutterEarth initialization failed:', error);
-    });
+    try {
+        window.flutterEarth = new FlutterEarth();
+        console.log('[DEBUG] FlutterEarth instance created:', window.flutterEarth);
+        window.flutterEarth.init().then(() => {
+            console.log('[DEBUG] FlutterEarth initialization completed');
+        }).catch(error => {
+            console.error('[DEBUG] FlutterEarth initialization failed:', error);
+        });
+    } catch (error) {
+        console.error('[DEBUG] Error creating FlutterEarth instance:', error);
+    }
 });

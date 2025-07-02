@@ -487,15 +487,15 @@ body {
     overflow-y: auto;
     padding: var(--spacing-2xl);
     min-height: 100%;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all var(--transition-normal);
+    opacity: 1;
+    transform: none;
+    transition: none;
 }
 
 .view-content.active {
     display: block;
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
 }
 
 /* Enhanced Welcome Content */

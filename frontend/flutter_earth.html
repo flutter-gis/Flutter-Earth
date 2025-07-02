@@ -14,79 +14,72 @@
 </head>
 <body>
     <div id="app" class="app-window">
-        <!-- Sidebar -->
-        <div id="sidebar" class="sidebar">
-            <div class="sidebar-content">
-                <div class="sidebar-item" data-view="welcome">
-                    <span class="sidebar-icon">🏠</span>
-                    <span class="sidebar-label">Home</span>
+        <!-- Top Toolbar (replaces sidebar and top-bar) -->
+        <div id="top-toolbar" class="top-toolbar">
+            <div class="toolbar-content">
+                <div class="toolbar-items">
+                    <div class="toolbar-item" data-view="welcome">
+                        <span class="toolbar-icon">🏠</span>
+                        <span class="toolbar-label">Home</span>
+                    </div>
+                    <div class="toolbar-item" data-view="map">
+                        <span class="toolbar-icon">🗺️</span>
+                        <span class="toolbar-label">Map</span>
+                    </div>
+                    <div class="toolbar-item" data-view="download">
+                        <span class="toolbar-icon">📥</span>
+                        <span class="toolbar-label">Download</span>
+                    </div>
+                    <div class="toolbar-item" data-view="satelliteInfo">
+                        <span class="toolbar-icon">🛰️</span>
+                        <span class="toolbar-label">Satellite Info</span>
+                    </div>
+                    <div class="toolbar-item" data-view="indexAnalysis">
+                        <span class="toolbar-icon">🌱</span>
+                        <span class="toolbar-label">Index Analysis</span>
+                    </div>
+                    <div class="toolbar-item" data-view="vectorDownload">
+                        <span class="toolbar-icon">🌐</span>
+                        <span class="toolbar-label">Vector Download</span>
+                    </div>
+                    <div class="toolbar-item" data-view="dataViewer">
+                        <span class="toolbar-icon">📊</span>
+                        <span class="toolbar-label">Data Viewer</span>
+                    </div>
+                    <div class="toolbar-item" data-view="progress">
+                        <span class="toolbar-icon">🔄</span>
+                        <span class="toolbar-label">Progress</span>
+                    </div>
+                    <div class="toolbar-item" data-view="settings">
+                        <span class="toolbar-icon">⚙️</span>
+                        <span class="toolbar-label">Settings</span>
+                    </div>
+                    <div class="toolbar-item" data-view="about">
+                        <span class="toolbar-icon">ℹ️</span>
+                        <span class="toolbar-label">About</span>
+                    </div>
+                    <div class="toolbar-item" data-panel="toolbox">
+                        <span class="toolbar-icon">🧰</span>
+                        <span class="toolbar-label">Toolbox</span>
+                    </div>
+                    <div class="toolbar-item" data-panel="bookmarks">
+                        <span class="toolbar-icon">🔖</span>
+                        <span class="toolbar-label">Bookmarks</span>
+                    </div>
+                    <div class="toolbar-item" data-panel="attributeTable">
+                        <span class="toolbar-icon">📋</span>
+                        <span class="toolbar-label">Attribute Table</span>
+                    </div>
+                    <div id="toolbar-indicator" class="toolbar-indicator"></div>
                 </div>
-                <div class="sidebar-item" data-view="map">
-                    <span class="sidebar-icon">🗺️</span>
-                    <span class="sidebar-label">Map</span>
-                </div>
-                <div class="sidebar-item" data-view="download">
-                    <span class="sidebar-icon">📥</span>
-                    <span class="sidebar-label">Download</span>
-                </div>
-                <div class="sidebar-item" data-view="satelliteInfo">
-                    <span class="sidebar-icon">🛰️</span>
-                    <span class="sidebar-label">Satellite Info</span>
-                </div>
-                <div class="sidebar-item" data-view="indexAnalysis">
-                    <span class="sidebar-icon">🌱</span>
-                    <span class="sidebar-label">Index Analysis</span>
-                </div>
-                <div class="sidebar-item" data-view="vectorDownload">
-                    <span class="sidebar-icon">🌐</span>
-                    <span class="sidebar-label">Vector Download</span>
-                </div>
-                <div class="sidebar-item" data-view="dataViewer">
-                    <span class="sidebar-icon">📊</span>
-                    <span class="sidebar-label">Data Viewer</span>
-                </div>
-                <div class="sidebar-item" data-view="progress">
-                    <span class="sidebar-icon">🔄</span>
-                    <span class="sidebar-label">Progress</span>
-                </div>
-                <div class="sidebar-item" data-view="settings">
-                    <span class="sidebar-icon">⚙️</span>
-                    <span class="sidebar-label">Settings</span>
-                </div>
-                <div class="sidebar-item" data-view="about">
-                    <span class="sidebar-icon">ℹ️</span>
-                    <span class="sidebar-label">About</span>
-                </div>
-                <div class="sidebar-item" data-panel="toolbox">
-                    <span class="sidebar-icon">🧰</span>
-                    <span class="sidebar-label">Toolbox</span>
-                </div>
-                <div class="sidebar-item" data-panel="bookmarks">
-                    <span class="sidebar-icon">🔖</span>
-                    <span class="sidebar-label">Bookmarks</span>
-                </div>
-                <div class="sidebar-item" data-panel="attributeTable">
-                    <span class="sidebar-icon">📋</span>
-                    <span class="sidebar-label">Attribute Table</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Top Bar -->
-        <div id="top-bar" class="top-bar">
-            <div class="top-bar-content">
-                <div class="top-bar-left">
+                <div class="toolbar-right">
                     <img src="../logo.png" class="topbar-logo" alt="Flutter Earth Logo">
-                    <h1 class="app-title">Flutter Earth</h1>
-                    <div class="top-bar-separator"></div>
+                    <span class="app-title">Flutter Earth</span>
                     <span class="app-version">v1.0.0 - Ready</span>
-                </div>
-                <div class="top-bar-right">
                     <button id="help-button" class="help-button" title="Help / Documentation">?</button>
                 </div>
             </div>
         </div>
-
         <!-- Main Content Area -->
         <div id="main-area" class="main-area">
             <!-- Welcome View -->
@@ -94,7 +87,7 @@
                 <div class="welcome-content">
                     <img src="../logo.png" class="welcome-logo-img" alt="Flutter Earth Logo">
                     <h1>Welcome to Flutter Earth!</h1>
-                    <p>Select a tool from the sidebar to get started.</p>
+                    <p>Select a tool from the toolbar to get started.</p>
                 </div>
             </div>
 
@@ -281,6 +274,26 @@
                                     <input type="checkbox" id="enable-animated-background">
                                     <label for="enable-animated-background">Enable Animated Backgrounds</label>
                                 </div>
+                                <div class="input-group toolbar-animation-group">
+                                    <label for="toolbar-animation-select">Toolbar Animation:</label>
+                                    <select id="toolbar-animation-select">
+                                        <option value="glow">Glow (Default)</option>
+                                        <option value="bounce">Bounce</option>
+                                        <option value="slide">Slide</option>
+                                        <option value="pulse">Pulse</option>
+                                        <option value="spin">Spin</option>
+                                        <option value="flip">Flip</option>
+                                        <option value="shake">Shake</option>
+                                        <option value="wiggle">Wiggle</option>
+                                        <option value="color">Color Shift</option>
+                                        <option value="fade">Fade</option>
+                                        <option value="pop">Pop</option>
+                                        <option value="rubber">Rubber Band</option>
+                                        <option value="swing">Swing</option>
+                                        <option value="rotate">Rotate</option>
+                                        <option value="none">None</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -302,6 +315,9 @@
                             <div class="action-buttons">
                                 <button id="reload-settings-btn" class="btn-secondary">Reload Settings</button>
                                 <button id="clear-cache-settings-btn" class="btn-secondary">Clear Cache and Logs</button>
+                                <button id="auth-settings-btn" class="btn-primary">Authenticate with Earth Engine</button>
+                                <label for="settings-key-file" style="margin-left:8px; font-weight:500;">Key File:</label>
+                                <input id="settings-key-file" type="file" accept=".json" style="display:inline-block; width:auto; margin-left:4px;">
                             </div>
                         </div>
                     </div>
