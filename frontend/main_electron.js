@@ -54,6 +54,18 @@ ipcMain.handle('python-progress', async () => {
   return await callPythonScript('progress');
 });
 
+ipcMain.handle('python-auth-check', async () => {
+  console.log('Received python-auth-check request');
+  try {
+    const result = await callPythonScript('auth-check');
+    console.log('Python auth-check result:', result);
+    return result;
+  } catch (error) {
+    console.error('Python auth-check error:', error);
+    return { status: 'error', needs_auth: true, message: error.message };
+  }
+});
+
 ipcMain.handle('python-auth', async (event, keyFile, projectId) => {
   return await callPythonScript('auth', keyFile, projectId);
 });
@@ -195,6 +207,12 @@ function callPythonScript(command, ...args) {
     });
   });
 }
+
+ipcMain.on('log-to-file', (event, level, message) => {
+    const logPath = path.join(__dirname, '..', 'console_log.txt');
+    const timestamp = new Date().toISOString();
+    fs.appendFileSync(logPath, `[${timestamp}] [${level.toUpperCase()}] ${message}\n`);
+});
 
 app.whenReady().then(createWindow);
 

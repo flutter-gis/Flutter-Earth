@@ -235,6 +235,24 @@ def get_progress():
             "message": f"Progress error: {str(e)}"
         }
 
+def check_auth_needed():
+    """Check if authentication is needed"""
+    try:
+        auth_manager = AuthManager()
+        needs_auth = auth_manager.needs_authentication()
+        
+        return {
+            "status": "success",
+            "needs_auth": needs_auth,
+            "message": "Authentication check completed"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "needs_auth": True,  # Default to requiring auth on error
+            "message": f"Auth check error: {str(e)}"
+        }
+
 def set_auth_credentials(key_file, project_id):
     """Set authentication credentials"""
     try:
@@ -370,6 +388,8 @@ def main():
                 result = start_download(params)
         elif command == "progress":
             result = get_progress()
+        elif command == "auth-check":
+            result = check_auth_needed()
         elif command == "auth":
             if len(sys.argv) < 4:
                 result = {"status": "error", "message": "Missing auth parameters"}

@@ -1,0 +1,325 @@
+[2025-07-03T18:44:59.781Z] [LOG] 🎨 Artistic Theme Effects initialized
+[2025-07-03T18:44:59.783Z] [LOG] 🎨 Artistic effects initialized globally
+[2025-07-03T18:44:59.784Z] [LOG] 🔍 Interaction Logger: DOM loaded, testing logging...
+[2025-07-03T18:44:59.784Z] [LOG] [TABS] Setting up tabs...
+[2025-07-03T18:44:59.784Z] [LOG] [TABS] Found 10 tab buttons
+[2025-07-03T18:44:59.785Z] [LOG] [TABS] Found 10 tab contents
+[2025-07-03T18:44:59.785Z] [LOG] [TABS] Setting up event listeners...
+[2025-07-03T18:44:59.785Z] [LOG] [TABS] Setting up listener for: welcome
+[2025-07-03T18:44:59.786Z] [LOG] [TABS] Setting up listener for: map
+[2025-07-03T18:44:59.791Z] [LOG] [TABS] Setting up listener for: download
+[2025-07-03T18:44:59.792Z] [LOG] [TABS] Setting up listener for: satelliteInfo
+[2025-07-03T18:44:59.792Z] [LOG] [TABS] Setting up listener for: indexAnalysis
+[2025-07-03T18:44:59.792Z] [LOG] [TABS] Setting up listener for: vectorDownload
+[2025-07-03T18:44:59.793Z] [LOG] [TABS] Setting up listener for: dataViewer
+[2025-07-03T18:44:59.793Z] [LOG] [TABS] Setting up listener for: progress
+[2025-07-03T18:44:59.793Z] [LOG] [TABS] Setting up listener for: settings
+[2025-07-03T18:44:59.794Z] [LOG] [TABS] Setting up listener for: about
+[2025-07-03T18:44:59.794Z] [LOG] [TABS] Event listeners setup complete
+[2025-07-03T18:44:59.794Z] [LOG] [TABS] Switching to tab: welcome
+[2025-07-03T18:44:59.795Z] [LOG] [TABS] Hidden: welcome-view
+[2025-07-03T18:44:59.795Z] [LOG] [TABS] Hidden: map-view
+[2025-07-03T18:44:59.795Z] [LOG] [TABS] Hidden: download-view
+[2025-07-03T18:44:59.796Z] [LOG] [TABS] Hidden: settings-view
+[2025-07-03T18:44:59.796Z] [LOG] [TABS] Hidden: about-view
+[2025-07-03T18:44:59.796Z] [LOG] [TABS] Hidden: progress-view
+[2025-07-03T18:44:59.796Z] [LOG] [TABS] Hidden: indexAnalysis-view
+[2025-07-03T18:44:59.797Z] [LOG] [TABS] Hidden: vectorDownload-view
+[2025-07-03T18:44:59.797Z] [LOG] [TABS] Hidden: dataViewer-view
+[2025-07-03T18:44:59.797Z] [LOG] [TABS] Hidden: satelliteInfo-view
+[2025-07-03T18:44:59.798Z] [LOG] [TABS] Activated: welcome-view
+[2025-07-03T18:44:59.798Z] [LOG] [TABS] Button activated: welcome
+[2025-07-03T18:44:59.798Z] [LOG] [TABS] Handling specific logic for: welcome
+[2025-07-03T18:44:59.798Z] [LOG] [TABS] Welcome view activated
+[2025-07-03T18:44:59.799Z] [LOG] [TABS] Successfully switched to: welcome
+[2025-07-03T18:44:59.799Z] [LOG] [TABS] Tab system setup complete
+[2025-07-03T18:44:59.799Z] [LOG] [DEBUG] DOM loaded, initializing FlutterEarth...
+[2025-07-03T18:44:59.800Z] [LOG] [DEBUG] FlutterEarth constructor called
+[2025-07-03T18:44:59.800Z] [LOG] [DEBUG] FlutterEarth constructor completed, calling init()
+[2025-07-03T18:44:59.800Z] [LOG] [DEBUG] FlutterEarth.init() started
+[2025-07-03T18:44:59.800Z] [LOG] [DEBUG] DOM already loaded
+[2025-07-03T18:44:59.801Z] [LOG] [DEBUG] DOM ready, checking elements...
+[2025-07-03T18:44:59.801Z] [LOG] [DEBUG] Found 13 toolbar items and 10 view elements
+[2025-07-03T18:44:59.801Z] [LOG] [MAIN] Initializing views with clean tab system...
+[2025-07-03T18:44:59.801Z] [LOG] [MAIN] Clean tab system is available
+[2025-07-03T18:44:59.802Z] [LOG] [MAIN] Views initialization complete
+[2025-07-03T18:44:59.802Z] [LOG] [DEBUG] Views initialized
+[2025-07-03T18:44:59.802Z] [LOG] [MAIN] Setting up event listeners with clean tab system...
+[2025-07-03T18:44:59.802Z] [LOG] [MAIN] Clean tab system handles tab switching
+[2025-07-03T18:44:59.803Z] [LOG] [MAIN] Event listeners setup complete
+[2025-07-03T18:44:59.803Z] [LOG] [DEBUG] Event listeners setup
+[2025-07-03T18:44:59.803Z] [LOG] [DEBUG] Loading sensors from crawler data...
+[2025-07-03T18:44:59.804Z] [ERROR] [DEBUG] Error in FlutterEarth.init(): TypeError: this.setupCalendar is not a function
+[2025-07-03T18:44:59.804Z] [LOG] [MAIN] Initializing views with clean tab system...
+[2025-07-03T18:44:59.804Z] [LOG] [MAIN] Clean tab system is available
+[2025-07-03T18:44:59.805Z] [LOG] [MAIN] Views initialization complete
+[2025-07-03T18:44:59.805Z] [LOG] [MAIN] Setting up event listeners with clean tab system...
+[2025-07-03T18:44:59.806Z] [LOG] [MAIN] Clean tab system handles tab switching
+[2025-07-03T18:44:59.806Z] [LOG] [MAIN] Event listeners setup complete
+[2025-07-03T18:44:59.806Z] [LOG] [THEME] Applied theme colors: default_dark
+[2025-07-03T18:44:59.806Z] [LOG] [THEME] Set default theme: default_dark
+[2025-07-03T18:44:59.807Z] [LOG] [DEBUG] FlutterEarth instance created: [object Object]
+[2025-07-03T18:44:59.807Z] [LOG] [DEBUG] FlutterEarth.init() started
+[2025-07-03T18:44:59.807Z] [LOG] [DEBUG] DOM already loaded
+[2025-07-03T18:44:59.808Z] [LOG] [DEBUG] DOM ready, checking elements...
+[2025-07-03T18:44:59.808Z] [LOG] [DEBUG] Found 13 toolbar items and 10 view elements
+[2025-07-03T18:44:59.809Z] [LOG] [MAIN] Initializing views with clean tab system...
+[2025-07-03T18:44:59.809Z] [LOG] [MAIN] Clean tab system is available
+[2025-07-03T18:44:59.809Z] [LOG] [MAIN] Views initialization complete
+[2025-07-03T18:44:59.810Z] [LOG] [DEBUG] Views initialized
+[2025-07-03T18:44:59.810Z] [LOG] [MAIN] Setting up event listeners with clean tab system...
+[2025-07-03T18:44:59.810Z] [LOG] [MAIN] Clean tab system handles tab switching
+[2025-07-03T18:44:59.810Z] [LOG] [MAIN] Event listeners setup complete
+[2025-07-03T18:44:59.811Z] [LOG] [DEBUG] Event listeners setup
+[2025-07-03T18:44:59.811Z] [LOG] [DEBUG] Loading sensors from crawler data...
+[2025-07-03T18:44:59.811Z] [ERROR] [DEBUG] Error in FlutterEarth.init(): TypeError: this.setupCalendar is not a function
+[2025-07-03T18:44:59.812Z] [LOG] [MAIN] Initializing views with clean tab system...
+[2025-07-03T18:44:59.812Z] [LOG] [MAIN] Clean tab system is available
+[2025-07-03T18:44:59.812Z] [LOG] [MAIN] Views initialization complete
+[2025-07-03T18:44:59.813Z] [LOG] [MAIN] Setting up event listeners with clean tab system...
+[2025-07-03T18:44:59.813Z] [LOG] [MAIN] Clean tab system handles tab switching
+[2025-07-03T18:44:59.813Z] [LOG] [MAIN] Event listeners setup complete
+[2025-07-03T18:44:59.814Z] [LOG] [DEBUG] FlutterEarth initialization completed
+[2025-07-03T18:44:59.844Z] [LOG] [DEBUG] Falling back to hardcoded sensor data
+[2025-07-03T18:44:59.849Z] [LOG] [DEBUG] Falling back to hardcoded sensor data
+[2025-07-03T18:44:59.890Z] [LOG] [DEBUG] Post-init check: [object Object]
+[2025-07-03T18:44:59.890Z] [LOG] [DEBUG] Post-init check: [object Object]
+[2025-07-03T18:45:00.294Z] [LOG] 🎨 Initializing theme system...
+[2025-07-03T18:45:00.295Z] [LOG] 🎨 Initializing 35 themes
+[2025-07-03T18:45:00.295Z] [LOG] 🎨 Showing 35 themes for category: all
+[2025-07-03T18:45:15.510Z] [LOG] [TABS] Tab clicked: satelliteInfo
+[2025-07-03T18:45:15.511Z] [LOG] [TABS] Switching to tab: satelliteInfo
+[2025-07-03T18:45:15.511Z] [LOG] [TABS] Hidden: welcome-view
+[2025-07-03T18:45:15.511Z] [LOG] [TABS] Hidden: map-view
+[2025-07-03T18:45:15.512Z] [LOG] [TABS] Hidden: download-view
+[2025-07-03T18:45:15.512Z] [LOG] [TABS] Hidden: settings-view
+[2025-07-03T18:45:15.512Z] [LOG] [TABS] Hidden: about-view
+[2025-07-03T18:45:15.513Z] [LOG] [TABS] Hidden: progress-view
+[2025-07-03T18:45:15.513Z] [LOG] [TABS] Hidden: indexAnalysis-view
+[2025-07-03T18:45:15.513Z] [LOG] [TABS] Hidden: vectorDownload-view
+[2025-07-03T18:45:15.514Z] [LOG] [TABS] Hidden: dataViewer-view
+[2025-07-03T18:45:15.514Z] [LOG] [TABS] Hidden: satelliteInfo-view
+[2025-07-03T18:45:15.514Z] [LOG] [TABS] Activated: satelliteInfo-view
+[2025-07-03T18:45:15.514Z] [LOG] [TABS] Button activated: satelliteInfo
+[2025-07-03T18:45:15.514Z] [LOG] [TABS] Handling specific logic for: satelliteInfo
+[2025-07-03T18:45:15.515Z] [LOG] [TABS] Satellite Info view activated
+[2025-07-03T18:45:15.515Z] [LOG] [TABS] Successfully switched to: satelliteInfo
+[2025-07-03T18:45:16.398Z] [LOG] [TABS] Tab clicked: indexAnalysis
+[2025-07-03T18:45:16.399Z] [LOG] [TABS] Switching to tab: indexAnalysis
+[2025-07-03T18:45:16.399Z] [LOG] [TABS] Hidden: welcome-view
+[2025-07-03T18:45:16.399Z] [LOG] [TABS] Hidden: map-view
+[2025-07-03T18:45:16.400Z] [LOG] [TABS] Hidden: download-view
+[2025-07-03T18:45:16.400Z] [LOG] [TABS] Hidden: settings-view
+[2025-07-03T18:45:16.400Z] [LOG] [TABS] Hidden: about-view
+[2025-07-03T18:45:16.401Z] [LOG] [TABS] Hidden: progress-view
+[2025-07-03T18:45:16.401Z] [LOG] [TABS] Hidden: indexAnalysis-view
+[2025-07-03T18:45:16.401Z] [LOG] [TABS] Hidden: vectorDownload-view
+[2025-07-03T18:45:16.401Z] [LOG] [TABS] Hidden: dataViewer-view
+[2025-07-03T18:45:16.402Z] [LOG] [TABS] Hidden: satelliteInfo-view
+[2025-07-03T18:45:16.402Z] [LOG] [TABS] Activated: indexAnalysis-view
+[2025-07-03T18:45:16.402Z] [LOG] [TABS] Button activated: indexAnalysis
+[2025-07-03T18:45:16.402Z] [LOG] [TABS] Handling specific logic for: indexAnalysis
+[2025-07-03T18:45:16.403Z] [LOG] [TABS] Unknown view: indexAnalysis
+[2025-07-03T18:45:16.403Z] [LOG] [TABS] Successfully switched to: indexAnalysis
+[2025-07-03T18:45:17.637Z] [LOG] [TABS] Tab clicked: vectorDownload
+[2025-07-03T18:45:17.638Z] [LOG] [TABS] Switching to tab: vectorDownload
+[2025-07-03T18:45:17.638Z] [LOG] [TABS] Hidden: welcome-view
+[2025-07-03T18:45:17.639Z] [LOG] [TABS] Hidden: map-view
+[2025-07-03T18:45:17.639Z] [LOG] [TABS] Hidden: download-view
+[2025-07-03T18:45:17.639Z] [LOG] [TABS] Hidden: settings-view
+[2025-07-03T18:45:17.640Z] [LOG] [TABS] Hidden: about-view
+[2025-07-03T18:45:17.640Z] [LOG] [TABS] Hidden: progress-view
+[2025-07-03T18:45:17.640Z] [LOG] [TABS] Hidden: indexAnalysis-view
+[2025-07-03T18:45:17.641Z] [LOG] [TABS] Hidden: vectorDownload-view
+[2025-07-03T18:45:17.641Z] [LOG] [TABS] Hidden: dataViewer-view
+[2025-07-03T18:45:17.641Z] [LOG] [TABS] Hidden: satelliteInfo-view
+[2025-07-03T18:45:17.642Z] [LOG] [TABS] Activated: vectorDownload-view
+[2025-07-03T18:45:17.642Z] [LOG] [TABS] Button activated: vectorDownload
+[2025-07-03T18:45:17.642Z] [LOG] [TABS] Handling specific logic for: vectorDownload
+[2025-07-03T18:45:17.643Z] [LOG] [TABS] Unknown view: vectorDownload
+[2025-07-03T18:45:17.643Z] [LOG] [TABS] Successfully switched to: vectorDownload
+[2025-07-03T18:45:19.413Z] [LOG] [TABS] Tab clicked: dataViewer
+[2025-07-03T18:45:19.414Z] [LOG] [TABS] Switching to tab: dataViewer
+[2025-07-03T18:45:19.414Z] [LOG] [TABS] Hidden: welcome-view
+[2025-07-03T18:45:19.414Z] [LOG] [TABS] Hidden: map-view
+[2025-07-03T18:45:19.415Z] [LOG] [TABS] Hidden: download-view
+[2025-07-03T18:45:19.415Z] [LOG] [TABS] Hidden: settings-view
+[2025-07-03T18:45:19.415Z] [LOG] [TABS] Hidden: about-view
+[2025-07-03T18:45:19.416Z] [LOG] [TABS] Hidden: progress-view
+[2025-07-03T18:45:19.416Z] [LOG] [TABS] Hidden: indexAnalysis-view
+[2025-07-03T18:45:19.416Z] [LOG] [TABS] Hidden: vectorDownload-view
+[2025-07-03T18:45:19.417Z] [LOG] [TABS] Hidden: dataViewer-view
+[2025-07-03T18:45:19.417Z] [LOG] [TABS] Hidden: satelliteInfo-view
+[2025-07-03T18:45:19.417Z] [LOG] [TABS] Activated: dataViewer-view
+[2025-07-03T18:45:19.418Z] [LOG] [TABS] Button activated: dataViewer
+[2025-07-03T18:45:19.418Z] [LOG] [TABS] Handling specific logic for: dataViewer
+[2025-07-03T18:45:19.418Z] [LOG] [TABS] Unknown view: dataViewer
+[2025-07-03T18:45:19.419Z] [LOG] [TABS] Successfully switched to: dataViewer
+[2025-07-03T18:45:20.308Z] [LOG] [TABS] Tab clicked: progress
+[2025-07-03T18:45:20.355Z] [LOG] [TABS] Switching to tab: progress
+[2025-07-03T18:45:20.355Z] [LOG] [TABS] Hidden: welcome-view
+[2025-07-03T18:45:20.355Z] [LOG] [TABS] Hidden: map-view
+[2025-07-03T18:45:20.356Z] [LOG] [TABS] Hidden: download-view
+[2025-07-03T18:45:20.356Z] [LOG] [TABS] Hidden: settings-view
+[2025-07-03T18:45:20.356Z] [LOG] [TABS] Hidden: about-view
+[2025-07-03T18:45:20.357Z] [LOG] [TABS] Hidden: progress-view
+[2025-07-03T18:45:20.357Z] [LOG] [TABS] Hidden: indexAnalysis-view
+[2025-07-03T18:45:20.357Z] [LOG] [TABS] Hidden: vectorDownload-view
+[2025-07-03T18:45:20.358Z] [LOG] [TABS] Hidden: dataViewer-view
+[2025-07-03T18:45:20.358Z] [LOG] [TABS] Hidden: satelliteInfo-view
+[2025-07-03T18:45:20.358Z] [LOG] [TABS] Activated: progress-view
+[2025-07-03T18:45:20.358Z] [LOG] [TABS] Button activated: progress
+[2025-07-03T18:45:20.359Z] [LOG] [TABS] Handling specific logic for: progress
+[2025-07-03T18:45:20.359Z] [LOG] [TABS] Unknown view: progress
+[2025-07-03T18:45:20.359Z] [LOG] [TABS] Successfully switched to: progress
+[2025-07-03T18:45:21.510Z] [LOG] [TABS] Tab clicked: settings
+[2025-07-03T18:45:21.511Z] [LOG] [TABS] Switching to tab: settings
+[2025-07-03T18:45:21.511Z] [LOG] [TABS] Hidden: welcome-view
+[2025-07-03T18:45:21.511Z] [LOG] [TABS] Hidden: map-view
+[2025-07-03T18:45:21.512Z] [LOG] [TABS] Hidden: download-view
+[2025-07-03T18:45:21.512Z] [LOG] [TABS] Hidden: settings-view
+[2025-07-03T18:45:21.512Z] [LOG] [TABS] Hidden: about-view
+[2025-07-03T18:45:21.513Z] [LOG] [TABS] Hidden: progress-view
+[2025-07-03T18:45:21.513Z] [LOG] [TABS] Hidden: indexAnalysis-view
+[2025-07-03T18:45:21.513Z] [LOG] [TABS] Hidden: vectorDownload-view
+[2025-07-03T18:45:21.514Z] [LOG] [TABS] Hidden: dataViewer-view
+[2025-07-03T18:45:21.514Z] [LOG] [TABS] Hidden: satelliteInfo-view
+[2025-07-03T18:45:21.514Z] [LOG] [TABS] Activated: settings-view
+[2025-07-03T18:45:21.515Z] [LOG] [TABS] Button activated: settings
+[2025-07-03T18:45:21.515Z] [LOG] [TABS] Handling specific logic for: settings
+[2025-07-03T18:45:21.515Z] [LOG] [TABS] Settings view activated
+[2025-07-03T18:45:21.516Z] [LOG] [TABS] Successfully switched to: settings
+[2025-07-03T18:45:21.614Z] [LOG] [DEBUG] Initializing settings (all themes grid)
+[2025-07-03T18:45:21.614Z] [LOG] [DEBUG] Found 35 themes for initialization
+[2025-07-03T18:45:21.615Z] [LOG] [DEBUG] Found theme-grid element, updating grid
+[2025-07-03T18:45:21.615Z] [LOG] [DEBUG] Updating theme grid for category: all Themes: 35 themes
+[2025-07-03T18:45:21.616Z] [LOG] [DEBUG] Loading current settings
+[2025-07-03T18:45:21.616Z] [LOG] [DEBUG] Updating theme options
+[2025-07-03T18:45:21.617Z] [LOG] [DEBUG] Creating theme tabs for categories: all,professional,pride,gaming,nature,mlp,minecraft
+[2025-07-03T18:45:21.617Z] [LOG] [DEBUG] Updating theme grid for category: all Themes: 35 themes
+[2025-07-03T18:45:21.617Z] [LOG] 🎨 Re-initializing theme system for settings view...
+[2025-07-03T18:45:21.618Z] [LOG] 🎨 Initializing 35 themes
+[2025-07-03T18:45:21.618Z] [LOG] 🎨 Showing 35 themes for category: all
+[2025-07-03T18:45:21.621Z] [LOG] 🎨 Re-initializing theme system for settings view...
+[2025-07-03T18:45:21.621Z] [LOG] 🎨 Initializing 35 themes
+[2025-07-03T18:45:21.621Z] [LOG] 🎨 Showing 35 themes for category: all
+[2025-07-03T18:51:30.999Z] [LOG] 🎨 Artistic Theme Effects initialized
+[2025-07-03T18:51:31.000Z] [LOG] 🎨 Artistic effects initialized globally
+[2025-07-03T18:51:31.001Z] [LOG] 🔍 Interaction Logger: DOM loaded, testing logging...
+[2025-07-03T18:51:31.001Z] [LOG] [TABS] Setting up tabs...
+[2025-07-03T18:51:31.002Z] [LOG] [TABS] Found 10 tab buttons
+[2025-07-03T18:51:31.002Z] [LOG] [TABS] Found 10 tab contents
+[2025-07-03T18:51:31.003Z] [LOG] [TABS] Setting up event listeners...
+[2025-07-03T18:51:31.003Z] [LOG] [TABS] Setting up listener for: welcome
+[2025-07-03T18:51:31.004Z] [LOG] [TABS] Setting up listener for: map
+[2025-07-03T18:51:31.005Z] [LOG] [TABS] Setting up listener for: download
+[2025-07-03T18:51:31.005Z] [LOG] [TABS] Setting up listener for: satelliteInfo
+[2025-07-03T18:51:31.005Z] [LOG] [TABS] Setting up listener for: indexAnalysis
+[2025-07-03T18:51:31.006Z] [LOG] [TABS] Setting up listener for: vectorDownload
+[2025-07-03T18:51:31.006Z] [LOG] [TABS] Setting up listener for: dataViewer
+[2025-07-03T18:51:31.007Z] [LOG] [TABS] Setting up listener for: progress
+[2025-07-03T18:51:31.007Z] [LOG] [TABS] Setting up listener for: settings
+[2025-07-03T18:51:31.007Z] [LOG] [TABS] Setting up listener for: about
+[2025-07-03T18:51:31.008Z] [LOG] [TABS] Event listeners setup complete
+[2025-07-03T18:51:31.008Z] [LOG] [TABS] Switching to tab: welcome
+[2025-07-03T18:51:31.008Z] [LOG] [TABS] Hidden: welcome-view
+[2025-07-03T18:51:31.009Z] [LOG] [TABS] Hidden: map-view
+[2025-07-03T18:51:31.009Z] [LOG] [TABS] Hidden: download-view
+[2025-07-03T18:51:31.010Z] [LOG] [TABS] Hidden: settings-view
+[2025-07-03T18:51:31.010Z] [LOG] [TABS] Hidden: about-view
+[2025-07-03T18:51:31.010Z] [LOG] [TABS] Hidden: progress-view
+[2025-07-03T18:51:31.011Z] [LOG] [TABS] Hidden: indexAnalysis-view
+[2025-07-03T18:51:31.011Z] [LOG] [TABS] Hidden: vectorDownload-view
+[2025-07-03T18:51:31.011Z] [LOG] [TABS] Hidden: dataViewer-view
+[2025-07-03T18:51:31.012Z] [LOG] [TABS] Hidden: satelliteInfo-view
+[2025-07-03T18:51:31.012Z] [LOG] [TABS] Activated: welcome-view
+[2025-07-03T18:51:31.012Z] [LOG] [TABS] Button activated: welcome
+[2025-07-03T18:51:31.013Z] [LOG] [TABS] Handling specific logic for: welcome
+[2025-07-03T18:51:31.013Z] [LOG] [TABS] Welcome view activated
+[2025-07-03T18:51:31.013Z] [LOG] [TABS] Successfully switched to: welcome
+[2025-07-03T18:51:31.013Z] [LOG] [TABS] Tab system setup complete
+[2025-07-03T18:51:31.014Z] [LOG] [DEBUG] DOM loaded, initializing FlutterEarth...
+[2025-07-03T18:51:31.014Z] [LOG] [DEBUG] FlutterEarth constructor called
+[2025-07-03T18:51:31.014Z] [LOG] [DEBUG] FlutterEarth constructor completed, calling init()
+[2025-07-03T18:51:31.015Z] [LOG] [DEBUG] FlutterEarth.init() started
+[2025-07-03T18:51:31.015Z] [LOG] [DEBUG] DOM already loaded
+[2025-07-03T18:51:31.015Z] [LOG] [DEBUG] DOM ready, checking elements...
+[2025-07-03T18:51:31.016Z] [LOG] [DEBUG] Found 13 toolbar items and 10 view elements
+[2025-07-03T18:51:31.016Z] [LOG] [MAIN] Initializing views with clean tab system...
+[2025-07-03T18:51:31.017Z] [LOG] [MAIN] Clean tab system is available
+[2025-07-03T18:51:31.017Z] [LOG] [MAIN] Views initialization complete
+[2025-07-03T18:51:31.017Z] [LOG] [DEBUG] Views initialized
+[2025-07-03T18:51:31.017Z] [LOG] [MAIN] Setting up event listeners with clean tab system...
+[2025-07-03T18:51:31.018Z] [LOG] [MAIN] Clean tab system handles tab switching
+[2025-07-03T18:51:31.018Z] [LOG] [MAIN] Event listeners setup complete
+[2025-07-03T18:51:31.018Z] [LOG] [DEBUG] Event listeners setup
+[2025-07-03T18:51:31.019Z] [LOG] [DEBUG] Loading sensors from crawler data...
+[2025-07-03T18:51:31.019Z] [ERROR] [DEBUG] Error in FlutterEarth.init(): TypeError: this.setupCalendar is not a function
+[2025-07-03T18:51:31.020Z] [LOG] [MAIN] Initializing views with clean tab system...
+[2025-07-03T18:51:31.020Z] [LOG] [MAIN] Clean tab system is available
+[2025-07-03T18:51:31.020Z] [LOG] [MAIN] Views initialization complete
+[2025-07-03T18:51:31.020Z] [LOG] [MAIN] Setting up event listeners with clean tab system...
+[2025-07-03T18:51:31.021Z] [LOG] [MAIN] Clean tab system handles tab switching
+[2025-07-03T18:51:31.021Z] [LOG] [MAIN] Event listeners setup complete
+[2025-07-03T18:51:31.021Z] [LOG] [THEME] Applied theme colors: default_dark
+[2025-07-03T18:51:31.022Z] [LOG] [THEME] Set default theme: default_dark
+[2025-07-03T18:51:31.022Z] [LOG] [DEBUG] FlutterEarth instance created: [object Object]
+[2025-07-03T18:51:31.022Z] [LOG] [DEBUG] FlutterEarth.init() started
+[2025-07-03T18:51:31.023Z] [LOG] [DEBUG] DOM already loaded
+[2025-07-03T18:51:31.023Z] [LOG] [DEBUG] DOM ready, checking elements...
+[2025-07-03T18:51:31.023Z] [LOG] [DEBUG] Found 13 toolbar items and 10 view elements
+[2025-07-03T18:51:31.023Z] [LOG] [MAIN] Initializing views with clean tab system...
+[2025-07-03T18:51:31.024Z] [LOG] [MAIN] Clean tab system is available
+[2025-07-03T18:51:31.024Z] [LOG] [MAIN] Views initialization complete
+[2025-07-03T18:51:31.024Z] [LOG] [DEBUG] Views initialized
+[2025-07-03T18:51:31.025Z] [LOG] [MAIN] Setting up event listeners with clean tab system...
+[2025-07-03T18:51:31.025Z] [LOG] [MAIN] Clean tab system handles tab switching
+[2025-07-03T18:51:31.025Z] [LOG] [MAIN] Event listeners setup complete
+[2025-07-03T18:51:31.025Z] [LOG] [DEBUG] Event listeners setup
+[2025-07-03T18:51:31.026Z] [LOG] [DEBUG] Loading sensors from crawler data...
+[2025-07-03T18:51:31.026Z] [ERROR] [DEBUG] Error in FlutterEarth.init(): TypeError: this.setupCalendar is not a function
+[2025-07-03T18:51:31.026Z] [LOG] [MAIN] Initializing views with clean tab system...
+[2025-07-03T18:51:31.027Z] [LOG] [MAIN] Clean tab system is available
+[2025-07-03T18:51:31.027Z] [LOG] [MAIN] Views initialization complete
+[2025-07-03T18:51:31.027Z] [LOG] [MAIN] Setting up event listeners with clean tab system...
+[2025-07-03T18:51:31.027Z] [LOG] [MAIN] Clean tab system handles tab switching
+[2025-07-03T18:51:31.028Z] [LOG] [MAIN] Event listeners setup complete
+[2025-07-03T18:51:31.028Z] [LOG] [DEBUG] FlutterEarth initialization completed
+[2025-07-03T18:51:31.079Z] [LOG] [DEBUG] Falling back to hardcoded sensor data
+[2025-07-03T18:51:31.085Z] [LOG] [DEBUG] Falling back to hardcoded sensor data
+[2025-07-03T18:51:31.106Z] [LOG] [DEBUG] Post-init check: [object Object]
+[2025-07-03T18:51:31.108Z] [LOG] [DEBUG] Post-init check: [object Object]
+[2025-07-03T18:51:31.514Z] [LOG] 🎨 Initializing theme system...
+[2025-07-03T18:51:31.515Z] [LOG] 🎨 Initializing 35 themes
+[2025-07-03T18:51:31.515Z] [LOG] 🎨 Showing 35 themes for category: all
+[2025-07-03T18:51:33.039Z] [LOG] [TABS] Tab clicked: settings
+[2025-07-03T18:51:33.040Z] [LOG] [TABS] Switching to tab: settings
+[2025-07-03T18:51:33.040Z] [LOG] [TABS] Hidden: welcome-view
+[2025-07-03T18:51:33.040Z] [LOG] [TABS] Hidden: map-view
+[2025-07-03T18:51:33.041Z] [LOG] [TABS] Hidden: download-view
+[2025-07-03T18:51:33.041Z] [LOG] [TABS] Hidden: settings-view
+[2025-07-03T18:51:33.041Z] [LOG] [TABS] Hidden: about-view
+[2025-07-03T18:51:33.041Z] [LOG] [TABS] Hidden: progress-view
+[2025-07-03T18:51:33.042Z] [LOG] [TABS] Hidden: indexAnalysis-view
+[2025-07-03T18:51:33.042Z] [LOG] [TABS] Hidden: vectorDownload-view
+[2025-07-03T18:51:33.042Z] [LOG] [TABS] Hidden: dataViewer-view
+[2025-07-03T18:51:33.042Z] [LOG] [TABS] Hidden: satelliteInfo-view
+[2025-07-03T18:51:33.042Z] [LOG] [TABS] Activated: settings-view
+[2025-07-03T18:51:33.043Z] [LOG] [TABS] Button activated: settings
+[2025-07-03T18:51:33.043Z] [LOG] [TABS] Handling specific logic for: settings
+[2025-07-03T18:51:33.043Z] [LOG] [TABS] Settings view activated
+[2025-07-03T18:51:33.043Z] [LOG] [TABS] Successfully switched to: settings
+[2025-07-03T18:51:33.147Z] [LOG] [DEBUG] Initializing settings (all themes grid)
+[2025-07-03T18:51:33.148Z] [LOG] [DEBUG] Found 35 themes for initialization
+[2025-07-03T18:51:33.148Z] [LOG] [DEBUG] Found theme-grid element, updating grid
+[2025-07-03T18:51:33.149Z] [LOG] [DEBUG] Updating theme grid for category: all Themes: 35 themes
+[2025-07-03T18:51:33.149Z] [LOG] [DEBUG] Loading current settings
+[2025-07-03T18:51:33.149Z] [LOG] [DEBUG] Updating theme options
+[2025-07-03T18:51:33.150Z] [LOG] [DEBUG] Creating theme tabs for categories: all,professional,pride,gaming,nature,mlp,minecraft
+[2025-07-03T18:51:33.150Z] [LOG] [DEBUG] Updating theme grid for category: all Themes: 35 themes
+[2025-07-03T18:51:33.150Z] [LOG] 🎨 Re-initializing theme system for settings view...
+[2025-07-03T18:51:33.151Z] [LOG] 🎨 Initializing 35 themes
+[2025-07-03T18:51:33.151Z] [LOG] 🎨 Showing 35 themes for category: all
+[2025-07-03T18:51:33.152Z] [LOG] 🎨 Re-initializing theme system for settings view...
+[2025-07-03T18:51:33.153Z] [LOG] 🎨 Initializing 35 themes
+[2025-07-03T18:51:33.153Z] [LOG] 🎨 Showing 35 themes for category: all

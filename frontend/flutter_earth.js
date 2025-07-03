@@ -5,6 +5,37 @@
 // The generated themes will be loaded via script tag in HTML
 // import availableThemes from './generated_themes.js';
 
+// Log all console output to file via Electron IPC
+(function() {
+    const origLog = console.log;
+    const origError = console.error;
+    const origWarn = console.warn;
+    const origInfo = console.info;
+
+    function sendToMain(level, args) {
+        if (window.electronAPI && window.electronAPI.logToFile) {
+            window.electronAPI.logToFile(level, Array.from(args).map(String).join(' '));
+        }
+    }
+
+    console.log = function(...args) {
+        origLog.apply(console, args);
+        sendToMain('log', args);
+    };
+    console.error = function(...args) {
+        origError.apply(console, args);
+        sendToMain('error', args);
+    };
+    console.warn = function(...args) {
+        origWarn.apply(console, args);
+        sendToMain('warn', args);
+    };
+    console.info = function(...args) {
+        origInfo.apply(console, args);
+        sendToMain('info', args);
+    };
+})();
+
 class FlutterEarth {
     constructor() {
         console.log('[DEBUG] FlutterEarth constructor called');
@@ -33,10 +64,19 @@ class FlutterEarth {
         try {
             // Wait for DOM to be fully loaded
             if (document.readyState === 'loading') {
+                console.log('[DEBUG] DOM still loading, waiting...');
                 await new Promise(resolve => {
                     document.addEventListener('DOMContentLoaded', resolve);
                 });
+            } else {
+                console.log('[DEBUG] DOM already loaded');
             }
+            
+            // Log initial DOM state
+            console.log('[DEBUG] DOM ready, checking elements...');
+            const toolbarItems = document.querySelectorAll('.toolbar-item');
+            const viewElements = document.querySelectorAll('.view-content');
+            console.log(`[DEBUG] Found ${toolbarItems.length} toolbar items and ${viewElements.length} view elements`);
             
             // Initialize views first - ensure welcome view is visible
             this.initializeViews();
@@ -45,6 +85,18 @@ class FlutterEarth {
             // Setup event listeners immediately
             this.setupEventListeners();
             console.log('[DEBUG] Event listeners setup');
+            
+            // Verify initialization worked
+            setTimeout(() => {
+                const activeView = document.querySelector('.view-content.active');
+                const activeToolbar = document.querySelector('.toolbar-item.active');
+                console.log('[DEBUG] Post-init check:', {
+                    activeView: activeView ? activeView.id : 'none',
+                    activeToolbar: activeToolbar ? activeToolbar.dataset.view : 'none',
+                    welcomeViewDisplay: document.getElementById('welcome-view')?.style.display,
+                    welcomeViewActive: document.getElementById('welcome-view')?.classList.contains('active')
+                });
+            }, 100);
             
             // Initialize other components
             this.loadSensors();
@@ -361,67 +413,75 @@ class FlutterEarth {
         }
     }
 
+    // ===== CLEAN TAB SYSTEM INTEGRATION =====
+    
     initializeViews() {
-        console.log('[DEBUG] Initializing views');
+        console.log('[MAIN] Initializing views with clean tab system...');
         
-        // Hide all views first
-        document.querySelectorAll('.view-content').forEach(view => {
-            view.classList.remove('active');
-            view.style.display = 'none';
-        });
-        
-        // Show welcome view
-        const welcomeView = document.getElementById('welcome-view');
-        if (welcomeView) {
-            welcomeView.classList.add('active');
-            welcomeView.style.display = 'block';
-            console.log('[DEBUG] Welcome view activated');
+        // The clean tab system handles all view initialization
+        if (window.tabSystem) {
+            console.log('[MAIN] Clean tab system is available');
+            this.currentView = window.tabSystem.getCurrentTab();
         } else {
-            console.error('[DEBUG] Welcome view not found!');
+            console.log('[MAIN] Clean tab system not available, using fallback');
+            this.currentView = 'welcome';
         }
         
-        // Set default active toolbar item
-        const welcomeToolbarItem = document.querySelector('.toolbar-item[data-view="welcome"]');
-        if (welcomeToolbarItem) {
-            welcomeToolbarItem.classList.add('active');
-            console.log('[DEBUG] Welcome toolbar item activated');
-        }
+        console.log('[MAIN] Views initialization complete');
     }
 
-    async initializeEarthEngineAsync() {
+        async initializeEarthEngineAsync() {
+        console.log('[DEBUG] initializeEarthEngineAsync called');
         // Run Earth Engine initialization in background
         setTimeout(async () => {
         try {
             this.updateConnectionStatus('initializing');
-            this.statusBarText = 'Initializing Earth Engine...';
+            this.updateStatusText('Status: Checking authentication...');
             
             if (window.electronAPI) {
-                const result = await window.electronAPI.pythonInit();
-                console.log('[DEBUG] pythonInit result:', result);
+                console.log('[DEBUG] window.electronAPI is available');
+                // First check if authentication is needed
+                const authCheck = await window.electronAPI.pythonAuthCheck();
+                console.log('[DEBUG] Auth check result:', authCheck);
                 
-                if (result.status === 'success' && result.initialized) {
-                    this.updateConnectionStatus('online');
-                    this.statusBarText = 'Earth Engine ready';
-                    this.showNotification('Earth Engine initialized successfully', 'success');
-                } else if (result.status === 'offline') {
+                if (authCheck && authCheck.needs_auth) {
                     this.updateConnectionStatus('offline');
-                    this.statusBarText = 'Offline mode: ' + (result.message || 'No credentials');
-                    this.showNotification('Offline mode: ' + (result.message || 'No credentials'), 'warning');
-                    this.isOfflineMode = true;
-                } else {
-                    this.updateConnectionStatus('offline');
-                    this.statusBarText = 'Earth Engine initialization failed';
-                    this.showNotification('Earth Engine initialization failed', 'error');
+                    this.updateStatusText('Status: Authentication required');
+                    this.showNotification('Please set up Earth Engine authentication', 'warning');
+                    console.log('[DEBUG] Showing auth dialog (needs_auth true)');
+                    this.showAuthDialog();
+                    return;
                 }
             } else {
+                console.warn('[DEBUG] window.electronAPI is NOT available');
                 // Fallback for browser testing
                 this.updateConnectionStatus('online');
-                this.statusBarText = 'Running in browser mode';
+                this.updateStatusText('Status: Running in browser mode');
+                return;
+            }
+            
+            this.updateStatusText('Status: Initializing Earth Engine...');
+            const result = await window.electronAPI.pythonInit();
+            console.log('[DEBUG] pythonInit result:', result);
+            
+            if (result.status === 'success' && result.initialized) {
+                this.updateConnectionStatus('online');
+                this.updateStatusText('Status: Earth Engine ready');
+                this.showNotification('Earth Engine initialized successfully', 'success');
+            } else if (result.status === 'offline') {
+                this.updateConnectionStatus('offline');
+                this.updateStatusText('Status: Offline mode - ' + (result.message || 'No credentials'));
+                this.showNotification('Offline mode: ' + (result.message || 'No credentials'), 'warning');
+                this.isOfflineMode = true;
+            } else {
+                this.updateConnectionStatus('offline');
+                this.updateStatusText('Status: Earth Engine initialization failed');
+                this.showNotification('Earth Engine initialization failed', 'error');
             }
         } catch (error) {
             console.error('[DEBUG] Earth Engine initialization error:', error);
             this.updateConnectionStatus('offline');
-            this.statusBarText = 'Initialization error';
+            this.updateStatusText('Status: Initialization error');
             this.showNotification('Failed to initialize Earth Engine', 'error');
         }
         }, 100);
@@ -429,31 +489,36 @@ class FlutterEarth {
 
     async startDownload() {
         console.log('[DEBUG] startDownload() called');
-        
         if (this.downloadInProgress) {
             this.showNotification('Download already in progress', 'warning');
             return;
         }
-
         try {
             // Gather form data
             const params = this.gatherDownloadParams();
             console.log('[DEBUG] Download params:', params);
-            
             if (!params.area_of_interest || !params.start_date || !params.end_date || !params.sensor_name) {
                 this.showNotification('Please fill in all required fields', 'error');
                 return;
             }
-
             this.downloadInProgress = true;
+            // --- Spinner and status highlight logic ---
+            const spinner = document.getElementById('download-spinner');
+            const btnSpinner = document.getElementById('button-download-spinner');
+            const startBtn = document.getElementById('start-download');
+            const statusDiv = document.getElementById('download-status');
+            if (spinner) spinner.style.display = 'inline-block';
+            if (btnSpinner) btnSpinner.style.display = 'inline-block';
+            if (startBtn) startBtn.disabled = true;
+            if (statusDiv) statusDiv.classList.add('in-progress');
+            this.updateDownloadLog('Download started, waiting for crawler...');
+            // --- End spinner logic ---
             this.updateDownloadStatus('Starting download...', 'info');
             console.log('[DEBUG] About to call electronAPI.pythonDownload');
-            
             if (window.electronAPI) {
                 console.log('[DEBUG] electronAPI available, calling pythonDownload');
                 const result = await window.electronAPI.pythonDownload(params);
                 console.log('[DEBUG] pythonDownload result:', result);
-                
                 if (result.status === 'success') {
                     this.updateDownloadStatus('Download started successfully', 'success');
                     this.showNotification('Download started', 'success');
@@ -462,6 +527,11 @@ class FlutterEarth {
                     this.updateDownloadStatus('Download failed: ' + result.message, 'error');
                     this.showNotification('Download failed: ' + result.message, 'error');
                     this.downloadInProgress = false;
+                    // --- Hide spinner and restore button ---
+                    if (spinner) spinner.style.display = 'none';
+                    if (btnSpinner) btnSpinner.style.display = 'none';
+                    if (startBtn) startBtn.disabled = false;
+                    if (statusDiv) statusDiv.classList.remove('in-progress');
                 }
             } else {
                 console.log('[DEBUG] electronAPI not available, using fallback');
@@ -473,6 +543,15 @@ class FlutterEarth {
             this.updateDownloadStatus('Download error: ' + error.message, 'error');
             this.showNotification('Download failed', 'error');
             this.downloadInProgress = false;
+            // --- Hide spinner and restore button ---
+            const spinner = document.getElementById('download-spinner');
+            const btnSpinner = document.getElementById('button-download-spinner');
+            const startBtn = document.getElementById('start-download');
+            const statusDiv = document.getElementById('download-status');
+            if (spinner) spinner.style.display = 'none';
+            if (btnSpinner) btnSpinner.style.display = 'none';
+            if (startBtn) startBtn.disabled = false;
+            if (statusDiv) statusDiv.classList.remove('in-progress');
         }
     }
 
@@ -524,25 +603,28 @@ class FlutterEarth {
 
     async startProgressPolling() {
         if (!window.electronAPI) return;
-        
         this.updateDownloadLog('Starting progress monitoring...');
-        
+        const spinner = document.getElementById('download-spinner');
+        const btnSpinner = document.getElementById('button-download-spinner');
+        const startBtn = document.getElementById('start-download');
+        const statusDiv = document.getElementById('download-status');
         const pollInterval = setInterval(async () => {
             try {
                 const result = await window.electronAPI.pythonProgress();
-                
                 if (result.status === 'success') {
                     const progress = result.progress;
                     this.updateProgressDisplay(progress);
-                    
                     if (progress.message) {
                         this.updateDownloadLog(progress.message);
                     }
-                    
                     if (progress.completed || progress.error) {
                         clearInterval(pollInterval);
                         this.downloadInProgress = false;
-                        
+                        // --- Hide spinner and restore button ---
+                        if (spinner) spinner.style.display = 'none';
+                        if (btnSpinner) btnSpinner.style.display = 'none';
+                        if (startBtn) startBtn.disabled = false;
+                        if (statusDiv) statusDiv.classList.remove('in-progress');
                         if (progress.error) {
                             this.updateDownloadStatus('Download failed: ' + progress.error, 'error');
                             this.updateDownloadLog('ERROR: ' + progress.error);
@@ -557,6 +639,11 @@ class FlutterEarth {
                 this.updateDownloadLog('ERROR: Progress polling failed - ' + error.message);
                 clearInterval(pollInterval);
                 this.downloadInProgress = false;
+                // --- Hide spinner and restore button ---
+                if (spinner) spinner.style.display = 'none';
+                if (btnSpinner) btnSpinner.style.display = 'none';
+                if (startBtn) startBtn.disabled = false;
+                if (statusDiv) statusDiv.classList.remove('in-progress');
             }
         }, 1000);
     }
@@ -625,8 +712,13 @@ class FlutterEarth {
     updateDownloadStatus(message, type = 'info') {
         const statusElement = document.getElementById('download-status');
         if (statusElement) {
-            statusElement.textContent = message;
-            statusElement.className = `download-status ${type}`;
+            statusElement.textContent = '';
+            const spinner = document.getElementById('download-spinner');
+            if (spinner && this.downloadInProgress) {
+                spinner.style.display = 'inline-block';
+                statusElement.appendChild(spinner);
+            }
+            statusElement.appendChild(document.createTextNode(message));
         }
     }
 
@@ -651,100 +743,74 @@ class FlutterEarth {
     }
 
     setupEventListeners() {
-        console.log('[DEBUG] Setting up event listeners');
+        console.log('[MAIN] Setting up event listeners with clean tab system...');
         
-        // Toolbar navigation (was sidebar)
-        const toolbarItems = document.querySelectorAll('.toolbar-item');
-        console.log(`[DEBUG] Found ${toolbarItems.length} toolbar items`);
-        toolbarItems.forEach((item, index) => {
-            console.log(`[DEBUG] Setting up event listener for toolbar item ${index}:`, item.dataset.view);
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const view = item.dataset.view;
-                const panel = item.dataset.panel;
-                console.log(`[DEBUG] Toolbar item clicked: view=${view}, panel=${panel}`);
-                if (view) {
-                    this.switchView(view);
-                } else if (panel) {
-                    this.showPanel(panel);
-                }
-                this.moveToolbarIndicator(item);
-                this.animateToolbarItem(item);
-            });
-        });
-        // Move indicator to active on load
-        setTimeout(() => {
-            const active = document.querySelector('.toolbar-item.active') || toolbarItems[0];
-            if (active) {
-                this.moveToolbarIndicator(active);
-                this.animateToolbarItem(active);
-            }
-        }, 100);
-        // Toolbar animation dropdown
-        const animationSelect = document.getElementById('toolbar-animation-select');
-        if (animationSelect) {
-            animationSelect.addEventListener('change', () => {
-                this.setToolbarAnimation(animationSelect.value);
-            });
-            // Set default
-            this.setToolbarAnimation(animationSelect.value);
+        // The clean tab system handles all tab switching
+        if (window.tabSystem) {
+            console.log('[MAIN] Clean tab system handles tab switching');
+        } else {
+            console.log('[MAIN] Clean tab system not available, using fallback');
         }
         
-        // Help button opens help popup
+        // ===== OTHER EVENT LISTENERS =====
+        this.setupOtherEventListeners();
+        
+        console.log('[MAIN] Event listeners setup complete');
+    }
+    
+    setupOtherEventListeners() {
+        // Help button
         const helpBtn = document.getElementById('help-button');
         if (helpBtn) {
-            helpBtn.addEventListener('click', () => {
-                this.showHelpPopup();
-                // Fun help button effect
-                this.createSpinEffect(helpBtn);
-            });
+            helpBtn.addEventListener('click', () => this.showHelpPopup());
         }
-
-        // Add Easter egg to app title
+        
+        // App title easter egg
         const appTitle = document.querySelector('.app-title');
         if (appTitle) {
-            appTitle.addEventListener('click', () => {
-                this.triggerEasterEgg();
-            });
+            appTitle.addEventListener('click', () => this.triggerEasterEgg());
         }
-
-        // Add fun effects to welcome logo
+        
+        // Welcome logo effect
         const welcomeLogo = document.querySelector('.welcome-logo');
         if (welcomeLogo) {
-            welcomeLogo.addEventListener('click', () => {
-                this.createLogoEffect(welcomeLogo);
-            });
+            welcomeLogo.addEventListener('click', () => this.createLogoEffect(welcomeLogo));
         }
-
+        
         // Auth dialog
         const authSubmit = document.getElementById('auth-submit');
         if (authSubmit) authSubmit.addEventListener('click', () => this.submitAuth());
+        
         const authHelp = document.getElementById('auth-help');
         if (authHelp) authHelp.addEventListener('click', () => this.showHelpPopup());
+        
         const authCancel = document.getElementById('auth-cancel');
         if (authCancel) authCancel.addEventListener('click', () => this.hideAuthDialog());
+        
         const authOffline = document.getElementById('auth-offline');
         if (authOffline) authOffline.addEventListener('click', () => this.hideAuthDialog());
-
+        
         // Help popup close
         const helpClose = document.getElementById('help-close');
         if (helpClose) helpClose.addEventListener('click', () => this.hideHelpPopup());
-
+        
         // Calendar buttons
         const calPrev = document.getElementById('calendar-prev');
         if (calPrev) calPrev.addEventListener('click', () => this.previousMonth());
+        
         const calNext = document.getElementById('calendar-next');
         if (calNext) calNext.addEventListener('click', () => this.nextMonth());
-
+        
         // Map selector
         const mapSelectorBtn = document.getElementById('map-selector-btn');
         if (mapSelectorBtn) mapSelectorBtn.addEventListener('click', () => this.showMapSelector());
+        
         const mapConfirm = document.getElementById('map-confirm');
         if (mapConfirm) mapConfirm.addEventListener('click', () => this.confirmMapSelection());
+        
         const mapCancel = document.getElementById('map-cancel');
         if (mapCancel) mapCancel.addEventListener('click', () => this.hideMapSelector());
-
+        
         // Calendar buttons
         document.querySelectorAll('.calendar-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -752,130 +818,135 @@ class FlutterEarth {
                 this.showCalendar();
             });
         });
-
+        
         // Download controls
         const startDownload = document.getElementById('start-download');
         if (startDownload) startDownload.addEventListener('click', () => this.startDownload());
+        
         const cancelDownload = document.getElementById('cancel-download');
         if (cancelDownload) cancelDownload.addEventListener('click', () => this.cancelDownload());
-
+        
         // Browse button
         const browseBtn = document.getElementById('browse-btn');
         if (browseBtn) browseBtn.addEventListener('click', () => this.browseOutputDirectory());
-
+        
         // Best resolution checkbox
         const bestRes = document.getElementById('best-res');
         if (bestRes) bestRes.addEventListener('change', (e) => {
             const targetResInput = document.getElementById('target-res');
             if (targetResInput) targetResInput.disabled = e.target.checked;
         });
-
+        
         // Tiling method
         const tilingMethod = document.getElementById('tiling-method');
         if (tilingMethod) tilingMethod.addEventListener('change', (e) => {
             const numSubsectionsInput = document.getElementById('num-subsections');
             if (numSubsectionsInput) numSubsectionsInput.disabled = e.target.value !== 'pixel';
         });
-
+        
         // Theme selector
         const themeSelect = document.getElementById('theme-select');
         if (themeSelect) themeSelect.addEventListener('change', (e) => this.applyTheme(e.target.value));
-
+        
         // Modal backdrop clicks
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', (e) => {
-                // Prevent closing auth modal by clicking backdrop
                 if (e.target === modal && modal.id !== 'auth-dialog') {
                     modal.style.display = 'none';
                 }
             });
         });
-
+        
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
-
+        
         // Progress view controls
         const cancelCurrentDownload = document.getElementById('cancel-current-download');
         if (cancelCurrentDownload) cancelCurrentDownload.addEventListener('click', () => this.cancelDownload());
+        
         const clearCacheLogs = document.getElementById('clear-cache-logs');
         if (clearCacheLogs) clearCacheLogs.addEventListener('click', () => this.clearCacheAndLogs());
+        
         const reloadSettings = document.getElementById('reload-settings');
         if (reloadSettings) reloadSettings.addEventListener('click', () => this.reloadSettings());
+        
         const clearHistory = document.getElementById('clear-history');
         if (clearHistory) clearHistory.addEventListener('click', () => this.clearHistory());
-
+        
         // Index analysis controls
         const addRasterFiles = document.getElementById('add-raster-files');
         if (addRasterFiles) addRasterFiles.addEventListener('click', () => this.addRasterFiles());
+        
         const clearRasterFiles = document.getElementById('clear-raster-files');
         if (clearRasterFiles) clearRasterFiles.addEventListener('click', () => this.clearRasterFiles());
+        
         const browseAnalysisOutput = document.getElementById('browse-analysis-output');
         if (browseAnalysisOutput) browseAnalysisOutput.addEventListener('click', () => this.browseAnalysisOutputDirectory());
+        
         const startAnalysis = document.getElementById('start-analysis');
         if (startAnalysis) startAnalysis.addEventListener('click', () => this.startIndexAnalysis());
+        
         const cancelAnalysis = document.getElementById('cancel-analysis');
         if (cancelAnalysis) cancelAnalysis.addEventListener('click', () => this.cancelIndexAnalysis());
-
+        
         // Index selection checkboxes
         document.querySelectorAll('input[id^="index-"]').forEach(checkbox => {
             checkbox.addEventListener('change', () => this.updateAnalysisButtonState());
         });
-
+        
         // Settings controls
         const browseSettingsOutput = document.getElementById('browse-settings-output');
         if (browseSettingsOutput) browseSettingsOutput.addEventListener('click', () => this.browseSettingsOutputDirectory());
+        
         const reloadSettingsBtn = document.getElementById('reload-settings-btn');
         if (reloadSettingsBtn) reloadSettingsBtn.addEventListener('click', () => this.reloadSettings());
+        
         const clearCacheSettingsBtn = document.getElementById('clear-cache-settings-btn');
         if (clearCacheSettingsBtn) clearCacheSettingsBtn.addEventListener('click', () => this.clearCacheAndLogs());
-        // New: Auth button in settings
+        
         const authSettingsBtn = document.getElementById('auth-settings-btn');
         if (authSettingsBtn) authSettingsBtn.addEventListener('click', () => this.showAuthDialog());
-        // New: Key file upload in settings
+        
+        // Settings key file upload
         const settingsKeyFile = document.getElementById('settings-key-file');
         if (settingsKeyFile) {
             settingsKeyFile.addEventListener('change', (e) => {
                 const fileInput = document.getElementById('auth-key-file');
                 if (fileInput && e.target.files && e.target.files.length > 0) {
-                    // If the auth dialog is open, set the file
                     fileInput.files = e.target.files;
                 }
             });
         }
-
-        // Theme tabs - will be set up dynamically when settings view is shown
-        // (moved to switchView function for settings)
-
+        
         // Theme options
         const useCharacterCatchphrases = document.getElementById('use-character-catchphrases');
         if (useCharacterCatchphrases) useCharacterCatchphrases.addEventListener('change', () => this.saveThemeSubOptions());
+        
         const showSpecialIcons = document.getElementById('show-special-icons');
         if (showSpecialIcons) showSpecialIcons.addEventListener('change', () => this.saveThemeSubOptions());
+        
         const enableAnimatedBackground = document.getElementById('enable-animated-background');
         if (enableAnimatedBackground) enableAnimatedBackground.addEventListener('change', () => this.saveThemeSubOptions());
-
+        
         // Vector download controls
         const loadExampleQuery = document.getElementById('load-example-query');
         if (loadExampleQuery) loadExampleQuery.addEventListener('click', () => this.loadExampleVectorQuery());
+        
         const clearVectorQuery = document.getElementById('clear-vector-query');
         if (clearVectorQuery) clearVectorQuery.addEventListener('click', () => this.clearVectorQuery());
+        
         const selectVectorAoi = document.getElementById('select-vector-aoi');
         if (selectVectorAoi) selectVectorAoi.addEventListener('click', () => this.selectVectorAOI());
+        
         const browseVectorOutput = document.getElementById('browse-vector-output');
         if (browseVectorOutput) browseVectorOutput.addEventListener('click', () => this.browseVectorOutputDirectory());
+        
         const startVectorDownload = document.getElementById('start-vector-download');
         if (startVectorDownload) startVectorDownload.addEventListener('click', () => this.startVectorDownload());
         
-        // Web crawler controls (fallback setup)
-        console.log('[DEBUG] Setting up web crawler controls in main event listeners...');
-        this.setupWebCrawlerEvents();
         const cancelVectorDownload = document.getElementById('cancel-vector-download');
         if (cancelVectorDownload) cancelVectorDownload.addEventListener('click', () => this.cancelVectorDownload());
-
-        // Vector data source selection
-        const vectorDataSource = document.getElementById('vector-data-source');
-        if (vectorDataSource) vectorDataSource.addEventListener('change', (e) => this.updateVectorDataSourceDescription(e.target.value));
-
+        
         // Data viewer controls
         const loadRasterBtn = document.getElementById('load-raster-btn');
         if (loadRasterBtn) loadRasterBtn.addEventListener('click', () => this.loadRasterData());
@@ -885,23 +956,12 @@ class FlutterEarth {
         
         const clearDataBtn = document.getElementById('clear-data-btn');
         if (clearDataBtn) clearDataBtn.addEventListener('click', () => this.clearAllData());
-
-        // Satellite info controls
-        const satelliteCategory = document.getElementById('satellite-category');
-        if (satelliteCategory) satelliteCategory.addEventListener('change', (e) => this.updateSatelliteCategory(e.target.value));
-
-        // About view controls
+        
+        // About view
         const visitWebsiteBtn = document.getElementById('visit-website-btn');
         if (visitWebsiteBtn) visitWebsiteBtn.addEventListener('click', () => this.visitProjectWebsite());
-
-        // Help popup close button is already wired in HTML
-        // Add Escape key to close help popup
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                this.hideHelpPopup();
-            }
-        });
-        // Clicking outside modal-content closes help popup
+        
+        // Help popup backdrop
         const helpPopup = document.getElementById('help-popup');
         if (helpPopup) {
             helpPopup.addEventListener('click', (e) => {
@@ -911,7 +971,106 @@ class FlutterEarth {
             });
         }
         
-        console.log('[DEBUG] Event listeners setup completed');
+        // Toolbar animation dropdown
+        const animationSelect = document.getElementById('toolbar-animation-select');
+        if (animationSelect) {
+            animationSelect.addEventListener('change', () => {
+                this.setToolbarAnimation(animationSelect.value);
+            });
+            this.setToolbarAnimation(animationSelect.value);
+        }
+    }
+    
+    switchToView(viewName) {
+        console.log(`[MAIN] Switching to view: ${viewName}`);
+        
+        // Use the clean tab system if available
+        if (window.tabSystem) {
+            window.tabSystem.switchTab(viewName);
+            this.currentView = viewName;
+            this.updateStatusText(`View: ${this.getViewTitle(viewName)}`);
+            this.handleViewSpecificLogic(viewName);
+        } else {
+            console.error('[MAIN] Clean tab system not available');
+        }
+    }
+    
+    updateToolbarActiveState(viewName) {
+        // Remove active class from all toolbar items
+        const allToolbarItems = document.querySelectorAll('.toolbar-item');
+        allToolbarItems.forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Add active class to current view's toolbar item
+        const activeToolbarItem = document.querySelector(`.toolbar-item[data-view="${viewName}"]`);
+        if (activeToolbarItem) {
+            activeToolbarItem.classList.add('active');
+            console.log(`[TAB] Set toolbar active: ${viewName}`);
+        } else {
+            console.warn(`[TAB] Toolbar item not found for: ${viewName}`);
+        }
+    }
+    
+    handleViewSpecificLogic(viewName) {
+        console.log(`[TAB] Handling specific logic for: ${viewName}`);
+        
+        switch (viewName) {
+            case 'settings':
+                console.log('[TAB] Initializing settings view');
+                this.waitForThemes().then(themesLoaded => {
+                    if (themesLoaded) {
+                        this.initializeThemeTabs();
+                        this.updateThemeGrid('all');
+                    } else {
+                        console.error('[TAB] No themes found for settings view');
+                        const grid = document.getElementById('theme-grid');
+                        if (grid) grid.innerHTML = '<div style="color:red">No themes found. Check generated_themes.js loading.</div>';
+                    }
+                });
+                break;
+                
+            case 'satelliteInfo':
+                console.log('[TAB] Initializing satellite info view');
+                this.setupWebCrawlerEvents();
+                this.initSatelliteInfo();
+                break;
+                
+            case 'welcome':
+                console.log('[TAB] Welcome view activated');
+                // Show top bar only on welcome view
+                const topBar = document.getElementById('top-bar');
+                if (topBar) topBar.style.display = '';
+                break;
+                
+            default:
+                // Hide top bar on other views
+                const topBarDefault = document.getElementById('top-bar');
+                if (topBarDefault) topBarDefault.style.display = 'none';
+                break;
+        }
+        
+        // Hide satellite thumbnail/modal if not in satelliteInfo view
+        if (viewName !== 'satelliteInfo') {
+            const thumbModal = document.getElementById('satellite-thumbnail-modal');
+            if (thumbModal) thumbModal.style.display = 'none';
+            const thumbImg = document.getElementById('thumbnail-img');
+            if (thumbImg) thumbImg.style.display = 'none';
+            const thumbPlaceholder = document.querySelector('.thumbnail-placeholder');
+            if (thumbPlaceholder) thumbPlaceholder.style.display = 'none';
+        }
+    }
+    
+    // Legacy function for backward compatibility
+    switchView(viewName) {
+        console.log(`[TAB] Legacy switchView called for: ${viewName}`);
+        this.switchToView(viewName);
+    }
+    
+    // Legacy function for backward compatibility
+    showPanel(panelType) {
+        console.log(`[TAB] Legacy showPanel called for: ${panelType}`);
+        this.showNotification(`Panel ${panelType} opened`);
     }
 
     moveToolbarIndicator(item) {
@@ -1087,145 +1246,7 @@ class FlutterEarth {
         }, 2000);
     }
 
-    switchView(viewName) {
-        console.log(`[DEBUG] Switching to view: ${viewName}`);
-        
-        try {
-            // Validate view name
-            if (!viewName) {
-                console.error('[DEBUG] No view name provided');
-                return;
-            }
-        
-            // Hide all views
-            const allViews = document.querySelectorAll('.view-content');
-            console.log(`[DEBUG] Found ${allViews.length} view elements`);
-            allViews.forEach(view => {
-                view.classList.remove('active');
-                view.style.display = 'none';
-                view.style.opacity = '0';
-                view.style.transform = 'translateY(20px)';
-                console.log(`[DEBUG] Hidden view: ${view.id}`);
-            });
-        
-            // Show selected view
-            const targetView = document.getElementById(`${viewName}-view`);
-            console.log(`[DEBUG] Looking for view: ${viewName}-view, found:`, targetView);
-            if (targetView) {
-                // Force immediate display and active state
-                targetView.style.display = 'block';
-                targetView.style.opacity = '1';
-                targetView.style.transform = 'translateY(0)';
-                targetView.classList.add('active');
-                console.log(`[DEBUG] Successfully switched to ${viewName}-view`);
-                console.log(`[DEBUG] View computed styles:`, {
-                    display: getComputedStyle(targetView).display,
-                    opacity: getComputedStyle(targetView).opacity,
-                    transform: getComputedStyle(targetView).transform,
-                    visibility: getComputedStyle(targetView).visibility
-                });
-            } else {
-                console.warn(`[DEBUG] View not found: ${viewName}-view`);
-                // Fallback: show welcome view if target missing
-                const fallback = document.getElementById('welcome-view');
-                if (fallback) {
-                    fallback.style.display = 'block';
-                    fallback.classList.add('active');
-                    console.log(`[DEBUG] Fallback to welcome-view`);
-                    viewName = 'welcome';
-                } else {
-                    console.error('[DEBUG] Even welcome view not found!');
-                    return;
-                }
-            }
-        
-            // Update toolbar active state
-            document.querySelectorAll('.toolbar-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            const activeToolbarItem = document.querySelector(`.toolbar-item[data-view="${viewName}"]`);
-            if (activeToolbarItem) {
-                activeToolbarItem.classList.add('active');
-                console.log(`[DEBUG] Set toolbar item active: ${viewName}`);
-            } else {
-                console.warn(`[DEBUG] Toolbar item not found for view: ${viewName}`);
-            }
-        
-            // Update current view tracking
-            this.currentView = viewName;
-            
-            // Update status bar
-            this.updateStatusText(`View: ${this.getViewTitle(viewName)}`);
-
-            // --- THEME TABS & GRID LOGIC ---
-            if (viewName === 'settings') {
-                console.log('[DEBUG] Showing settings view, initializing theme tabs and grid');
-                this.waitForThemes().then(themesLoaded => {
-                    if (!themesLoaded) {
-                        console.error('[DEBUG] No availableThemes found after waiting!');
-                        const grid = document.getElementById('theme-grid');
-                        if (grid) grid.innerHTML = '<div style="color:red">No themes found. Check generated_themes.js loading.</div>';
-                    } else {
-                        this.initializeThemeTabs();
-                        this.updateThemeGrid('all');
-                    }
-                });
-            }
-            
-            // --- SATELLITE INFO VIEW LOGIC ---
-            if (viewName === 'satelliteInfo') {
-                console.log('[DEBUG] Satellite Info view specific logic starting...');
-                
-                // Check if satellite info view is actually visible
-                const satelliteInfoView = document.getElementById('satelliteInfo-view');
-                if (satelliteInfoView) {
-                    console.log('[DEBUG] Satellite Info view element found and accessible');
-                    
-                    // Force the view to be visible
-                    satelliteInfoView.style.display = 'block';
-                    satelliteInfoView.classList.add('active');
-                    console.log('[DEBUG] Forced satellite info view to be visible');
-                } else {
-                    console.error('[DEBUG] Satellite Info view element NOT FOUND!');
-                }
-                
-                try {
-                    // Set up crawler events when the view is shown
-                    this.setupWebCrawlerEvents();
-                    console.log('[DEBUG] Crawler events setup completed');
-                    
-                    // Initialize satellite info if not already done
-                    this.initSatelliteInfo();
-                    console.log('[DEBUG] Satellite info initialization completed');
-                    
-                } catch (error) {
-                    console.error('[DEBUG] Error in satellite info view logic:', error);
-                }
-            }
-        } catch (error) {
-            console.error('[DEBUG] Error in switchView:', error);
-            this.showNotification('Error switching view: ' + error.message, 'error');
-        }
-        // Show top bar only on welcome view
-        const topBar = document.getElementById('top-bar');
-        if (topBar) {
-            if (viewName === 'welcome') {
-                topBar.style.display = '';
-            } else {
-                topBar.style.display = 'none';
-            }
-        }
-        // Hide satellite thumbnail/modal if not in satelliteInfo view
-        if (viewName !== 'satelliteInfo') {
-            const thumbModal = document.getElementById('satellite-thumbnail-modal');
-            if (thumbModal) thumbModal.style.display = 'none';
-            const thumbImg = document.getElementById('thumbnail-img');
-            if (thumbImg) thumbImg.style.display = 'none';
-            const thumbPlaceholder = document.querySelector('.thumbnail-placeholder');
-            if (thumbPlaceholder) thumbPlaceholder.style.display = 'none';
-        }
-    }
+    // OLD switchView function removed - replaced by switchToView
 
     getViewTitle(viewName) {
         const titles = {
@@ -1243,11 +1264,7 @@ class FlutterEarth {
         return titles[viewName] || 'Flutter Earth';
     }
 
-    showPanel(panelType) {
-        // This would show dockable panels like toolbox, bookmarks, etc.
-        console.log(`Showing panel: ${panelType}`);
-        this.showNotification(`Panel ${panelType} opened`);
-    }
+    // OLD showPanel function removed - replaced by new implementation
 
     updateConnectionStatus(status) {
         this.connectionStatus = status;
@@ -1259,6 +1276,11 @@ class FlutterEarth {
             statusElement.className = 'status-text online';
             statusBar.style.backgroundColor = 'var(--success)';
             this.statusBarText = 'Online';
+        } else if (status === 'initializing') {
+            statusElement.textContent = 'Status: Initializing...';
+            statusElement.className = 'status-text initializing';
+            statusBar.style.backgroundColor = 'var(--warning)';
+            this.statusBarText = 'Initializing...';
         } else {
             statusElement.textContent = 'Status: Offline';
             statusElement.className = 'status-text offline';
@@ -1268,10 +1290,14 @@ class FlutterEarth {
     }
 
     showAuthDialog() {
+        console.log('[DEBUG] showAuthDialog called');
         const authDialog = document.getElementById('auth-dialog');
         if (authDialog) {
             authDialog.style.display = 'flex';
             authDialog.classList.add('show');
+            console.log('[DEBUG] auth-dialog element set to display flex and show class added');
+        } else {
+            console.warn('[DEBUG] auth-dialog element not found');
         }
     }
 
@@ -3807,7 +3833,38 @@ class FlutterEarth {
     // On app load, set a sensible default theme
     setDefaultTheme() {
         const currentTheme = this.currentTheme || 'default_dark';
-        this.applyTheme(currentTheme);
+        
+        // Set the theme attribute
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        
+        // Apply theme colors to CSS variables
+        this.applyThemeColors(currentTheme);
+        
+        console.log('[THEME] Set default theme:', currentTheme);
+    }
+    
+    applyThemeColors(themeName) {
+        if (!window.availableThemes) {
+            console.warn('[THEME] No themes available');
+            return;
+        }
+        
+        const theme = window.availableThemes.find(t => t.name === themeName);
+        if (!theme) {
+            console.warn(`[THEME] Theme not found: ${themeName}`);
+            return;
+        }
+        
+        // Apply CSS variables
+        const root = document.documentElement;
+        if (theme.colors) {
+            Object.entries(theme.colors).forEach(([key, value]) => {
+                const cssVar = key.replace(/_/g, '-');
+                root.style.setProperty(`--${cssVar}`, value);
+            });
+        }
+        
+        console.log(`[THEME] Applied theme colors: ${themeName}`);
     }
 
     // Call setDefaultTheme in the constructor or init method
@@ -3853,3 +3910,63 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('[DEBUG] Error creating FlutterEarth instance:', error);
     }
 });
+
+// Debug functions - call these from browser console to test tab switching
+window.testTabSwitching = function() {
+    console.log('=== TAB SWITCHING DEBUG TEST ===');
+    
+    // Check if FlutterEarth instance exists
+    if (!window.flutterEarth) {
+        console.error('FlutterEarth instance not found!');
+        return;
+    }
+    
+    // Check toolbar items
+    const toolbarItems = document.querySelectorAll('.toolbar-item');
+    console.log(`Found ${toolbarItems.length} toolbar items`);
+    
+    // Check view elements
+    const viewElements = document.querySelectorAll('.view-content');
+    console.log(`Found ${viewElements.length} view elements`);
+    
+    // Test switching to map view
+    console.log('Testing switch to map view...');
+    window.flutterEarth.switchView('map');
+    
+    // Check if map view is now active
+    setTimeout(() => {
+        const mapView = document.getElementById('map-view');
+        const isActive = mapView && mapView.classList.contains('active');
+        const display = mapView ? getComputedStyle(mapView).display : 'not found';
+        console.log(`Map view active: ${isActive}, display: ${display}`);
+    }, 100);
+};
+
+// Quick test function
+window.quickTest = function() {
+    const welcomeView = document.getElementById('welcome-view');
+    const mapView = document.getElementById('map-view');
+    
+    console.log('Welcome view:', welcomeView ? 'found' : 'not found');
+    console.log('Map view:', mapView ? 'found' : 'not found');
+    
+    if (welcomeView) {
+        console.log('Welcome view classes:', welcomeView.className);
+        console.log('Welcome view display:', getComputedStyle(welcomeView).display);
+    }
+    
+    if (mapView) {
+        console.log('Map view classes:', mapView.className);
+        console.log('Map view display:', getComputedStyle(mapView).display);
+    }
+};
+
+// Manual tab switch function
+window.manualSwitch = function(viewName) {
+    console.log(`Manually switching to: ${viewName}`);
+    if (window.flutterEarth) {
+        window.flutterEarth.switchView(viewName);
+    } else {
+        console.error('FlutterEarth not available');
+    }
+};

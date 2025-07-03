@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Tab System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        /* Toolbar */
+        .toolbar {
+            background: #333;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid #555;
+        }
+        
+        .tab-button {
+            background: #555;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .tab-button:hover {
+            background: #666;
+        }
+        
+        .tab-button.active {
+            background: #007acc;
+        }
+        
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .tab-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #222;
+            padding: 20px;
+            display: none;
+            overflow-y: auto;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .tab-content h2 {
+            margin-bottom: 20px;
+            color: #007acc;
+        }
+        
+        .tab-content p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        
+        /* Debug Panel */
+        .debug-panel {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 300px;
+        }
+        
+        .debug-log {
+            margin-bottom: 5px;
+            font-family: monospace;
+        }
+        
+        .debug-log.success { color: #51cf66; }
+        .debug-log.error { color: #ff6b6b; }
+        .debug-log.info { color: #74c0fc; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button class="tab-button active" data-tab="welcome">🏠 Home</button>
+            <button class="tab-button" data-tab="map">🗺️ Map</button>
+            <button class="tab-button" data-tab="download">📥 Download</button>
+            <button class="tab-button" data-tab="satellite">🛰️ Satellite</button>
+            <button class="tab-button" data-tab="settings">⚙️ Settings</button>
+            <button class="tab-button" data-tab="about">ℹ️ About</button>
+        </div>
+        
+        <!-- Content Area -->
+        <div class="content-area">
+            <div id="welcome" class="tab-content active">
+                <h2>Welcome to Flutter Earth</h2>
+                <p>This is the home page. Click on any tab above to navigate.</p>
+                <p>Current tab: <strong id="current-tab">welcome</strong></p>
+            </div>
+            
+            <div id="map" class="tab-content">
+                <h2>Map View</h2>
+                <p>This is the map view. Here you can view and interact with maps.</p>
+                <p>Map functionality will be implemented here.</p>
+            </div>
+            
+            <div id="download" class="tab-content">
+                <h2>Download Manager</h2>
+                <p>This is the download manager. Here you can download satellite data.</p>
+                <p>Download functionality will be implemented here.</p>
+            </div>
+            
+            <div id="satellite" class="tab-content">
+                <h2>Satellite Information</h2>
+                <p>This is the satellite information view. Here you can browse satellite data.</p>
+                <p>Satellite browsing functionality will be implemented here.</p>
+            </div>
+            
+            <div id="settings" class="tab-content">
+                <h2>Settings</h2>
+                <p>This is the settings view. Here you can configure the application.</p>
+                <p>Settings functionality will be implemented here.</p>
+            </div>
+            
+            <div id="about" class="tab-content">
+                <h2>About</h2>
+                <p>This is the about view. Here you can learn more about Flutter Earth.</p>
+                <p>About information will be displayed here.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Debug Panel -->
+    <div class="debug-panel">
+        <div class="debug-log info">Debug Panel</div>
+        <div id="debug-logs"></div>
+    </div>
+    
+    <script>
+        // Simple Tab System
+        class SimpleTabSystem {
+            constructor() {
+                this.currentTab = 'welcome';
+                this.tabButtons = document.querySelectorAll('.tab-button');
+                this.tabContents = document.querySelectorAll('.tab-content');
+                this.debugLogs = document.getElementById('debug-logs');
+                this.currentTabDisplay = document.getElementById('current-tab');
+                
+                this.init();
+            }
+            
+            init() {
+                this.log('Initializing Simple Tab System...', 'info');
+                
+                // Add event listeners to all tab buttons
+                this.tabButtons.forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const tabName = e.target.dataset.tab;
+                        this.log(`Tab button clicked: ${tabName}`, 'info');
+                        this.switchTab(tabName);
+                    });
+                });
+                
+                this.log('Tab system initialized successfully', 'success');
+                this.log(`Active tab: ${this.currentTab}`, 'info');
+            }
+            
+            switchTab(tabName) {
+                this.log(`Switching to tab: ${tabName}`, 'info');
+                
+                // Validate tab name
+                if (!tabName) {
+                    this.log('No tab name provided', 'error');
+                    return;
+                }
+                
+                // Check if tab exists
+                const targetContent = document.getElementById(tabName);
+                if (!targetContent) {
+                    this.log(`Tab content not found: ${tabName}`, 'error');
+                    return;
+                }
+                
+                // Hide all tab contents
+                this.tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    this.log(`Hidden: ${content.id}`, 'info');
+                });
+                
+                // Remove active class from all buttons
+                this.tabButtons.forEach(button => {
+                    button.classList.remove('active');
+                });
+                
+                // Show target tab content
+                targetContent.classList.add('active');
+                this.log(`Activated: ${tabName}`, 'success');
+                
+                // Add active class to target button
+                const targetButton = document.querySelector(`[data-tab="${tabName}"]`);
+                if (targetButton) {
+                    targetButton.classList.add('active');
+                    this.log(`Button activated: ${tabName}`, 'info');
+                }
+                
+                // Update current tab
+                this.currentTab = tabName;
+                if (this.currentTabDisplay) {
+                    this.currentTabDisplay.textContent = tabName;
+                }
+                
+                this.log(`Successfully switched to: ${tabName}`, 'success');
+            }
+            
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logElement = document.createElement('div');
+                logElement.className = `debug-log ${type}`;
+                logElement.textContent = `[${timestamp}] ${message}`;
+                
+                this.debugLogs.appendChild(logElement);
+                this.debugLogs.scrollTop = this.debugLogs.scrollHeight;
+                
+                // Also log to console
+                console.log(`[${timestamp}] ${message}`);
+            }
+        }
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.tabSystem = new SimpleTabSystem();
+        });
+        
+        // Test functions for manual testing
+        window.testTab = function(tabName) {
+            if (window.tabSystem) {
+                window.tabSystem.switchTab(tabName);
+            }
+        };
+        
+        window.getCurrentTab = function() {
+            return window.tabSystem ? window.tabSystem.currentTab : null;
+        };
+    </script>
+</body>
+</html> 

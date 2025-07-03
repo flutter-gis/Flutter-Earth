@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flutter Earth</title>
+    <link rel="stylesheet" href="tabs.css">
     <link rel="stylesheet" href="flutter_earth.css">
-    <link rel="stylesheet" href="flutter_earth_enhanced.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <script src="generated_themes.js"></script>
+    <script src="interaction-logger.js"></script>
+    <script src="tabs.js"></script>
     <script src="flutter_earth.js" defer></script>
     <script src="theme_effects.js" defer></script>
 </head>
@@ -81,9 +83,9 @@
             </div>
         </div>
         <!-- Main Content Area -->
-        <div id="main-area" class="main-area">
+        <div id="main-area" class="main-area theme-animated-bg">
             <!-- Welcome View -->
-            <div id="welcome-view" class="view-content active">
+            <div id="welcome-view" class="view-content theme-animated-bg active">
                 <div class="welcome-content">
                     <img src="../logo.png" class="welcome-logo-img" alt="Flutter Earth Logo">
                     <h1>Welcome to Flutter Earth!</h1>
@@ -92,7 +94,7 @@
             </div>
 
             <!-- Map View -->
-            <div id="map-view" class="view-content">
+            <div id="map-view" class="view-content theme-animated-bg">
                 <div class="map-container">
                     <h2>Map View</h2>
                     <div id="map-placeholder" class="map-placeholder">
@@ -102,7 +104,7 @@
             </div>
 
             <!-- Download View -->
-            <div id="download-view" class="view-content">
+            <div id="download-view" class="view-content theme-animated-bg">
                 <div class="download-container">
                     <h2>Download Manager</h2>
                     <div class="download-form">
@@ -218,14 +220,20 @@
                             <div class="form-section">
                                 <h3>Download Controls</h3>
                                 <div class="download-controls">
-                                    <button id="start-download" class="btn-primary">Start Download</button>
+                                    <button id="start-download" class="btn-primary">
+                                        <span id="button-download-spinner" class="spinner" style="display:none;"></span>
+                                        Start Download
+                                    </button>
                                     <button id="cancel-download" class="btn-secondary">Cancel Download</button>
                                 </div>
                                 <div class="download-progress">
                                     <div class="progress-bar">
                                         <div id="download-progress" class="progress-fill" style="width: 0%"></div>
                                     </div>
-                                    <div id="download-status" class="download-status">Ready</div>
+                                    <div id="download-status" class="download-status">
+                                        <span id="download-spinner" class="spinner" style="display:none;"></span>
+                                        Ready
+                                    </div>
                                 </div>
                             </div>
 
@@ -771,11 +779,7 @@
                                         <span class="btn-text">Start Data Collection</span>
                                         <span class="btn-subtitle">Collect satellite data from Earth Engine</span>
                                 </button>
-                                    <!-- Test button for debugging -->
-                                    <button id="test-crawler-btn" class="crawler-btn secondary" type="button" style="margin-left: 10px;">
-                                        <span class="btn-icon">🧪</span>
-                                        <span class="btn-text">Test Button</span>
-                                    </button>
+
                                 </div>
                                 <div class="secondary-actions">
                                 <button id="cancel-web-crawler" class="crawler-btn danger" disabled>

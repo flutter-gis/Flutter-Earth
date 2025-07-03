@@ -625,6 +625,10 @@ body {
     color: var(--error);
 }
 
+.status-text.initializing {
+    color: var(--warning);
+}
+
 /* Modal - Clean animations */
 .modal {
     position: fixed;

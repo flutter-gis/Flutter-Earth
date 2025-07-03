@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pythonInit: () => ipcRenderer.invoke('python-init'),
   pythonDownload: (params) => ipcRenderer.invoke('python-download', params),
   pythonProgress: () => ipcRenderer.invoke('python-progress'),
+  pythonAuthCheck: () => ipcRenderer.invoke('python-auth-check'),
   pythonAuth: (keyFile, projectId) => ipcRenderer.invoke('python-auth', keyFile, projectId),
   pythonRunCrawler: () => ipcRenderer.invoke('python-run-crawler'),
   saveCrawlerData: (data) => ipcRenderer.invoke('save-crawler-data', data),
@@ -18,5 +19,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showMessage: (message) => {
     // You can add native OS notifications here if needed
     console.log('Message from renderer:', message);
-  }
+  },
+  logToFile: (level, message) => ipcRenderer.send('log-to-file', level, message)
 }); 
