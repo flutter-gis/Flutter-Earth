@@ -53,6 +53,12 @@ class FlutterEarth {
         this.crawlerSpeedSamples = [];
         this.crawlerSpeedWindow = 60; // last 60 seconds
         
+        // Authentication state
+        this.authStatus = 'unknown'; // 'unknown', 'checking', 'authenticated', 'unauthenticated', 'error'
+        this.authChecked = false;
+        this.authDialogShown = false;
+        this.forceAuthCheck = false;
+        
         console.log('[DEBUG] FlutterEarth constructor completed, calling init()');
         this.init();
         this.setDefaultTheme(); // Ensure a sensible default theme is set on load
@@ -60,7 +66,6 @@ class FlutterEarth {
 
     async init() {
         console.log('[DEBUG] FlutterEarth.init() started');
-        
         try {
             // Wait for DOM to be fully loaded
             if (document.readyState === 'loading') {
@@ -71,21 +76,24 @@ class FlutterEarth {
             } else {
                 console.log('[DEBUG] DOM already loaded');
             }
-            
+
+            // --- AUTH CHECK FIRST ---
+            await this.checkAuthenticationStatus();
+
             // Log initial DOM state
             console.log('[DEBUG] DOM ready, checking elements...');
             const toolbarItems = document.querySelectorAll('.toolbar-item');
             const viewElements = document.querySelectorAll('.view-content');
             console.log(`[DEBUG] Found ${toolbarItems.length} toolbar items and ${viewElements.length} view elements`);
-            
+
             // Initialize views first - ensure welcome view is visible
             this.initializeViews();
             console.log('[DEBUG] Views initialized');
-            
+
             // Setup event listeners immediately
             this.setupEventListeners();
             console.log('[DEBUG] Event listeners setup');
-            
+
             // Verify initialization worked
             setTimeout(() => {
                 const activeView = document.querySelector('.view-content.active');
@@ -97,11 +105,11 @@ class FlutterEarth {
                     welcomeViewActive: document.getElementById('welcome-view')?.classList.contains('active')
                 });
             }, 100);
-            
+
             // Initialize other components
             this.loadSensors();
             this.setupCalendar();
-            
+
             // Try to load themes (but don't block)
             console.log('[DEBUG] Attempting to load themes...');
             const themesLoaded = await this.waitForThemes(10, 50); // Reduced wait time
@@ -114,24 +122,52 @@ class FlutterEarth {
                 // Initialize settings only after themes are loaded
                 this.initSettings();
             }
-            
+
             this.initSatelliteInfo();
             this.initAboutView();
-            
+
             // Try to initialize Earth Engine (but don't block the UI)
-            this.initializeEarthEngineAsync();
-            
+            // Only initialize if not already done to prevent conflicts
+            if (!window.earthEngineInitialized) {
+                this.initializeEarthEngineAsync();
+            }
+
             // Show a simple notification that the app is ready
             setTimeout(() => {
                 this.showNotification('Flutter Earth is ready!', 'success');
             }, 1000);
-            
+
             console.log('[DEBUG] FlutterEarth.init() completed successfully');
         } catch (error) {
             console.error('[DEBUG] Error in FlutterEarth.init():', error);
             // Even if there's an error, make sure the basic UI is functional
             this.initializeViews();
             this.setupEventListeners();
+        }
+    }
+
+    // Add the missing setupCalendar method
+    setupCalendar() {
+        console.log('[DEBUG] Setting up calendar functionality');
+        try {
+            // Initialize calendar functionality
+            this.currentDate = new Date();
+            this.selectedDate = null;
+            this.calendarTarget = null;
+            
+            // Setup calendar event listeners
+            document.querySelectorAll('.calendar-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = btn.getAttribute('data-target');
+                    this.calendarTarget = targetId;
+                    this.showCalendar();
+                });
+            });
+            
+            console.log('[DEBUG] Calendar setup completed');
+        } catch (error) {
+            console.error('[DEBUG] Error setting up calendar:', error);
         }
     }
 
@@ -431,61 +467,61 @@ class FlutterEarth {
     }
 
         async initializeEarthEngineAsync() {
-        console.log('[DEBUG] initializeEarthEngineAsync called');
-        // Run Earth Engine initialization in background
-        setTimeout(async () => {
-        try {
-            this.updateConnectionStatus('initializing');
-            this.updateStatusText('Status: Checking authentication...');
+            console.log('[DEBUG] initializeEarthEngineAsync called');
             
-            if (window.electronAPI) {
-                console.log('[DEBUG] window.electronAPI is available');
-                // First check if authentication is needed
-                const authCheck = await window.electronAPI.pythonAuthCheck();
-                console.log('[DEBUG] Auth check result:', authCheck);
+            try {
+                this.updateConnectionStatus('initializing');
+                this.updateStatusText('Status: Checking authentication...');
                 
-                if (authCheck && authCheck.needs_auth) {
-                    this.updateConnectionStatus('offline');
-                    this.updateStatusText('Status: Authentication required');
-                    this.showNotification('Please set up Earth Engine authentication', 'warning');
-                    console.log('[DEBUG] Showing auth dialog (needs_auth true)');
-                    this.showAuthDialog();
-                    return;
+                if (window.electronAPI) {
+                    console.log('[DEBUG] window.electronAPI is available');
+                    
+                    // First check authentication status
+                    const authCheck = await window.electronAPI.pythonAuthCheck();
+                    console.log('[DEBUG] Auth check result:', authCheck);
+                    
+                    if (authCheck && authCheck.needs_auth) {
+                        this.updateConnectionStatus('offline');
+                        this.updateStatusText('Status: Authentication required');
+                        this.showNotification('Please set up Earth Engine authentication', 'warning');
+                        console.log('[DEBUG] Showing auth dialog (needs_auth true)');
+                        this.showAuthDialog();
+                        return;
+                    }
+                    
+                    // If auth is available, initialize Earth Engine
+                    this.updateStatusText('Status: Initializing Earth Engine...');
+                    const result = await window.electronAPI.pythonInit();
+                    console.log('[DEBUG] pythonInit result:', result);
+                    
+                    if (result.status === 'online') {
+                        this.updateConnectionStatus('online');
+                        this.updateStatusText('Status: Connected to Earth Engine');
+                        this.showNotification('Earth Engine connected successfully', 'success');
+                        window.earthEngineInitialized = true;
+                    } else if (result.status === 'auth_required') {
+                        this.updateConnectionStatus('offline');
+                        this.updateStatusText('Status: Authentication required');
+                        this.showNotification('Please set up Earth Engine authentication', 'warning');
+                        this.showAuthDialog();
+                    } else {
+                        this.updateConnectionStatus('offline');
+                        this.updateStatusText(`Status: ${result.message}`);
+                        this.showNotification(`Connection failed: ${result.message}`, 'error');
+                    }
+                } else {
+                    console.warn('[DEBUG] window.electronAPI is NOT available');
+                    // Fallback for browser testing
+                    this.updateConnectionStatus('online');
+                    this.updateStatusText('Status: Running in browser mode');
                 }
-            } else {
-                console.warn('[DEBUG] window.electronAPI is NOT available');
-                // Fallback for browser testing
-                this.updateConnectionStatus('online');
-                this.updateStatusText('Status: Running in browser mode');
-                return;
-            }
-            
-            this.updateStatusText('Status: Initializing Earth Engine...');
-            const result = await window.electronAPI.pythonInit();
-            console.log('[DEBUG] pythonInit result:', result);
-            
-            if (result.status === 'success' && result.initialized) {
-                this.updateConnectionStatus('online');
-                this.updateStatusText('Status: Earth Engine ready');
-                this.showNotification('Earth Engine initialized successfully', 'success');
-            } else if (result.status === 'offline') {
+            } catch (error) {
+                console.error('[DEBUG] Error in initializeEarthEngineAsync:', error);
                 this.updateConnectionStatus('offline');
-                this.updateStatusText('Status: Offline mode - ' + (result.message || 'No credentials'));
-                this.showNotification('Offline mode: ' + (result.message || 'No credentials'), 'warning');
-                this.isOfflineMode = true;
-            } else {
-                this.updateConnectionStatus('offline');
-                this.updateStatusText('Status: Earth Engine initialization failed');
-                this.showNotification('Earth Engine initialization failed', 'error');
+                this.updateStatusText('Status: Initialization failed');
+                this.showNotification(`Initialization error: ${error.message}`, 'error');
             }
-        } catch (error) {
-            console.error('[DEBUG] Earth Engine initialization error:', error);
-            this.updateConnectionStatus('offline');
-            this.updateStatusText('Status: Initialization error');
-            this.showNotification('Failed to initialize Earth Engine', 'error');
         }
-        }, 100);
-    }
 
     async startDownload() {
         console.log('[DEBUG] startDownload() called');
@@ -497,8 +533,20 @@ class FlutterEarth {
             // Gather form data
             const params = this.gatherDownloadParams();
             console.log('[DEBUG] Download params:', params);
-            if (!params.area_of_interest || !params.start_date || !params.end_date || !params.sensor_name) {
-                this.showNotification('Please fill in all required fields', 'error');
+            
+            // Enhanced validation with specific feedback
+            const missingFields = [];
+            if (!params.area_of_interest) missingFields.push('Area of Interest');
+            if (!params.start_date) missingFields.push('Start Date');
+            if (!params.end_date) missingFields.push('End Date');
+            if (!params.sensor_name) missingFields.push('Sensor');
+            
+            if (missingFields.length > 0) {
+                const message = `Please fill in the following required fields: ${missingFields.join(', ')}`;
+                this.showNotification(message, 'error');
+                
+                // Highlight missing fields
+                this.highlightMissingFields(missingFields);
                 return;
             }
             this.downloadInProgress = true;
@@ -686,26 +734,125 @@ class FlutterEarth {
         }
 
         try {
+            this.updateAuthStatusIndicator('checking', 'Testing connection...');
             const keyFile = keyFileInput.files[0].path;
             const projectId = projectIdInput.value.trim();
             
             if (window.electronAPI) {
-                const result = await window.electronAPI.pythonAuth(keyFile, projectId);
+                // First test the connection
+                const testResult = await window.electronAPI.pythonAuthTest(keyFile, projectId);
                 
-                if (result.status === 'success') {
-                    this.showNotification('Authentication successful', 'success');
-                    this.hideAuthDialog();
-                    this.initializeEarthEngineAsync();
+                if (testResult.status === 'success') {
+                    this.updateAuthStatusIndicator('checking', 'Saving credentials...');
+                    
+                    // If test passes, save the credentials
+                    const saveResult = await window.electronAPI.pythonAuth(keyFile, projectId);
+                    
+                    if (saveResult.status === 'success') {
+                        this.authStatus = 'authenticated';
+                        this.updateAuthStatusIndicator('success', 'Authentication successful');
+                        this.updateConnectionStatus('online');
+                        this.showNotification('Authentication successful! You can now use Earth Engine features.', 'success');
+                        this.hideAuthDialog();
+                        this.initializeEarthEngineAsync();
+                    } else {
+                        this.authStatus = 'error';
+                        this.updateAuthStatusIndicator('error', 'Authentication failed');
+                        this.showNotification('Authentication failed: ' + saveResult.message, 'error');
+                    }
                 } else {
-                    this.showNotification('Authentication failed: ' + result.message, 'error');
+                    this.authStatus = 'error';
+                    this.updateAuthStatusIndicator('error', 'Connection test failed');
+                    this.showNotification('Connection test failed: ' + testResult.message, 'error');
                 }
             } else {
+                this.authStatus = 'unauthenticated';
+                this.updateAuthStatusIndicator('warning', 'Browser mode - limited functionality');
                 this.showNotification('Authentication (browser mode)', 'info');
                 this.hideAuthDialog();
             }
         } catch (error) {
             console.error('Auth error:', error);
+            this.authStatus = 'error';
+            this.updateAuthStatusIndicator('error', 'Authentication error');
             this.showNotification('Authentication error: ' + error.message, 'error');
+        }
+    }
+
+    async testAuthConnection() {
+        const keyFileInput = document.getElementById('auth-key-file');
+        const projectIdInput = document.getElementById('auth-project-id');
+        
+        if (!keyFileInput.files[0] || !projectIdInput.value.trim()) {
+            this.showNotification('Please provide both key file and project ID to test', 'error');
+            return;
+        }
+
+        try {
+            this.updateAuthStatusIndicator('checking', 'Testing connection...');
+            const keyFile = keyFileInput.files[0].path;
+            const projectId = projectIdInput.value.trim();
+            
+            if (window.electronAPI && window.electronAPI.pythonAuthTest) {
+                const testResult = await window.electronAPI.pythonAuthTest(keyFile, projectId);
+                
+                if (testResult.status === 'success') {
+                    this.updateAuthStatusIndicator('success', 'Connection test successful');
+                    this.showNotification('Connection test successful! Your credentials are valid.', 'success');
+                } else {
+                    this.updateAuthStatusIndicator('error', 'Connection test failed');
+                    this.showNotification('Connection test failed: ' + testResult.message, 'error');
+                }
+            } else {
+                this.updateAuthStatusIndicator('warning', 'Test not available in browser mode');
+                this.showNotification('Connection testing not available in browser mode', 'warning');
+            }
+        } catch (error) {
+            console.error('Test auth error:', error);
+            this.updateAuthStatusIndicator('error', 'Test failed');
+            this.showNotification('Test failed: ' + error.message, 'error');
+        }
+    }
+
+    async clearAuthCredentials() {
+        try {
+            this.updateAuthStatusIndicator('checking', 'Clearing credentials...');
+            
+            if (window.electronAPI && window.electronAPI.clearAuth) {
+                const result = await window.electronAPI.clearAuth();
+                
+                if (result.status === 'success') {
+                    this.authStatus = 'unauthenticated';
+                    this.updateAuthStatusIndicator('warning', 'Credentials cleared');
+                    this.updateConnectionStatus('offline');
+                    this.showNotification('Authentication credentials cleared', 'info');
+                    
+                    // Clear form fields
+                    const keyFileInput = document.getElementById('auth-key-file');
+                    const projectIdInput = document.getElementById('auth-project-id');
+                    const keyFileName = document.getElementById('key-file-name');
+                    
+                    if (keyFileInput) keyFileInput.value = '';
+                    if (projectIdInput) projectIdInput.value = '';
+                    if (keyFileName) {
+                        keyFileName.textContent = 'Choose a JSON file...';
+                        keyFileName.classList.remove('has-file');
+                    }
+                    
+                    // Force auth dialog again
+                    this.forceAuthDialog();
+                } else {
+                    this.updateAuthStatusIndicator('error', 'Failed to clear credentials');
+                    this.showNotification('Failed to clear credentials: ' + result.message, 'error');
+                }
+            } else {
+                this.updateAuthStatusIndicator('warning', 'Clear not available in browser mode');
+                this.showNotification('Clearing credentials not available in browser mode', 'warning');
+            }
+        } catch (error) {
+            console.error('Clear auth error:', error);
+            this.updateAuthStatusIndicator('error', 'Clear failed');
+            this.showNotification('Clear failed: ' + error.message, 'error');
         }
     }
 
@@ -720,6 +867,54 @@ class FlutterEarth {
             }
             statusElement.appendChild(document.createTextNode(message));
         }
+    }
+
+    highlightMissingFields(missingFields) {
+        // Clear previous highlights
+        document.querySelectorAll('.field-error').forEach(el => {
+            el.classList.remove('field-error');
+        });
+        
+        // Highlight missing fields
+        missingFields.forEach(field => {
+            let element = null;
+            switch (field) {
+                case 'Area of Interest':
+                    element = document.getElementById('aoi-input');
+                    break;
+                case 'Start Date':
+                    element = document.getElementById('start-date');
+                    break;
+                case 'End Date':
+                    element = document.getElementById('end-date');
+                    break;
+                case 'Sensor':
+                    element = document.getElementById('sensor-select');
+                    break;
+            }
+            
+            if (element) {
+                element.classList.add('field-error');
+                element.focus();
+                
+                // Remove highlight after 3 seconds
+                setTimeout(() => {
+                    element.classList.remove('field-error');
+                }, 3000);
+            }
+        });
+    }
+
+    fillSampleData() {
+        // Fill in sample data for testing
+        document.getElementById('aoi-input').value = '[-122.5, 37.5, -122.0, 38.0]';
+        document.getElementById('start-date').value = '2024-01-01';
+        document.getElementById('end-date').value = '2024-01-31';
+        document.getElementById('sensor-select').value = 'sentinel-2';
+        document.getElementById('output-dir').value = './downloads';
+        
+        this.showNotification('Sample data filled in for testing', 'success');
+        this.updateDownloadLog('Sample data filled in for testing');
     }
 
     simulateDownloadProgress() {
@@ -759,6 +954,15 @@ class FlutterEarth {
     }
     
     setupOtherEventListeners() {
+        // Test auth button
+        const testAuthBtn = document.getElementById('test-auth-button');
+        if (testAuthBtn) {
+            testAuthBtn.addEventListener('click', () => {
+                console.log('[DEBUG] Test auth button clicked');
+                this.showAuthDialog();
+            });
+        }
+
         // Help button
         const helpBtn = document.getElementById('help-button');
         if (helpBtn) {
@@ -777,18 +981,55 @@ class FlutterEarth {
             welcomeLogo.addEventListener('click', () => this.createLogoEffect(welcomeLogo));
         }
         
-        // Auth dialog
+        // Enhanced Auth dialog event listeners
         const authSubmit = document.getElementById('auth-submit');
         if (authSubmit) authSubmit.addEventListener('click', () => this.submitAuth());
         
-        const authHelp = document.getElementById('auth-help');
-        if (authHelp) authHelp.addEventListener('click', () => this.showHelpPopup());
+        const authTest = document.getElementById('auth-test');
+        if (authTest) authTest.addEventListener('click', () => this.testAuthConnection());
+        
+        const authClear = document.getElementById('auth-clear');
+        if (authClear) authClear.addEventListener('click', () => this.clearAuthCredentials());
         
         const authCancel = document.getElementById('auth-cancel');
         if (authCancel) authCancel.addEventListener('click', () => this.hideAuthDialog());
         
         const authOffline = document.getElementById('auth-offline');
-        if (authOffline) authOffline.addEventListener('click', () => this.hideAuthDialog());
+        if (authOffline) authOffline.addEventListener('click', () => {
+            this.isOfflineMode = true;
+            this.authStatus = 'offline';
+            this.updateAuthStatusIndicator('warning', 'Offline mode - limited functionality');
+            this.updateConnectionStatus('offline');
+            this.showNotification('Continuing in offline mode', 'info');
+            this.hideAuthDialog();
+        });
+        
+        // File input handling
+        const authKeyFile = document.getElementById('auth-key-file');
+        const keyFileName = document.getElementById('key-file-name');
+        if (authKeyFile && keyFileName) {
+            authKeyFile.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    keyFileName.textContent = file.name;
+                    keyFileName.classList.add('has-file');
+                } else {
+                    keyFileName.textContent = 'Choose a JSON file...';
+                    keyFileName.classList.remove('has-file');
+                }
+            });
+        }
+        
+        // File browse button
+        const fileBrowseBtn = document.querySelector('.file-browse-btn');
+        if (fileBrowseBtn) {
+            fileBrowseBtn.addEventListener('click', () => {
+                const authKeyFile = document.getElementById('auth-key-file');
+                if (authKeyFile) {
+                    authKeyFile.click();
+                }
+            });
+        }
         
         // Help popup close
         const helpClose = document.getElementById('help-close');
@@ -825,6 +1066,9 @@ class FlutterEarth {
         
         const cancelDownload = document.getElementById('cancel-download');
         if (cancelDownload) cancelDownload.addEventListener('click', () => this.cancelDownload());
+        
+        const fillSampleData = document.getElementById('fill-sample-data');
+        if (fillSampleData) fillSampleData.addEventListener('click', () => this.fillSampleData());
         
         // Browse button
         const browseBtn = document.getElementById('browse-btn');
@@ -1289,6 +1533,112 @@ class FlutterEarth {
         }
     }
 
+    // Enhanced authentication management methods
+    async checkAuthenticationStatus() {
+        console.log('[AUTH] Checking authentication status...');
+        this.authStatus = 'checking';
+        this.updateAuthStatusIndicator('checking', 'Checking authentication...');
+        
+        try {
+            if (window.electronAPI && window.electronAPI.checkAuthStatus) {
+                const result = await window.electronAPI.checkAuthStatus();
+                console.log('[AUTH] Auth status result:', result);
+                
+                if (result.status === 'success') {
+                    if (result.authenticated) {
+                        this.authStatus = 'authenticated';
+                        this.updateAuthStatusIndicator('success', 'Authentication verified');
+                        this.updateConnectionStatus('online');
+                        console.log('[AUTH] User is authenticated');
+                    } else {
+                        this.authStatus = 'unauthenticated';
+                        this.updateAuthStatusIndicator('error', 'Authentication required');
+                        this.updateConnectionStatus('offline');
+                        console.log('[AUTH] User is not authenticated');
+                        
+                        // Force auth dialog if not already shown
+                        if (!this.authDialogShown) {
+                            this.forceAuthDialog();
+                        }
+                    }
+                } else {
+                    this.authStatus = 'error';
+                    this.updateAuthStatusIndicator('error', 'Authentication check failed');
+                    this.updateConnectionStatus('offline');
+                    console.error('[AUTH] Auth check failed:', result.message);
+                    
+                    // Force auth dialog on error
+                    if (!this.authDialogShown) {
+                        this.forceAuthDialog();
+                    }
+                }
+            } else {
+                // Fallback for browser mode
+                this.authStatus = 'unauthenticated';
+                this.updateAuthStatusIndicator('warning', 'Browser mode - limited functionality');
+                this.updateConnectionStatus('offline');
+                console.log('[AUTH] Running in browser mode');
+            }
+        } catch (error) {
+            console.error('[AUTH] Error checking auth status:', error);
+            this.authStatus = 'error';
+            this.updateAuthStatusIndicator('error', 'Authentication check error');
+            this.updateConnectionStatus('offline');
+            
+            // Force auth dialog on error
+            if (!this.authDialogShown) {
+                this.forceAuthDialog();
+            }
+        }
+        
+        this.authChecked = true;
+    }
+
+    updateAuthStatusIndicator(status, message) {
+        const indicator = document.getElementById('auth-status-indicator');
+        if (indicator) {
+            // Remove all status classes
+            indicator.classList.remove('checking', 'success', 'error', 'warning');
+            indicator.classList.add(status);
+            
+            const icon = indicator.querySelector('.status-icon');
+            const text = indicator.querySelector('.status-text');
+            
+            if (icon) {
+                switch (status) {
+                    case 'checking':
+                        icon.textContent = '⏳';
+                        break;
+                    case 'success':
+                        icon.textContent = '✅';
+                        break;
+                    case 'error':
+                        icon.textContent = '❌';
+                        break;
+                    case 'warning':
+                        icon.textContent = '⚠️';
+                        break;
+                }
+            }
+            
+            if (text) {
+                text.textContent = message;
+            }
+        }
+    }
+
+    forceAuthDialog() {
+        console.log('[AUTH] Forcing authentication dialog...');
+        this.authDialogShown = true;
+        this.showAuthDialog();
+        
+        // Show notification to user
+        this.showNotification('Authentication required for full functionality', 'warning');
+        
+        // Update status bar
+        this.updateConnectionStatus('offline');
+    }
+
     showAuthDialog() {
         console.log('[DEBUG] showAuthDialog called');
         const authDialog = document.getElementById('auth-dialog');
@@ -1296,6 +1646,24 @@ class FlutterEarth {
             authDialog.style.display = 'flex';
             authDialog.classList.add('show');
             console.log('[DEBUG] auth-dialog element set to display flex and show class added');
+            console.log('[DEBUG] Auth dialog should now be visible!');
+            
+            // Force additional visibility properties
+            authDialog.style.visibility = 'visible';
+            authDialog.style.opacity = '1';
+            authDialog.style.zIndex = '1000';
+            
+            // Update status indicator
+            this.updateAuthStatusIndicator('checking', 'Authentication required');
+            
+            // Log computed styles
+            const computedStyle = window.getComputedStyle(authDialog);
+            console.log('[DEBUG] Computed styles:', {
+                display: computedStyle.display,
+                visibility: computedStyle.visibility,
+                opacity: computedStyle.opacity,
+                zIndex: computedStyle.zIndex
+            });
         } else {
             console.warn('[DEBUG] auth-dialog element not found');
         }
@@ -1765,6 +2133,13 @@ class FlutterEarth {
             Object.entries(theme.colors).forEach(([key, value]) => {
                 document.documentElement.style.setProperty(`--${key.replace(/_/g, '-')}`, value);
             });
+            // Always set --background for body and .main-area
+            if (theme.colors.background) {
+                document.documentElement.style.setProperty('--background', theme.colors.background);
+                document.body.style.backgroundColor = theme.colors.background;
+                const mainArea = document.querySelector('.main-area');
+                if (mainArea) mainArea.style.backgroundColor = theme.colors.background;
+            }
         }
         // Conditionally apply enhanced-theme class
         const advancedThemes = [
@@ -2926,7 +3301,13 @@ class FlutterEarth {
                                 
                                 // Update message
                                 if (messageDiv) {
-                                    messageDiv.textContent = progress.message || 'Collecting data...';
+                                    // Animate spinner/ellipsis if message ends with dots
+                                    let msg = progress.message || 'Collecting data...';
+                                    if (/\.{1,4}$/.test(msg)) {
+                                        // Add a spinner icon
+                                        msg = '<span class="spinner-inline">⏳</span> ' + msg;
+                                    }
+                                    messageDiv.innerHTML = msg;
                                 }
                                 
                                 // Update percentage display
@@ -3186,7 +3567,7 @@ class FlutterEarth {
             if (firstDataset.resolution) tags.push(firstDataset.resolution);
 
             html += `
-                <div class="satellite-card" onclick="flutterEarth.showSensorDetails('${satellite}')">
+                <div class="satellite-card">
                     <div class="card-header">
                         <h3 class="card-title">${satellite}</h3>
                         <span class="card-badge">${datasets.length} datasets</span>
@@ -3204,6 +3585,16 @@ class FlutterEarth {
                     <p class="card-description">${firstDataset.description || 'No description available'}</p>
                     <div class="card-tags">
                         ${tags.map(tag => `<span class="card-tag">${tag}</span>`).join('')}
+                    </div>
+                    <div class="card-actions">
+                        <button class="card-btn primary" onclick="flutterEarth.showSensorDetails('${satellite}')">
+                            <span class="btn-icon">👁️</span>
+                            <span class="btn-text">Details</span>
+                        </button>
+                        <button class="card-btn secondary" onclick="flutterEarth.downloadSatelliteData('${satellite}')">
+                            <span class="btn-icon">📥</span>
+                            <span class="btn-text">Download</span>
+                        </button>
                     </div>
                 </div>
             `;
@@ -3393,33 +3784,95 @@ class FlutterEarth {
     }
 
     useForDownload() {
-        console.log('[DEBUG] useForDownload called (catalog/crawler mode)');
-        this.showNotification('Starting satellite catalog download...', 'info');
+        console.log('[DEBUG] useForDownload called for selected satellite');
+        
+        if (!this.selectedSatellite) {
+            this.showNotification('No satellite selected. Please select a satellite first.', 'warning');
+            return;
+        }
 
-        // Switch to download view to show progress
+        this.downloadSatelliteData(this.selectedSatellite);
+    }
+
+    downloadSatelliteData(satelliteName) {
+        console.log('[DEBUG] downloadSatelliteData called for:', satelliteName);
+        
+        if (!satelliteName) {
+            this.showNotification('No satellite specified for download', 'error');
+            return;
+        }
+
+        // Check if we have data for this satellite
+        if (!this.crawlerData || !this.crawlerData.satellites || !this.crawlerData.satellites[satelliteName]) {
+            this.showNotification(`No data available for ${satelliteName}. Please run the web crawler first.`, 'warning');
+            return;
+        }
+
+        const satelliteData = this.crawlerData.satellites[satelliteName];
+        if (!satelliteData || satelliteData.length === 0) {
+            this.showNotification(`No datasets found for ${satelliteName}`, 'error');
+            return;
+        }
+
+        // Show download confirmation
+        const confirmed = confirm(
+            `📥 Download ${satelliteName} Data\n\n` +
+            `This will download data for ${satelliteName} with the following details:\n` +
+            `• Resolution: ${satelliteData[0].resolution || 'N/A'}\n` +
+            `• Type: ${satelliteData[0].data_type || 'N/A'}\n` +
+            `• Datasets: ${satelliteData.length}\n\n` +
+            `You'll be redirected to the download form to configure the download parameters.\n\n` +
+            `Click OK to proceed with the download setup.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        // Store the selected satellite for the download form
+        this.selectedSatelliteForDownload = satelliteName;
+        this.selectedSatelliteData = satelliteData[0];
+
+        // Switch to download view and pre-populate the form
         this.switchView('download');
-        this.initializeDownloadMonitoring();
+        this.prePopulateDownloadForm(satelliteName, satelliteData[0]);
 
-        // Call the backend to run the crawler (fetch catalog)
-        if (window.electronAPI && window.electronAPI.pythonRunCrawler) {
-            window.electronAPI.pythonRunCrawler()
-                .then(result => {
-                    if (result.status === 'success') {
-                        this.showNotification('Satellite catalog download started.', 'success');
-                        this.updateDownloadStatus('Satellite catalog download started.', 'success');
-                        this.startDownloadMonitoring();
-                    } else {
-                        this.showNotification('Catalog download failed: ' + result.message, 'error');
-                        this.updateDownloadStatus('Catalog download failed: ' + result.message, 'error');
-                    }
-                })
-                .catch(error => {
-                    this.showNotification('Catalog download error: ' + error.message, 'error');
-                    this.updateDownloadStatus('Catalog download error: ' + error.message, 'error');
-                });
-        } else {
-            this.showNotification('Electron API not available', 'error');
-            this.updateDownloadStatus('Electron API not available', 'error');
+        this.showNotification(`Ready to download ${satelliteName} data. Please configure your download parameters.`, 'success');
+    }
+
+    prePopulateDownloadForm(satelliteName, satelliteData) {
+        // Pre-populate the sensor field
+        const sensorSelect = document.getElementById('sensor-select');
+        if (sensorSelect) {
+            // Convert satellite name to sensor format (e.g., "Sentinel-2" -> "sentinel-2")
+            const sensorValue = satelliteName.toLowerCase().replace(/\s+/g, '-');
+            
+            // Check if the option exists, if not add it
+            let option = sensorSelect.querySelector(`option[value="${sensorValue}"]`);
+            if (!option) {
+                option = document.createElement('option');
+                option.value = sensorValue;
+                option.textContent = satelliteName;
+                sensorSelect.appendChild(option);
+            }
+            
+            sensorSelect.value = sensorValue;
+        }
+
+        // Add code snippet to the download log for reference
+        if (satelliteData.code_snippet) {
+            this.updateDownloadLog(`Selected satellite: ${satelliteName}`);
+            this.updateDownloadLog(`Resolution: ${satelliteData.resolution || 'N/A'}`);
+            this.updateDownloadLog(`Data type: ${satelliteData.data_type || 'N/A'}`);
+            this.updateDownloadLog(`Code snippet available for Earth Engine integration`);
+        }
+
+        // Highlight the sensor field to show it's been pre-selected
+        if (sensorSelect) {
+            sensorSelect.classList.add('pre-populated');
+            setTimeout(() => {
+                sensorSelect.classList.remove('pre-populated');
+            }, 3000);
         }
     }
 

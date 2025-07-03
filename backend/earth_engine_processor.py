@@ -66,9 +66,28 @@ def setup_logging():
     return logger
 
 def initialize_earth_engine(logger):
-    """Initialize Earth Engine"""
+    """Initialize Earth Engine with proper authentication"""
     try:
         logger.debug("Starting Earth Engine initialization")
+        
+        # Check if GEE is already initialized to prevent conflicts
+        try:
+            import ee
+            if ee.data._credentials:
+                logger.debug("Earth Engine already initialized, checking connection health")
+                # Test connection health
+                test_image = ee.Image('USGS/SRTMGL1_003')
+                _ = test_image.geometry().bounds().getInfo()
+                logger.debug("Earth Engine connection is healthy")
+                return {
+                    "status": "online",
+                    "message": "Earth Engine already initialized and healthy",
+                    "initialized": True
+                }
+        except Exception:
+            logger.debug("Earth Engine not initialized or connection unhealthy, proceeding with initialization")
+        
+        # Create managers
         config_manager = ConfigManager()
         logger.debug("ConfigManager created")
         progress_tracker = ProgressTracker()
@@ -77,24 +96,14 @@ def initialize_earth_engine(logger):
         logger.debug("DownloadManager created")
         earth_engine = EarthEngineManager()
         logger.debug("EarthEngineManager created")
-        logger.debug("Calling earth_engine.initialize()")
-        initialized = earth_engine.initialize()
-        logger.debug(f"earth_engine.initialize() returned: {initialized}")
         
-        if initialized:
-            logger.info("Initialization successful")
-            return {
-                "status": "success",
-                "message": "Earth Engine initialized successfully",
-                "initialized": True
-            }
-        else:
-            logger.warning("Initialization failed")
-            return {
-                "status": "error",
-                "message": "Earth Engine initialization failed",
-                "initialized": False
-            }
+        # Initialize Earth Engine
+        logger.debug("Calling earth_engine.initialize()")
+        result = earth_engine.initialize()
+        logger.debug(f"earth_engine.initialize() returned: {result}")
+        
+        return result
+        
     except Exception as e:
         logger.error(f"Exception in initialize_earth_engine: {e}")
         return {
@@ -201,23 +210,16 @@ def get_progress():
         total_bytes = 100 * 1024 * 1024  # 100MB
         bytes_downloaded = int((progress_percent / 100) * total_bytes)
         
-        # Simulate speed variations
-        base_speed = 2 * 1024 * 1024  # 2 MB/s base speed
-        speed_variation = 1 + 0.5 * (elapsed % 5) / 5  # Vary speed every 5 seconds
-        current_speed = base_speed * speed_variation
-        
-        # Update progress
-        get_progress.simulation_progress = progress_percent
-        
+        # Update progress data
         progress_data = {
             'download_id': current_download_progress.get('download_id', 'unknown'),
+            'start_time': current_download_progress.get('start_time', datetime.now().isoformat()),
             'status': 'downloading' if progress_percent < 100 else 'completed',
             'percentage': progress_percent,
-            'message': f'Downloading satellite data... {progress_percent:.1f}%',
+            'message': f'Downloading... {progress_percent:.1f}%' if progress_percent < 100 else 'Download completed',
             'bytes_downloaded': bytes_downloaded,
             'total_bytes': total_bytes,
             'elapsed_time': elapsed,
-            'current_speed': current_speed,
             'completed': progress_percent >= 100,
             'error': None
         }
@@ -240,10 +242,12 @@ def check_auth_needed():
     try:
         auth_manager = AuthManager()
         needs_auth = auth_manager.needs_authentication()
+        auth_info = auth_manager.get_auth_info()
         
         return {
             "status": "success",
             "needs_auth": needs_auth,
+            "auth_info": auth_info,
             "message": "Authentication check completed"
         }
     except Exception as e:
@@ -259,14 +263,75 @@ def set_auth_credentials(key_file, project_id):
         auth_manager = AuthManager()
         auth_manager.save_credentials(project_id, key_file)
         
-        return {
-            "status": "success",
-            "message": "Credentials saved successfully"
-        }
+        # Test the connection after saving
+        success, message = auth_manager.initialize_earth_engine()
+        
+        if success:
+            return {
+                "status": "success",
+                "message": "Credentials saved and Earth Engine initialized successfully"
+            }
+        else:
+            return {
+                "status": "warning",
+                "message": f"Credentials saved but Earth Engine initialization failed: {message}"
+            }
+            
     except Exception as e:
         return {
             "status": "error",
             "message": f"Auth error: {str(e)}"
+        }
+
+def test_auth_connection(project_id, key_file):
+    """Test authentication connection"""
+    try:
+        auth_manager = AuthManager()
+        auth_manager.test_connection(project_id, key_file)
+        
+        return {
+            "status": "success",
+            "message": "Authentication test completed successfully"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Authentication test failed: {str(e)}"
+        }
+
+def get_auth_status():
+    """Get comprehensive authentication status"""
+    try:
+        auth_manager = AuthManager()
+        auth_info = auth_manager.get_auth_info()
+        
+        return {
+            "status": "success",
+            "authenticated": auth_info.get('authenticated', False),
+            "message": auth_info.get('message', 'Authentication status checked'),
+            "auth_info": auth_info
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "authenticated": False,
+            "message": f"Failed to get auth status: {str(e)}"
+        }
+
+def clear_auth_credentials():
+    """Clear all authentication credentials"""
+    try:
+        auth_manager = AuthManager()
+        auth_manager.clear_credentials()
+        
+        return {
+            "status": "success",
+            "message": "Authentication credentials cleared successfully"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to clear credentials: {str(e)}"
         }
 
 def run_web_crawler():
@@ -397,6 +462,17 @@ def main():
                 key_file = sys.argv[2]
                 project_id = sys.argv[3]
                 result = set_auth_credentials(key_file, project_id)
+        elif command == "auth-test":
+            if len(sys.argv) < 4:
+                result = {"status": "error", "message": "Missing auth test parameters"}
+            else:
+                key_file = sys.argv[2]
+                project_id = sys.argv[3]
+                result = test_auth_connection(project_id, key_file)
+        elif command == "auth-status":
+            result = get_auth_status()
+        elif command == "clear-auth":
+            result = clear_auth_credentials()
         elif command == "run-crawler":
             result = run_web_crawler()
         elif command == "compress-crawler-data":

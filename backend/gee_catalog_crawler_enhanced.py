@@ -19,8 +19,11 @@ import gzip
 import argparse
 import shutil
 import threading
+import itertools
 
 PROGRESS_FILE = 'backend/crawler_data/crawler_progress.json'
+
+SPINNER_STATES = ['.', '..', '...', '....']
 
 def write_progress(progress):
     try:
@@ -407,9 +410,10 @@ Export.image.toDrive({{
         prescan_datasets = []
         prescan_page = 1
         prescan_consecutive_empty = 0
+        spinner = itertools.cycle(SPINNER_STATES)
         while True:
             progress['status'] = 'prescan'
-            progress['message'] = f'Prescanning page {prescan_page}'
+            progress['message'] = f'Prescanning page {prescan_page}{next(spinner)}'
             progress['current_page'] = prescan_page
             write_progress(progress)
             if prescan_page == 1:
@@ -456,9 +460,10 @@ Export.image.toDrive({{
         processed_datasets = 0
         page_num = 1
         consecutive_empty_pages = 0
+        spinner = itertools.cycle(SPINNER_STATES)
         while True:
             progress['current_page'] = page_num
-            progress['message'] = f'Crawling page {page_num}'
+            progress['message'] = f'Crawling page {page_num}{next(spinner)}'
             write_progress(progress)
             if page_num == 1:
                 page_url = self.base_url
@@ -476,7 +481,7 @@ Export.image.toDrive({{
                     break
             else:
                 consecutive_empty_pages = 0
-                for dataset in page_datasets:
+                for i, dataset in enumerate(page_datasets):
                     all_datasets.append(dataset)
                     processed_datasets += 1
                     for s in dataset.get('satellites', []):
@@ -486,8 +491,10 @@ Export.image.toDrive({{
                     progress['satellites_found'] = len(processed_satellites)
                     progress['percent'] = int(100 * processed_datasets / max(1, total_datasets))
                     progress['speed'] = processed_datasets / max(1, elapsed)
-                    progress['message'] = f'Processed {processed_datasets}/{total_datasets} datasets'
-                    write_progress(progress)
+                    # Show a live message every 5 datasets
+                    if processed_datasets % 5 == 0 or processed_datasets == total_datasets:
+                        progress['message'] = f'Processed {processed_datasets}/{total_datasets} datasets{next(spinner)}'
+                        write_progress(progress)
                 self.logger.info(f"Found {len(page_datasets)} datasets on page {page_num}")
             time.sleep(1)
             page_num += 1

@@ -78,6 +78,7 @@
                     <img src="../logo.png" class="topbar-logo" alt="Flutter Earth Logo">
                     <span class="app-title">Flutter Earth</span>
                     <span class="app-version">v1.0.0 - Ready</span>
+                    <button id="test-auth-button" class="help-button" title="Test Auth Dialog" style="margin-right: 10px; background: #ff6b6b;">🔐</button>
                     <button id="help-button" class="help-button" title="Help / Documentation">?</button>
                 </div>
             </div>
@@ -107,42 +108,45 @@
             <div id="download-view" class="view-content theme-animated-bg">
                 <div class="download-container">
                     <h2>Download Manager</h2>
+                    <div class="download-help">
+                        <p>📋 <strong>Required Fields:</strong> Please fill in the Area of Interest, Date Range, and Sensor selection to start a download. Fields marked with <span class="required-indicator">*</span> are required.</p>
+                    </div>
                     <div class="download-form">
                         <div class="download-form-columns">
                             <div class="form-section">
-                                <h3>Area of Interest</h3>
+                                <h3>Area of Interest <span class="required-indicator">*</span></h3>
                                 <div class="input-group">
                                     <label for="aoi-input">Enter coordinates or GeoJSON:</label>
                                     <div class="input-row">
-                                        <input id="aoi-input" type="text" placeholder="[minLon, minLat, maxLon, maxLat] or GeoJSON">
+                                        <input id="aoi-input" type="text" placeholder="[minLon, minLat, maxLon, maxLat] or GeoJSON" required>
                                         <button id="map-selector-btn" class="map-btn" title="Open map selector">🗺️</button>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="form-section">
-                                <h3>Date Range</h3>
+                                <h3>Date Range <span class="required-indicator">*</span></h3>
                                 <div class="input-group">
                                     <label for="start-date">Start Date:</label>
                                     <div class="input-row">
-                                        <input id="start-date" type="text" placeholder="YYYY-MM-DD">
+                                        <input id="start-date" type="text" placeholder="YYYY-MM-DD" required>
                                         <button class="calendar-btn" data-target="#start-date">📅</button>
                                     </div>
                                 </div>
                                 <div class="input-group">
                                     <label for="end-date">End Date:</label>
                                     <div class="input-row">
-                                        <input id="end-date" type="text" placeholder="YYYY-MM-DD">
+                                        <input id="end-date" type="text" placeholder="YYYY-MM-DD" required>
                                         <button class="calendar-btn" data-target="#end-date">📅</button>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="form-section">
-                                <h3>Sensor</h3>
+                                <h3>Sensor <span class="required-indicator">*</span></h3>
                                 <div class="input-group">
                                     <label for="sensor-select">Select Sensor:</label>
-                                    <select id="sensor-select">
+                                    <select id="sensor-select" required>
                                         <option value="">Choose a sensor...</option>
                                     </select>
                                 </div>
@@ -225,6 +229,7 @@
                                         Start Download
                                     </button>
                                     <button id="cancel-download" class="btn-secondary">Cancel Download</button>
+                                    <button id="fill-sample-data" class="btn-secondary">Fill Sample Data</button>
                                 </div>
                                 <div class="download-progress">
                                     <div class="progress-bar">
@@ -842,6 +847,11 @@
                         </div>
                     </div>
 
+                    <!-- Download Help Section -->
+                    <div class="satellite-help">
+                        <p>🛰️ <strong>How to Download Satellite Data:</strong> Click on any satellite card to view details, or use the "Download" button to directly start downloading that satellite's data. You can also click "Details" to see more information and use the "Use for Download" button in the details panel.</p>
+                    </div>
+
                     <!-- Main Content Area -->
                     <div class="satellite-main-content">
                         <!-- Filters and Search -->
@@ -1031,24 +1041,70 @@
         </div>
 
         <!-- Modals -->
-        <div id="auth-dialog" class="modal" style="display: none;">
-            <div class="modal-content">
-                <h3>Authentication Required</h3>
+        <div id="auth-dialog" class="modal">
+            <div class="modal-content auth-modal-content">
+                <div class="auth-header">
+                    <h3>🔐 Google Earth Engine Authentication</h3>
+                    <p class="auth-subtitle">Required for accessing satellite data and Earth Engine features</p>
+                </div>
+                
+                <div class="auth-status-section">
+                    <div id="auth-status-indicator" class="auth-status-indicator">
+                        <span class="status-icon">⏳</span>
+                        <span class="status-text">Checking authentication...</span>
+                    </div>
+                </div>
+                
                 <div class="auth-form">
-                    <div class="input-group">
-                        <label for="auth-key-file">Key File:</label>
-                        <input id="auth-key-file" type="file" accept=".json">
+                    <div class="auth-section">
+                        <h4>📁 Service Account Key File</h4>
+                        <p class="auth-help-text">Upload your Google Cloud service account JSON key file</p>
+                        <div class="input-group">
+                            <label for="auth-key-file">Key File:</label>
+                            <div class="file-input-wrapper">
+                                <input id="auth-key-file" type="file" accept=".json" class="file-input">
+                                <div class="file-input-display">
+                                    <span id="key-file-name" class="file-name">Choose a JSON file...</span>
+                                    <button type="button" class="file-browse-btn">Browse</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label for="auth-project-id">Project ID:</label>
-                        <input id="auth-project-id" type="text" placeholder="Enter project ID">
+                    
+                    <div class="auth-section">
+                        <h4>🏗️ Google Cloud Project</h4>
+                        <p class="auth-help-text">Enter your Google Cloud project ID</p>
+                        <div class="input-group">
+                            <label for="auth-project-id">Project ID:</label>
+                            <input id="auth-project-id" type="text" placeholder="your-project-id" class="text-input">
+                        </div>
                     </div>
-                    <div class="button-group">
-                        <button id="auth-submit" class="btn-primary">Submit</button>
-                        <button id="auth-help" class="btn-secondary">Help</button>
-                        <button id="auth-cancel" class="btn-secondary">Cancel</button>
-                        <button id="auth-offline" class="btn-secondary">Continue Offline</button>
+                    
+                    <div class="auth-section">
+                        <h4>ℹ️ Authentication Help</h4>
+                        <div class="auth-help-content">
+                            <p><strong>To get your credentials:</strong></p>
+                            <ol>
+                                <li>Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></li>
+                                <li>Create a new project or select existing one</li>
+                                <li>Enable Earth Engine API</li>
+                                <li>Create a service account and download the JSON key</li>
+                                <li>Upload the JSON file and enter your project ID above</li>
+                            </ol>
+                        </div>
                     </div>
+                </div>
+                
+                <div class="auth-actions">
+                    <button id="auth-test" class="btn-secondary">Test Connection</button>
+                    <button id="auth-submit" class="btn-primary">Save & Connect</button>
+                    <button id="auth-clear" class="btn-secondary">Clear Credentials</button>
+                    <button id="auth-offline" class="btn-secondary">Continue Offline</button>
+                    <button id="auth-cancel" class="btn-secondary">Cancel</button>
+                </div>
+                
+                <div class="auth-footer">
+                    <p class="auth-note">💡 <strong>Offline Mode:</strong> You can explore the interface without authentication, but Earth Engine features will be limited.</p>
                 </div>
             </div>
         </div>

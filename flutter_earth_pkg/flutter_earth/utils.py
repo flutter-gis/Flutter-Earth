@@ -9,6 +9,18 @@ from rasterio.merge import merge
 import ee
 import requests
 from PySide6.QtCore import QObject, Signal
+import functools
+
+def handle_errors(func):
+    """Decorator to handle errors in Earth Engine operations."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            logging.error(f"Error in {func.__name__}: {e}")
+            raise
+    return wrapper
 
 def validate_bbox(bbox: List[float]) -> bool:
     """Validate bounding box coordinates."""

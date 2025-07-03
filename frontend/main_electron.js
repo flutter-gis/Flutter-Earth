@@ -70,6 +70,55 @@ ipcMain.handle('python-auth', async (event, keyFile, projectId) => {
   return await callPythonScript('auth', keyFile, projectId);
 });
 
+ipcMain.handle('python-auth-test', async (event, keyFile, projectId) => {
+  return await callPythonScript('auth-test', keyFile, projectId);
+});
+
+ipcMain.handle('python-auth-status', async () => {
+  return await callPythonScript('auth-status');
+});
+
+ipcMain.handle('check-auth-status', async () => {
+  console.log('Received check-auth-status request');
+  try {
+    const result = await callPythonScript('auth-status');
+    console.log('Auth status result:', result);
+    
+    if (result.status === 'success') {
+      return {
+        status: 'success',
+        authenticated: result.authenticated || false,
+        message: result.message || 'Authentication status checked'
+      };
+    } else {
+      return {
+        status: 'success',
+        authenticated: false,
+        message: result.message || 'Not authenticated'
+      };
+    }
+  } catch (error) {
+    console.error('Auth status check error:', error);
+    return {
+      status: 'error',
+      authenticated: false,
+      message: error.message
+    };
+  }
+});
+
+ipcMain.handle('clear-auth', async () => {
+  console.log('Received clear-auth request');
+  try {
+    const result = await callPythonScript('clear-auth');
+    console.log('Clear auth result:', result);
+    return result;
+  } catch (error) {
+    console.error('Clear auth error:', error);
+    return { status: 'error', message: error.message };
+  }
+});
+
 ipcMain.handle('python-run-crawler', async () => {
   if (crawlerProcess && !crawlerProcess.killed) {
     return { status: 'error', message: 'Crawler is already running' };
