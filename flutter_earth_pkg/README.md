@@ -1,6 +1,26 @@
-# Flutter Earth Package (`flutter_earth_pkg`)
+# Flutter Earth Core Package
 
-This directory contains the core Python package for the Flutter Earth application. It is structured as a modern, installable Python package to encapsulate all backend logic and application-specific code.
+This directory contains the core Python package for Flutter Earth, encapsulating backend logic and application-specific code.
+
+## Architecture
+- Modular design: config, types, earth_engine, processing, download_manager, satellite_info, etc.
+- Threaded operations for downloads and processing
+- Signal/slot patterns for GUI integration (if used with Qt)
+
+## Usage
+- Install dependencies: `pip install -r requirements.txt`
+- Import modules as needed in your Python code
+- See `main.py` for entry point and usage examples
+
+## Features
+- Satellite data processing and download
+- Cloud masking, tiling, and advanced options
+- Progress tracking and error reporting
+- Theme and config management
+
+## Developer Notes
+- Designed for integration with both the Electron frontend and standalone use
+- See the main project README for overall workflow
 
 ## Package Architecture
 

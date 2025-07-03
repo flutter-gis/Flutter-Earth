@@ -1,9 +1,38 @@
-<div align="center">
-  <img src="../logo.png" alt="Flutter Earth Logo" width="120" height="120" />
-  
-  <h1>🖥️ <span style="color:#4fc3f7;">Flutter Earth Frontend</span> 🎨</h1>
-  <p><b>The <span style="color:#e91e63;">prettiest</span> and <span style="color:#ffd600;">most fun</span> Electron UI for satellite data ever!</b></p>
-</div>
+# Frontend (Electron/JS)
+
+This directory contains the Electron-based frontend for Flutter Earth, providing a modern, themeable UI for satellite data exploration and download.
+
+## Main Components
+- **flutter_earth.html**: Main UI
+- **flutter_earth.js**: UI logic and backend communication
+- **flutter_earth.css**: Styles and themes
+- **main_electron.js**: Electron entry point
+- **themes.json**: Theme definitions
+
+## Features
+- Tabbed interface: Map, Download, Satellite Info, Index, Vector, Settings, About
+- 30+ themes, dark/light mode, animated backgrounds
+- Real-time progress, logs, and notifications
+- Form validation and user-friendly feedback
+
+## Setup
+```
+cd frontend
+npm install
+```
+
+## Running
+```
+npm start
+```
+
+## Customization
+- Add or edit themes in `themes.json`
+- Modify UI in `flutter_earth.html` and `flutter_earth.js`
+
+## Developer Notes
+- Communicates with the Python backend via Electron bridge
+- See the main project README for architecture and workflow
 
 ---
 
@@ -13,18 +42,6 @@
 - All the themes, icons, and UI magic
 - The bridge to the Python backend
 - The place where the fun happens!
-
----
-
-## 🛠️ How to Run (It's Easy!)
-
-```bash
-cd frontend
-npm install   # Get all the goodies
-npm start     # Launch the magic
-```
-
-> 💡 **Pro Tip:** Want to see all the themes? Go to ⚙️ Settings and click around!
 
 ---
 

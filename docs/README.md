@@ -1,20 +1,24 @@
-# Documentation Directory
+# Documentation
 
-This directory contains all documentation, guides, and reference materials for the Flutter Earth project.
+This directory contains all guides, reference materials, and technical documentation for Flutter Earth.
 
 ## Contents
+- Setup guides (Earth Engine, theming)
+- Development docs (tab fixes, debugging, crawler)
+- User docs (interactive readme, usage guides)
 
-### Setup and Configuration Guides
-- **`EARTH_ENGINE_SETUP.md`** - Complete guide for setting up Google Earth Engine authentication and configuration
-- **`THEMING_GUIDE.md`** - Comprehensive guide for creating and customizing themes
+## Using the Docs
+- Start with `readme_page.html` for an overview
+- See `THEMING_GUIDE.md` for theme customization
+- Use `EARTH_ENGINE_SETUP.md` for GEE setup
 
-### Development Documentation
-- **`TAB_FIXES_SUMMARY.md`** - Documentation of tab-related fixes and improvements
-- **`DEBUGGING_FIXES.md`** - Summary of debugging fixes and troubleshooting improvements
-- **`README_GEE_CRAWLER.md`** - Documentation for the Google Earth Engine catalog crawler
+## Adding Documentation
+- Use clear filenames and consistent formatting
+- Include examples and troubleshooting
+- Update this README when adding new docs
 
-### User Documentation
-- **`readme_page.html`** - Interactive readme page for the Flutter Earth application
+## See Also
+- Main project README for architecture and workflow
 
 ## Quick Reference
 
