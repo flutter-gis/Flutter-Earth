@@ -1,0 +1,16 @@
+{
+  "clearCacheOnStartup": true,
+  "clearStorageOnStartup": true,
+  "optimizations": {
+    "async_auth_check": true,
+    "lazy_theme_loading": true,
+    "deferred_gee_init": true,
+    "minimal_logging": true
+  },
+  "performance_settings": {
+    "max_log_files": 10,
+    "cleanup_interval": 3600,
+    "memory_limit_mb": 512,
+    "disk_space_limit_gb": 1
+  }
+}

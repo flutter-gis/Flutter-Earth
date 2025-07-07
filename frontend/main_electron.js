@@ -1,222 +1,170 @@
-// Suppress Electron security warnings for local/offline use
-process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
-
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
-const fs = require('fs');
 
-let mainWindow;
-let crawlerProcess = null;
+let pythonProcess = null;
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
+  // Start the Python backend as a child process
+  if (!pythonProcess) {
+    const pythonPath = 'python';
+    const scriptPath = path.join(__dirname, '..', 'backend', 'earth_engine_processor.py');
+    pythonProcess = spawn(pythonPath, [scriptPath, 'get_crawler_progress'], {
+      cwd: path.join(__dirname, '..'),
+      stdio: ['ignore', 'pipe', 'pipe'] // Pipe stdout and stderr
+    });
+    pythonProcess.stdout.on('data', (data) => {
+      process.stdout.write(`[PYTHON] ${data}`);
+    });
+    pythonProcess.stderr.on('data', (data) => {
+      process.stderr.write(`[PYTHON ERROR] ${data}`);
+    });
+    pythonProcess.on('close', (code) => {
+      console.log(`[PYTHON] Backend process exited with code ${code}`);
+    });
+  }
+
+  const win = new BrowserWindow({
     width: 1280,
     height: 900,
-    minWidth: 1024,
+    minWidth: 900,
     minHeight: 700,
-    icon: path.join(__dirname, '../logo.png'), // Set the window/taskbar icon
-    fullscreen: true, // Open in fullscreen
-    frame: false,     // Hide the Electron window bar
-    autoHideMenuBar: true, // Hide the menu bar
+    icon: path.join(__dirname, '../logo.ico'), // Use app icon if available
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      enableRemoteModule: false,
-      sandbox: false,
-      webSecurity: false, // Allow local file access
-      preload: path.join(__dirname, 'preload.js') // Add preload script
+      preload: path.join(__dirname, 'preload.js')
     }
   });
+
+  // Load the enhanced HTML UI directly (offline mode)
+  win.loadFile('flutter_earth_enhanced_v2.html').catch(err => {
+    console.error('Failed to load HTML:', err);
+  });
+
+  // Optionally open DevTools for debugging
+  // win.webContents.openDevTools();
   
-  mainWindow.setMenuBarVisibility(false);
-  mainWindow.loadFile('flutter_earth.html');
+  // Setup IPC handlers for Python communication
+  setupIPCHandlers(win);
 }
 
-// IPC handlers for Python communication
-ipcMain.handle('python-init', async () => {
-  console.log('Received python-init request');
-  try {
-    const result = await callPythonScript('init');
-    console.log('Python init result:', result);
-    return result;
-  } catch (error) {
-    console.error('Python init error:', error);
-    return { status: 'error', message: error.message };
-  }
-});
+// Setup IPC handlers for Python backend communication
+function setupIPCHandlers(mainWindow) {
+  // Handle crawler status requests
+  ipcMain.handle('get-crawler-status', async () => {
+    return callPythonScript('get_crawler_progress');
+  });
 
-ipcMain.handle('python-download', async (event, params) => {
-  return await callPythonScript('download', JSON.stringify(params));
-});
+  // Handle starting crawler
+  ipcMain.handle('start-crawler', async () => {
+    return callPythonScript('run_web_crawler');
+  });
 
-ipcMain.handle('python-progress', async () => {
-  return await callPythonScript('progress');
-});
+  // Handle getting datasets
+  ipcMain.handle('get-datasets', async () => {
+    return callPythonScript('get_datasets');
+  });
 
-ipcMain.handle('python-auth-check', async () => {
-  console.log('Received python-auth-check request');
-  try {
-    const result = await callPythonScript('auth-check');
-    console.log('Python auth-check result:', result);
-    return result;
-  } catch (error) {
-    console.error('Python auth-check error:', error);
-    return { status: 'error', needs_auth: true, message: error.message };
-  }
-});
+  // Handle getting satellites
+  ipcMain.handle('get-satellites', async () => {
+    return callPythonScript('get_satellites');
+  });
 
-ipcMain.handle('python-auth', async (event, keyFile, projectId) => {
-  return await callPythonScript('auth', keyFile, projectId);
-});
+  // Handle starting download
+  ipcMain.handle('start-download', async (event, params) => {
+    return callPythonScript('start_download', JSON.stringify(params));
+  });
 
-ipcMain.handle('python-auth-test', async (event, keyFile, projectId) => {
-  return await callPythonScript('auth-test', keyFile, projectId);
-});
+  // Handle getting download progress
+  ipcMain.handle('get-download-progress', async () => {
+    return callPythonScript('get_progress');
+  });
 
-ipcMain.handle('python-auth-status', async () => {
-  return await callPythonScript('auth-status');
-});
+  // Handle authentication test
+  ipcMain.handle('test-auth', async () => {
+    return callPythonScript('test_auth');
+  });
 
-ipcMain.handle('check-auth-status', async () => {
-  console.log('Received check-auth-status request');
-  try {
-    const result = await callPythonScript('auth-status');
-    console.log('Auth status result:', result);
+  // Handle getting satellite list
+  ipcMain.handle('get-satellite-list', async () => {
+    return callPythonScript('get_satellite_list');
+  });
+
+  // Handle reading auth files
+  ipcMain.handle('read-auth-files', async () => {
+    const fs = require('fs');
+    const authDir = 'C:\\FE Auth';
     
-    if (result.status === 'success') {
+    try {
+      const authConfigPath = path.join(authDir, 'auth_config.json');
+      const keyFilePath = path.join(authDir, 'service_account_key.json');
+      
+      const files = {};
+      
+      if (fs.existsSync(authConfigPath)) {
+        files.authConfig = JSON.parse(fs.readFileSync(authConfigPath, 'utf8'));
+      }
+      
+      if (fs.existsSync(keyFilePath)) {
+        files.keyFile = JSON.parse(fs.readFileSync(keyFilePath, 'utf8'));
+      }
+      
       return {
-        status: 'success',
-        authenticated: result.authenticated || false,
-        message: result.message || 'Authentication status checked'
+        success: true,
+        files: files
       };
-    } else {
+    } catch (error) {
       return {
-        status: 'success',
-        authenticated: false,
-        message: result.message || 'Not authenticated'
+        success: false,
+        error: error.message
       };
     }
-  } catch (error) {
-    console.error('Auth status check error:', error);
-    return {
-      status: 'error',
-      authenticated: false,
-      message: error.message
-    };
-  }
-});
+  });
 
-ipcMain.handle('clear-auth', async () => {
-  console.log('Received clear-auth request');
-  try {
-    const result = await callPythonScript('clear-auth');
-    console.log('Clear auth result:', result);
-    return result;
-  } catch (error) {
-    console.error('Clear auth error:', error);
-    return { status: 'error', message: error.message };
-  }
-});
-
-ipcMain.handle('python-run-crawler', async () => {
-  if (crawlerProcess && !crawlerProcess.killed) {
-    return { status: 'error', message: 'Crawler is already running' };
-  }
-  try {
-    const scriptPath = path.join(__dirname, '../backend/earth_engine_processor.py');
-    crawlerProcess = spawn('python', [scriptPath, 'run-crawler'], { shell: true });
-    crawlerProcess.on('close', (code) => {
-      console.log('Crawler process exited with code', code);
-      crawlerProcess = null;
-    });
-    crawlerProcess.on('error', (err) => {
-      console.error('Crawler process error:', err);
-      crawlerProcess = null;
-    });
-    return { status: 'started', message: 'Crawler started in background' };
-  } catch (error) {
-    return { status: 'error', message: error.message };
-  }
-});
-
-ipcMain.handle('python-crawler-progress', async () => {
-  try {
-    const progressPath = path.join(__dirname, '../backend/crawler_data/crawler_progress.json');
-    if (!fs.existsSync(progressPath)) {
-      return { status: 'pending', message: 'No progress yet' };
-    }
-    const data = fs.readFileSync(progressPath, 'utf-8');
-    return { status: 'success', progress: JSON.parse(data) };
-  } catch (err) {
-    return { status: 'error', message: err.message };
-  }
-});
-
-ipcMain.handle('python-cancel-crawler', async () => {
-  if (crawlerProcess && !crawlerProcess.killed) {
-    crawlerProcess.kill();
-    crawlerProcess = null;
-    return { status: 'cancelled', message: 'Crawler cancelled' };
-  }
-  return { status: 'error', message: 'No crawler running' };
-});
-
-ipcMain.handle('save-crawler-data', async (event, data) => {
-  try {
-    // Write the updated data to a temp file
-    const tempPath = path.join(__dirname, '../backend/crawler_data/gee_catalog_data_enhanced_tmp.json');
-    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf-8');
-    // Call the backend Python script to compress and save
-    const scriptPath = path.join(__dirname, '../backend/earth_engine_processor.py');
-    return await new Promise((resolve) => {
-      const proc = spawn('python', [scriptPath, 'compress-crawler-data', tempPath], { shell: true });
-      let output = '';
-      let error = '';
-      proc.stdout.on('data', (data) => { output += data.toString(); });
-      proc.stderr.on('data', (data) => { error += data.toString(); });
-      proc.on('close', (code) => {
-        fs.unlinkSync(tempPath);
-        if (code === 0) {
-          resolve({ status: 'success', message: output });
-        } else {
-          resolve({ status: 'error', message: error || output });
-        }
+  // Handle saving crawler data
+  ipcMain.handle('save-crawler-data', async (event, data) => {
+    const fs = require('fs');
+    const gzip = require('zlib').gzip;
+    
+    try {
+      const dataDir = path.join(__dirname, '..', 'backend', 'crawler_data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      
+      const outputPath = path.join(dataDir, 'gee_catalog_data_enhanced.json.gz');
+      const compressedData = await new Promise((resolve, reject) => {
+        gzip(JSON.stringify(data), (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        });
       });
-    });
-  } catch (err) {
-    return { status: 'error', message: err.message };
-  }
-});
+      
+      fs.writeFileSync(outputPath, compressedData);
+      
+      return {
+        status: 'success',
+        message: 'Crawler data saved successfully'
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message
+      };
+    }
+  });
 
-const getLatestCrawlerLogFile = () => {
-  const logsDir = path.join(__dirname, '../logs');
-  const files = fs.readdirSync(logsDir)
-    .filter(f => f.startsWith('gee_catalog_crawler_') && f.endsWith('.log'))
-    .map(f => ({
-      name: f,
-      time: fs.statSync(path.join(logsDir, f)).mtime.getTime()
-    }))
-    .sort((a, b) => b.time - a.time);
-  return files.length > 0 ? path.join(logsDir, files[0].name) : null;
-};
+  // Handle checking auth status
+  ipcMain.handle('check-auth-status', async () => {
+    return callPythonScript('test_auth');
+  });
+}
 
-ipcMain.handle('tail-crawler-log', async (event, numLines = 50) => {
-  try {
-    const logFile = getLatestCrawlerLogFile();
-    if (!logFile) return { status: 'error', message: 'No log file found' };
-    const data = fs.readFileSync(logFile, 'utf-8');
-    const lines = data.trim().split(/\r?\n/);
-    const lastLines = lines.slice(-numLines).join('\n');
-    return { status: 'success', log: lastLines };
-  } catch (err) {
-    return { status: 'error', message: err.message };
-  }
-});
-
+// Function to call Python scripts
 function callPythonScript(command, ...args) {
   return new Promise((resolve, reject) => {
-    const pythonPath = 'python'; // or 'python3' depending on your system
+    const pythonPath = 'python';
     const scriptPath = path.join(__dirname, '..', 'backend', 'earth_engine_processor.py');
     
     const allArgs = [scriptPath, command, ...args];
@@ -257,15 +205,13 @@ function callPythonScript(command, ...args) {
   });
 }
 
-ipcMain.on('log-to-file', (event, level, message) => {
-    const logPath = path.join(__dirname, '..', 'console_log.txt');
-    const timestamp = new Date().toISOString();
-    fs.appendFileSync(logPath, `[${timestamp}] [${level.toUpperCase()}] ${message}\n`);
-});
-
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
+  if (pythonProcess) {
+    pythonProcess.kill();
+    pythonProcess = null;
+  }
   if (process.platform !== 'darwin') app.quit();
 });
 

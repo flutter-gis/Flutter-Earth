@@ -10,9 +10,10 @@
     "test": "npx playwright test ../tests/test_satellite_catalog_ui.spec.js"
   },
   "devDependencies": {
-    "electron": "^29.3.1"
+    "electron": "^29.3.1",
+    "tailwindcss": "^3.4.1"
   },
   "author": "Flutter Earth Team",
   "license": "MIT",
   "productName": "Flutter Earth"
-} 
+}

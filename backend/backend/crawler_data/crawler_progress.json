@@ -1,0 +1,11 @@
+{
+  "status": "prescan",
+  "message": "Prescanning page 201.",
+  "current_page": 201,
+  "total_pages": 0,
+  "datasets_found": 0,
+  "satellites_found": 0,
+  "percent": 0,
+  "speed": 0,
+  "error": null
+}

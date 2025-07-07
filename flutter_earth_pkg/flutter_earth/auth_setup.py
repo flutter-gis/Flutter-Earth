@@ -163,7 +163,26 @@ class AuthManager(QObject):
     def _update_auth_status(self):
         """Update the authentication status."""
         was_authenticated = self._is_authenticated
-        self._is_authenticated = self.has_credentials()
+        
+        # Check if credentials exist first
+        has_creds = self.has_credentials()
+        
+        if has_creds:
+            # Actually test the Earth Engine connection
+            try:
+                self.logger.debug("Testing Earth Engine connection with stored credentials...")
+                success, message = self.initialize_earth_engine()
+                self._is_authenticated = success
+                if not success:
+                    self.logger.error(f"Earth Engine authentication failed: {message}")
+                else:
+                    self.logger.info("Earth Engine authentication successful")
+            except Exception as e:
+                self.logger.error(f"Exception during Earth Engine authentication test: {e}")
+                self._is_authenticated = False
+        else:
+            self._is_authenticated = False
+            self.logger.debug("No credentials found for authentication")
         
         if was_authenticated != self._is_authenticated:
             self.authStatusChanged.emit(self._is_authenticated)
@@ -171,6 +190,7 @@ class AuthManager(QObject):
         # Save auth status
         status_data = {
             'is_authenticated': self._is_authenticated,
+            'has_credentials': has_creds,
             'project_id': self._project_id,
             'last_updated': str(Path().cwd())
         }
@@ -298,6 +318,24 @@ class AuthManager(QObject):
 
     def get_auth_info(self) -> Dict:
         """Get comprehensive authentication information."""
+        # Test authentication if credentials exist
+        auth_test_result = None
+        if self.has_credentials():
+            try:
+                success, message = self.initialize_earth_engine()
+                auth_test_result = {
+                    'success': success,
+                    'message': message
+                }
+                if not success:
+                    self.logger.error(f"Authentication test failed: {message}")
+            except Exception as e:
+                auth_test_result = {
+                    'success': False,
+                    'message': f"Authentication test exception: {str(e)}"
+                }
+                self.logger.error(f"Authentication test exception: {e}")
+        
         return {
             'is_authenticated': self._is_authenticated,
             'has_credentials': self.has_credentials(),
@@ -305,5 +343,6 @@ class AuthManager(QObject):
             'key_file': self._key_file,
             'auth_dir': str(self.fe_auth_dir),
             'config_file': str(self.auth_config_file),
-            'status_file': str(self.auth_status_file)
+            'status_file': str(self.auth_status_file),
+            'auth_test_result': auth_test_result
         } 

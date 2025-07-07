@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Earth Engine Data Catalog Viewer</title>
+    <link rel="stylesheet" href="../frontend/flutter_earth.css">
+    <style>
+        body {
+            background: var(--background);
+            color: var(--text);
+        }
+        .catalog-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--spacing-lg);
+        }
+        .catalog-title {
+            font-size: var(--font-size-heading);
+            font-weight: 700;
+            color: var(--primary-dark);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        .catalog-back-btn {
+            background: var(--primary);
+            color: var(--text-on-primary);
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 10px 24px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            transition: background 0.2s, color 0.2s;
+        }
+        .catalog-back-btn:hover {
+            background: var(--primary-dark);
+        }
+        .catalog-stats {
+            display: flex;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+        .catalog-stat-card {
+            background: var(--widget-bg);
+            color: var(--primary-dark);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+            min-width: 120px;
+        }
+        .catalog-stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        .catalog-controls {
+            background: var(--widget-bg);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+        }
+        .catalog-search-section {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+        .catalog-search-box {
+            flex: 1;
+            min-width: 220px;
+            padding: 12px 20px;
+            border: 2px solid var(--widget-border);
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .catalog-search-box:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .catalog-filter-buttons {
+            display: flex;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+        .catalog-filter-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius-md);
+            background: var(--widget-border);
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        .catalog-filter-btn:hover, .catalog-filter-btn.active {
+            background: var(--primary);
+            color: var(--text-on-primary);
+        }
+        .catalog-nav-tabs {
+            display: flex;
+            background: var(--widget-bg);
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .catalog-nav-tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .catalog-nav-tab:hover, .catalog-nav-tab.active {
+            background: var(--primary);
+            color: var(--text-on-primary);
+        }
+        .catalog-tab-content {
+            display: none;
+            background: var(--widget-bg);
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+        .catalog-tab-content.active {
+            display: block;
+        }
+        .catalog-dataset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: var(--spacing-lg);
+        }
+        .catalog-dataset-card {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--widget-border);
+            transition: all 0.3s ease;
+        }
+        .catalog-dataset-card:hover {
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: var(--shadow-md);
+        }
+        .catalog-dataset-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+            line-height: 1.3;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+        }
+        .catalog-dataset-description {
+            color: var(--text-subtle);
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .catalog-dataset-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .catalog-info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .catalog-info-label {
+            font-weight: 600;
+            color: var(--text);
+            font-size: 0.95em;
+        }
+        .catalog-info-value {
+            color: var(--text-subtle);
+            font-size: 0.95em;
+        }
+        .catalog-tags-section {
+            margin-bottom: 10px;
+        }
+        .catalog-tags-title {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+            font-size: 0.95em;
+        }
+        .catalog-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .catalog-tag {
+            background: var(--widget-border);
+            color: var(--text);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            display: inline-block;
+        }
+        .catalog-satellite-tag {
+            background: #ffeb3b;
+            color: #333;
+            font-weight: 600;
+        }
+        .catalog-download-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
+            width: 100%;
+        }
+        .catalog-download-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        .catalog-loading, .catalog-no-results {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.1em;
+            color: var(--text-subtle);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-window">
+        <div class="main-area view-content active" style="padding: 32px;">
+            <div class="catalog-header">
+                <span class="catalog-title">🌍 Google Earth Engine Data Catalog</span>
+                <button class="catalog-back-btn" onclick="window.history.back()">← Back</button>
+            </div>
+            <div class="catalog-stats">
+                <div class="catalog-stat-card">
+                    <h3 id="totalDatasets">0</h3>
+                    <p>Total Datasets</p>
+                </div>
+                <div class="catalog-stat-card">
+                    <h3 id="totalSatellites">0</h3>
+                    <p>Satellites</p>
+                </div>
+                <div class="catalog-stat-card">
+                    <h3 id="totalCategories">0</h3>
+                    <p>Categories</p>
+                </div>
+                <div class="catalog-stat-card">
+                    <h3 id="lastUpdated">-</h3>
+                    <p>Last Updated</p>
+                </div>
+            </div>
+            <div class="catalog-controls">
+                <div class="catalog-search-section">
+                    <input type="text" id="searchInput" class="catalog-search-box" placeholder="Search datasets by name, description, or tags...">
+                    <div class="catalog-filter-buttons">
+                        <button class="catalog-filter-btn active">All</button>
+                        <button class="catalog-filter-btn">Satellite Imagery</button>
+                        <button class="catalog-filter-btn">Elevation</button>
+                        <button class="catalog-filter-btn">Climate</button>
+                        <button class="catalog-filter-btn">Vegetation</button>
+                        <button class="catalog-filter-btn">Water</button>
+        </div>
+                </div>
+            </div>
+            <div class="catalog-nav-tabs">
+                <button class="catalog-nav-tab active">🔍 All Datasets</button>
+                <button class="catalog-nav-tab">🛰️ By Satellite</button>
+                <button class="catalog-nav-tab">📁 By Category</button>
+        </div>
+            <div id="all" class="catalog-tab-content active">
+                <div id="allDatasets" class="catalog-dataset-grid">
+                    <div class="catalog-loading">Loading datasets...</div>
+        </div>
+            </div>
+            <div id="satellites" class="catalog-tab-content">
+                <div id="satellitesContent">
+                    <div class="catalog-loading">Loading satellite data...</div>
+        </div>
+            </div>
+            <div id="categories" class="catalog-tab-content">
+                <div id="categoriesContent">
+                    <div class="catalog-loading">Loading category data...</div>
+        </div>
+            </div>
+        </div>
+    </div>
+    <script src="../frontend/generated_themes.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script>
+        let allDatasets = [];
+        let filteredDatasets = [];
+        let currentFilter = 'all';
+        let currentTab = 'all';
+        // Load data from JSON file
+        async function fetchCatalogData() {
+            const sources = [
+                'gee_catalog_data_enhanced.json',
+                'gee_catalog_data.json',
+                'gee_catalog_data_enhanced.json.gz',
+            ];
+            for (const src of sources) {
+                try {
+                    if (src.endsWith('.gz')) {
+                        const resp = await fetch(src);
+                        if (!resp.ok) continue;
+                        const arrayBuffer = await resp.arrayBuffer();
+                        const text = pako.ungzip(new Uint8Array(arrayBuffer), { to: 'string' });
+                        return JSON.parse(text);
+                    } else {
+                        const resp = await fetch(src);
+                        if (!resp.ok) continue;
+                        return await resp.json();
+                    }
+                } catch (e) { continue; }
+            }
+            throw new Error('No catalog data found');
+        }
+        // Load data when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            // Add Run Web Crawler button
+            const header = document.querySelector('.catalog-header');
+            if (header) {
+                const btn = document.createElement('button');
+                btn.className = 'catalog-back-btn';
+                btn.textContent = 'Run Web Crawler';
+                btn.onclick = runWebCrawler;
+                header.appendChild(btn);
+            }
+            loadData();
+            // Tab event delegation
+            const tabContainer = document.querySelector('.catalog-nav-tabs');
+            if (tabContainer) {
+                tabContainer.addEventListener('click', function(e) {
+                    try {
+                        const btn = e.target.closest('.catalog-nav-tab');
+                        if (btn) {
+                            const tabButtons = Array.from(tabContainer.querySelectorAll('.catalog-nav-tab'));
+                            const tabNames = ['all', 'satellites', 'categories'];
+                            const idx = tabButtons.indexOf(btn);
+                            if (idx !== -1) {
+                                showTab(tabNames[idx], e);
+                            }
+                        }
+                    } catch (err) { console.error('Tab switch error:', err); }
+                });
+            }
+            // Filter button event delegation
+            const filterContainer = document.querySelector('.catalog-filter-buttons');
+            if (filterContainer) {
+                filterContainer.addEventListener('click', function(e) {
+                    try {
+                        const btn = e.target.closest('.catalog-filter-btn');
+                        if (btn) {
+                            const filterTypes = ['all', 'satellite', 'elevation', 'climate', 'vegetation', 'water'];
+                            const idx = Array.from(filterContainer.querySelectorAll('.catalog-filter-btn')).indexOf(btn);
+                            if (idx !== -1) {
+                                filterByType(filterTypes[idx], e);
+                            }
+                        }
+                    } catch (err) { console.error('Filter switch error:', err); }
+                });
+            }
+        });
+        function updateStats(data) {
+            document.getElementById('totalDatasets').textContent = allDatasets.length;
+            document.getElementById('totalSatellites').textContent = Object.keys(data.satellites || {}).length;
+            document.getElementById('totalCategories').textContent = Object.keys(data.categories || {}).length;
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleDateString();
+        }
+        function renderDatasets() {
+            const container = document.getElementById('allDatasets');
+            if (filteredDatasets.length === 0) {
+                container.innerHTML = '<div class="catalog-no-results">No datasets found matching your criteria.</div>';
+                return;
+            }
+            container.innerHTML = filteredDatasets.map(dataset => `
+                <div class="catalog-dataset-card">
+                    <div class="catalog-dataset-name">${dataset.name}</div>
+                    <div class="catalog-dataset-description">${dataset.description || 'No description available'}</div>
+                    <div class="catalog-dataset-info">
+                        <div class="catalog-info-item">
+                            <span class="catalog-info-label">Resolution:</span>
+                            <span class="catalog-info-value">${dataset.resolution || 'N/A'}</span>
+                        </div>
+                        <div class="catalog-info-item">
+                            <span class="catalog-info-label">Data Type:</span>
+                            <span class="catalog-info-value">${dataset.data_type || 'N/A'}</span>
+                        </div>
+                        <div class="catalog-info-item">
+                            <span class="catalog-info-label">Frequency:</span>
+                            <span class="catalog-info-value">${dataset.frequency || 'N/A'}</span>
+                        </div>
+                        <div class="catalog-info-item">
+                            <span class="catalog-info-label">Dates:</span>
+                            <span class="catalog-info-value">${dataset.dates || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="catalog-tags-section">
+                        <div class="catalog-tags-title">Satellites:</div>
+                        <div class="catalog-tags">
+                            ${dataset.satellites && dataset.satellites.length > 0 
+                                ? dataset.satellites.map(sat => `<span class="catalog-tag catalog-satellite-tag">${sat}</span>`).join('')
+                                : '<span class="catalog-tag">None specified</span>'
+                            }
+                        </div>
+                    </div>
+                    <div class="catalog-tags-section">
+                        <div class="catalog-tags-title">Tags:</div>
+                        <div class="catalog-tags">
+                            ${dataset.tags && dataset.tags.length > 0 
+                                ? dataset.tags.map(tag => `<span class="catalog-tag">${tag}</span>`).join('')
+                                : '<span class="catalog-tag">None specified</span>'
+                            }
+                        </div>
+                    </div>
+                    <a href="${dataset.download_link}" class="catalog-download-link" target="_blank">
+                        🔗 View in Earth Engine
+                    </a>
+                </div>
+            `).join('');
+        }
+        function renderSatellites(satellites) {
+            const container = document.getElementById('satellitesContent');
+            
+            if (Object.keys(satellites).length === 0) {
+                container.innerHTML = '<div class="catalog-no-results">No satellite data available.</div>';
+                return;
+            }
+
+            container.innerHTML = Object.entries(satellites).map(([satellite, datasets]) => `
+                <div class="satellite-section">
+                    <div class="satellite-title">🛰️ ${satellite} (${datasets.length} datasets)</div>
+                    <div class="dataset-grid">
+                        ${datasets.map(dataset => `
+                            <div class="dataset-card">
+                                <div class="dataset-name">${dataset.name}</div>
+                                <div class="dataset-description">${dataset.description || 'No description available'}</div>
+                                <div class="dataset-info">
+                                    <div class="info-item">
+                                        <span class="info-label">Resolution:</span>
+                                        <span class="info-value">${dataset.resolution || 'N/A'}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Data Type:</span>
+                                        <span class="info-value">${dataset.data_type || 'N/A'}</span>
+                                    </div>
+                                </div>
+                                <a href="${dataset.download_link}" class="download-link" target="_blank">
+                                    🔗 View in Earth Engine
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+        function renderCategories(categories) {
+            const container = document.getElementById('categoriesContent');
+            
+            if (Object.keys(categories).length === 0) {
+                container.innerHTML = '<div class="catalog-no-results">No category data available.</div>';
+                return;
+            }
+
+            container.innerHTML = Object.entries(categories).map(([category, datasets]) => `
+                <div class="category-section">
+                    <div class="category-title">📁 ${category} (${datasets.length} datasets)</div>
+                    <div class="dataset-grid">
+                        ${datasets.map(dataset => `
+                            <div class="dataset-card">
+                                <div class="dataset-name">${dataset.name}</div>
+                                <div class="dataset-description">${dataset.description || 'No description available'}</div>
+                                <div class="dataset-info">
+                                    <div class="info-item">
+                                        <span class="info-label">Resolution:</span>
+                                        <span class="info-value">${dataset.resolution || 'N/A'}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Satellites:</span>
+                                        <span class="info-value">${dataset.satellites ? dataset.satellites.join(', ') : 'N/A'}</span>
+                                    </div>
+                                </div>
+                                <a href="${dataset.download_link}" class="download-link" target="_blank">
+                                    🔗 View in Earth Engine
+                                </a>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+        function showTab(tabName, event) {
+            // Hide all tab contents
+            document.querySelectorAll('.catalog-tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Remove active class from all tabs
+            document.querySelectorAll('.catalog-nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            // Add active class to clicked tab
+            if (event && event.target) {
+                const btn = event.target.closest('.catalog-nav-tab');
+                if (btn) btn.classList.add('active');
+            }
+            currentTab = tabName;
+        }
+        function filterByType(type, event) {
+            currentFilter = type;
+            // Update filter buttons
+            document.querySelectorAll('.catalog-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (event && event.target) {
+                const btn = event.target.closest('.catalog-filter-btn');
+                if (btn) btn.classList.add('active');
+            } else {
+                // fallback: activate the first matching button
+                const btns = document.querySelectorAll('.catalog-filter-btn');
+                const filterTypes = ['all', 'satellite', 'elevation', 'climate', 'vegetation', 'water'];
+                const idx = filterTypes.indexOf(type);
+                if (btns[idx]) btns[idx].classList.add('active');
+            }
+            // Apply filter
+            if (type === 'all') {
+                filteredDatasets = [...allDatasets];
+            } else {
+                filteredDatasets = allDatasets.filter(dataset => {
+                    const dataType = (dataset.data_type || '').toLowerCase();
+                    const description = (dataset.description || '').toLowerCase();
+                    const tags = (dataset.tags || []).map(tag => tag.toLowerCase());
+                    switch (type) {
+                        case 'satellite':
+                            return dataType.includes('satellite') || dataType.includes('imagery') ||
+                                   description.includes('satellite') || description.includes('imagery');
+                        case 'elevation':
+                            return dataType.includes('elevation') || dataType.includes('topography') ||
+                                   description.includes('elevation') || description.includes('dem');
+                        case 'climate':
+                            return dataType.includes('climate') || dataType.includes('weather') ||
+                                   description.includes('climate') || description.includes('temperature');
+                        case 'vegetation':
+                            return dataType.includes('vegetation') || description.includes('vegetation') ||
+                                   description.includes('ndvi') || description.includes('evi');
+                        case 'water':
+                            return dataType.includes('water') || dataType.includes('hydrology') ||
+                                   description.includes('water') || description.includes('ocean');
+                        default:
+                            return true;
+                    }
+                });
+            }
+            // Re-render if on all tab
+            if (currentTab === 'all') {
+                renderDatasets();
+            }
+        }
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            filteredDatasets = allDatasets.filter(dataset => {
+                const name = (dataset.name || '').toLowerCase();
+                const description = (dataset.description || '').toLowerCase();
+                const tags = (dataset.tags || []).map(tag => tag.toLowerCase()).join(' ');
+                const satellites = (dataset.satellites || []).map(sat => sat.toLowerCase()).join(' ');
+                
+                return name.includes(searchTerm) || 
+                       description.includes(searchTerm) || 
+                       tags.includes(searchTerm) ||
+                       satellites.includes(searchTerm);
+            });
+            
+            if (currentTab === 'all') {
+                renderDatasets();
+            }
+        });
+        // --- UI: Loading Spinner ---
+        function showLoadingSpinner() {
+            let spinner = document.getElementById('loading-spinner');
+            if (!spinner) {
+                spinner = document.createElement('div');
+                spinner.id = 'loading-spinner';
+                spinner.innerHTML = '<div class="spinner"></div><div>Loading catalog...</div>';
+                spinner.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;background:rgba(0,0,0,0.2);color:var(--text);font-size:1.2em;';
+                document.body.appendChild(spinner);
+            } else {
+                spinner.style.display = 'flex';
+            }
+        }
+        function hideLoadingSpinner() {
+            const spinner = document.getElementById('loading-spinner');
+            if (spinner) spinner.style.display = 'none';
+        }
+        // --- UI: Run Web Crawler Button ---
+        async function runWebCrawler() {
+            showLoadingSpinner();
+            try {
+                // If running in Electron, use IPC. Otherwise, call backend endpoint (placeholder).
+                if (window.electronAPI && window.electronAPI.runCrawler) {
+                    await window.electronAPI.runCrawler();
+                } else {
+                    await fetch('/run_crawler', { method: 'POST' }); // Placeholder for backend API
+                }
+                // Wait a bit for the crawler to finish
+                await new Promise(r => setTimeout(r, 3000));
+                await loadData();
+            } catch (e) {
+                alert('Failed to run crawler: ' + e);
+            } finally {
+                hideLoadingSpinner();
+            }
+        }
+        // --- UI: Copy Code Snippet ---
+        function copyCodeSnippet(snippet) {
+            navigator.clipboard.writeText(snippet).then(() => {
+                alert('Code snippet copied!');
+            });
+        }
+        // --- Enhanced Data Loader Integration ---
+        async function loadData() {
+            showLoadingSpinner();
+            try {
+                const data = await fetchCatalogData();
+                allDatasets = data.datasets || data;
+                filteredDatasets = [...allDatasets];
+                updateStats(data);
+                renderDatasets();
+                renderSatellites(data.satellites || {});
+                renderCategories(data.categories || {});
+                renderSummaryPanel(data);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('allDatasets').innerHTML = 
+                    '<div class="catalog-no-results">Error loading data. Please make sure the JSON file exists.</div>';
+            } finally {
+                hideLoadingSpinner();
+            }
+        }
+        // --- UI: Summary/Statistics Panel ---
+        function renderSummaryPanel(data) {
+            let panel = document.getElementById('summary-panel');
+            if (!panel) {
+                panel = document.createElement('div');
+                panel.id = 'summary-panel';
+                panel.className = 'catalog-summary-panel';
+                document.querySelector('.main-area').prepend(panel);
+            }
+            const meta = data.metadata || {};
+            panel.innerHTML = `
+                <div><b>Total Datasets:</b> ${meta.total_datasets || allDatasets.length}</div>
+                <div><b>Satellites:</b> ${Object.keys(data.satellites || {}).length}</div>
+                <div><b>Categories:</b> ${Object.keys(data.categories || {}).length}</div>
+                <div><b>Publishers:</b> ${Object.keys(data.publishers || {}).length}</div>
+                <div><b>Last Updated:</b> ${meta.crawl_date ? new Date(meta.crawl_date).toLocaleString() : '-'}</div>
+                <div><b>Crawl Time:</b> ${meta.crawl_time ? meta.crawl_time + 's' : '-'}</div>
+            `;
+        }
+        // --- THEME SYSTEM SYNC ---
+        function applyTheme(themeName) {
+            // Find theme definition from availableThemes
+            const theme = (window.availableThemes || []).find(t => t.name === themeName);
+            if (!theme) return;
+            document.documentElement.setAttribute('data-theme', themeName);
+            // Set CSS variables for background, primary, etc.
+            document.documentElement.style.setProperty('--primary', theme.primary);
+            document.documentElement.style.setProperty('--primary-dark', theme.primary);
+            document.documentElement.style.setProperty('--background', theme.background);
+            document.documentElement.style.setProperty('--widget-bg', theme.background);
+            // Optionally set more variables if needed
+        }
+        function getCurrentTheme() {
+            return localStorage.getItem('flutter-earth-theme') || 'default_dark';
+        }
+        function syncThemeFromStorage() {
+            const themeName = getCurrentTheme();
+            applyTheme(themeName);
+        }
+        // Initial theme application
+        syncThemeFromStorage();
+        // Listen for theme changes from other windows/tabs
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'flutter-earth-theme') {
+                syncThemeFromStorage();
+            }
+        });
+        // Optionally, expose a manual theme selector for standalone use (uncomment to enable)
+        /*
+        window.addEventListener('DOMContentLoaded', () => {
+            const themeBar = document.createElement('div');
+            themeBar.style = 'position:fixed;top:0;right:0;z-index:9999;padding:8px;background:rgba(0,0,0,0.1);';
+            const select = document.createElement('select');
+            (window.availableThemes || []).forEach(theme => {
+                const opt = document.createElement('option');
+                opt.value = theme.name;
+                opt.textContent = theme.display_name;
+                select.appendChild(opt);
+            });
+            select.value = getCurrentTheme();
+            select.onchange = (e) => {
+                localStorage.setItem('flutter-earth-theme', e.target.value);
+                syncThemeFromStorage();
+            };
+            themeBar.appendChild(select);
+            document.body.appendChild(themeBar);
+        });
+        */
+    </script>
+</body>
+</html> 

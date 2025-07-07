@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flutter Earth - Readme</title>
+    <link rel="stylesheet" href="flutter_earth.css">
+    <style>
+        .readme-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+        
+        .readme-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .readme-title {
+            font-size: 2.5em;
+            color: #5A9BD5;
+            margin-bottom: 10px;
+        }
+        
+        .readme-subtitle {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .readme-section {
+            margin-bottom: 30px;
+        }
+        
+        .readme-section h2 {
+            color: #5A9BD5;
+            border-bottom: 2px solid #5A9BD5;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .readme-section h3 {
+            color: #333;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        
+        .readme-section p {
+            margin-bottom: 15px;
+            color: #444;
+        }
+        
+        .readme-section ul, .readme-section ol {
+            margin-bottom: 15px;
+            padding-left: 20px;
+        }
+        
+        .readme-section li {
+            margin-bottom: 8px;
+            color: #444;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #5A9BD5;
+        }
+        
+        .feature-card h4 {
+            color: #5A9BD5;
+            margin-bottom: 10px;
+        }
+        
+        .code-block {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #5A9BD5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            background: #4a8bc5;
+        }
+        
+        .emoji {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <a href="flutter_earth.html" class="back-btn">← Back to App</a>
+    
+    <div class="readme-container">
+        <div class="readme-header">
+            <h1 class="readme-title">Flutter Earth</h1>
+            <p class="readme-subtitle">A modern tool for downloading and processing satellite imagery</p>
+        </div>
+        
+        <div class="readme-section">
+            <h2>About Flutter Earth</h2>
+            <p>
+                Flutter Earth is a powerful desktop application that provides easy access to Google Earth Engine's 
+                vast collection of satellite imagery and geospatial data. Built with Electron and Python, it offers 
+                a modern, user-friendly interface for downloading and processing satellite data.
+            </p>
+        </div>
+        
+        <div class="readme-section">
+            <h2>Key Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4><span class="emoji">🛰️</span>Satellite Data Access</h4>
+                    <p>Access to Landsat, Sentinel, MODIS, and other satellite datasets through Google Earth Engine.</p>
+                </div>
+                <div class="feature-card">
+                    <h4><span class="emoji">🌍</span>Interactive Maps</h4>
+                    <p>Visualize and explore satellite imagery with interactive map interfaces.</p>
+                </div>
+                <div class="feature-card">
+                    <h4><span class="emoji">📊</span>Data Processing</h4>
+                    <p>Download and process satellite data with customizable parameters and filters.</p>
+                </div>
+                <div class="feature-card">
+                    <h4><span class="emoji">🎨</span>Customizable Themes</h4>
+                    <p>Personalize your experience with a variety of beautiful themes and visual styles.</p>
+                </div>
+                <div class="feature-card">
+                    <h4><span class="emoji">⚡</span>Real-time Progress</h4>
+                    <p>Monitor download and processing progress with real-time updates and status tracking.</p>
+                </div>
+                <div class="feature-card">
+                    <h4><span class="emoji">🔧</span>Advanced Tools</h4>
+                    <p>Index analysis, vector downloads, and other advanced geospatial processing tools.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="readme-section">
+            <h2>Getting Started</h2>
+            <h3>Prerequisites</h3>
+            <ul>
+                <li>Google Earth Engine account and authentication</li>
+                <li>Python 3.8 or higher</li>
+                <li>Node.js 16 or higher</li>
+                <li>Internet connection for data access</li>
+            </ul>
+            
+            <h3>Installation</h3>
+            <ol>
+                <li>Clone or download the Flutter Earth repository</li>
+                <li>Install Python dependencies:
+                    <div class="code-block">pip install -r requirements.txt</div>
+                </li>
+                <li>Install Node.js dependencies:
+                    <div class="code-block">cd frontend && npm install</div>
+                </li>
+                <li>Set up Google Earth Engine authentication</li>
+            </ol>
+            
+            <h3>Running the Application</h3>
+            <p>Use one of the following methods to start Flutter Earth:</p>
+            <ul>
+                <li><strong>Windows:</strong> Double-click <code>run_desktop.bat</code></li>
+                <li><strong>PowerShell:</strong> Run <code>.\run_desktop.ps1</code></li>
+                <li><strong>Manual:</strong> Navigate to <code>frontend/</code> and run <code>npm start</code></li>
+            </ul>
+        </div>
+        
+        <div class="readme-section">
+            <h2>Usage Guide</h2>
+            <h3>Basic Workflow</h3>
+            <ol>
+                <li><strong>Authentication:</strong> Set up your Google Earth Engine credentials</li>
+                <li><strong>Map Selection:</strong> Choose your area of interest on the interactive map</li>
+                <li><strong>Satellite Selection:</strong> Select the satellite dataset you want to download</li>
+                <li><strong>Parameters:</strong> Configure date range, cloud cover, and other parameters</li>
+                <li><strong>Download:</strong> Start the download and monitor progress</li>
+            </ol>
+            
+            <h3>Advanced Features</h3>
+            <ul>
+                <li><strong>Index Analysis:</strong> Calculate NDVI, NDWI, and other vegetation indices</li>
+                <li><strong>Vector Downloads:</strong> Download administrative boundaries and other vector data</li>
+                <li><strong>Batch Processing:</strong> Process multiple areas or time periods</li>
+                <li><strong>Data Export:</strong> Export data in various formats (GeoTIFF, CSV, etc.)</li>
+            </ul>
+        </div>
+        
+        <div class="readme-section">
+            <h2>Themes and Customization</h2>
+            <p>
+                Flutter Earth comes with a variety of themes to personalize your experience. From professional 
+                dark and light themes to fun character-inspired themes, you can choose the style that suits you best.
+            </p>
+            <p>
+                <span class="highlight">Tip:</span> You can switch themes in the Settings panel and customize 
+                theme options like animations and special effects.
+            </p>
+        </div>
+        
+        <div class="readme-section">
+            <h2>Troubleshooting</h2>
+            <h3>Common Issues</h3>
+            <ul>
+                <li><strong>Authentication Errors:</strong> Ensure your Google Earth Engine credentials are properly set up</li>
+                <li><strong>Download Failures:</strong> Check your internet connection and available disk space</li>
+                <li><strong>Performance Issues:</strong> Close other applications to free up system resources</li>
+                <li><strong>Theme Issues:</strong> Try resetting to the default theme if custom themes cause problems</li>
+            </ul>
+            
+            <h3>Getting Help</h3>
+            <p>
+                If you encounter issues not covered here, please check the logs in the <code>logs/</code> directory 
+                for detailed error information. You can also clear the cache and logs through the Settings panel.
+            </p>
+        </div>
+        
+        <div class="readme-section">
+            <h2>Technical Details</h2>
+            <h3>Architecture</h3>
+            <p>
+                Flutter Earth uses a hybrid architecture combining Electron for the user interface and Python 
+                for Earth Engine operations. This provides the best of both worlds: a modern, responsive UI 
+                and powerful geospatial processing capabilities.
+            </p>
+            
+            <h3>Technologies Used</h3>
+            <ul>
+                <li><strong>Frontend:</strong> HTML5, CSS3, JavaScript, Electron</li>
+                <li><strong>Backend:</strong> Python, Google Earth Engine API</li>
+                <li><strong>Data Processing:</strong> NumPy, Pandas, GDAL</li>
+                <li><strong>UI Framework:</strong> Custom CSS with theme system</li>
+            </ul>
+        </div>
+        
+        <div class="readme-section">
+            <h2>Contributing</h2>
+            <p>
+                Flutter Earth is an open-source project, and contributions are welcome! Whether you want to 
+                add new features, fix bugs, improve documentation, or create new themes, your help is appreciated.
+            </p>
+            <p>
+                To contribute, please fork the repository, make your changes, and submit a pull request. 
+                Make sure to follow the existing code style and add appropriate tests for new features.
+            </p>
+        </div>
+        
+        <div class="readme-section">
+            <h2>License</h2>
+            <p>
+                Flutter Earth is released under the MIT License. This means you are free to use, modify, 
+                and distribute the software as long as you include the original license and copyright notice.
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

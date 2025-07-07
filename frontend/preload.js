@@ -3,26 +3,24 @@ const { contextBridge, ipcRenderer } = require('electron');
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
-  // Python communication functions
-  pythonInit: () => ipcRenderer.invoke('python-init'),
-  pythonDownload: (params) => ipcRenderer.invoke('python-download', params),
-  pythonProgress: () => ipcRenderer.invoke('python-progress'),
-  pythonAuthCheck: () => ipcRenderer.invoke('python-auth-check'),
-  pythonAuth: (keyFile, projectId) => ipcRenderer.invoke('python-auth', keyFile, projectId),
-  pythonAuthTest: (keyFile, projectId) => ipcRenderer.invoke('python-auth-test', keyFile, projectId),
-  pythonAuthStatus: () => ipcRenderer.invoke('python-auth-status'),
-  checkAuthStatus: () => ipcRenderer.invoke('check-auth-status'),
-  clearAuth: () => ipcRenderer.invoke('clear-auth'),
-  pythonRunCrawler: () => ipcRenderer.invoke('python-run-crawler'),
-  saveCrawlerData: (data) => ipcRenderer.invoke('save-crawler-data', data),
-  tailCrawlerLog: (numLines = 50) => ipcRenderer.invoke('tail-crawler-log', numLines),
-  pythonCrawlerProgress: () => ipcRenderer.invoke('python-crawler-progress'),
-  pythonCancelCrawler: () => ipcRenderer.invoke('python-cancel-crawler'),
-  
-  // Utility functions
-  showMessage: (message) => {
-    // You can add native OS notifications here if needed
-    console.log('Message from renderer:', message);
-  },
-  logToFile: (level, message) => ipcRenderer.send('log-to-file', level, message)
+    // Crawler functions
+    getCrawlerStatus: () => ipcRenderer.invoke('get-crawler-status'),
+    startCrawler: () => ipcRenderer.invoke('start-crawler'),
+    
+    // Dataset functions
+    getDatasets: () => ipcRenderer.invoke('get-datasets'),
+    getSatellites: () => ipcRenderer.invoke('get-satellites'),
+    
+    // Download functions
+    startDownload: (params) => ipcRenderer.invoke('start-download', params),
+    getDownloadProgress: () => ipcRenderer.invoke('get-download-progress'),
+    
+    // Authentication functions
+    testAuth: () => ipcRenderer.invoke('test-auth'),
+    getSatelliteList: () => ipcRenderer.invoke('get-satellite-list'),
+    
+    // File system functions (for auth files)
+    readAuthFiles: () => ipcRenderer.invoke('read-auth-files'),
+    saveCrawlerData: (data) => ipcRenderer.invoke('save-crawler-data', data),
+    checkAuthStatus: () => ipcRenderer.invoke('check-auth-status')
 }); 

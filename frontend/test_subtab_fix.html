@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subtab Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .subtab-navigation {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .subtab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .subtab-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .subtab-btn.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .subtab-content {
+            display: none;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .subtab-content.active {
+            display: block;
+        }
+        
+        .test-results {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .test-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .test-btn {
+            padding: 8px 16px;
+            border: 1px solid #007bff;
+            background: white;
+            color: #007bff;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .test-btn:hover {
+            background: #007bff;
+            color: white;
+        }
+        
+        .success {
+            color: #28a745;
+        }
+        
+        .error {
+            color: #dc3545;
+        }
+        
+        .warning {
+            color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Subtab Fix Test</h1>
+        <p>This test verifies that the subtab switching fix works correctly.</p>
+        
+        <!-- Subtab Navigation -->
+        <div class="subtab-navigation">
+            <button class="subtab-btn active" data-subtab="satellites">
+                <i class="fas fa-satellite"></i>
+                <span>Satellites</span>
+            </button>
+            <button class="subtab-btn" data-subtab="crawler">
+                <i class="fas fa-spider"></i>
+                <span>Web Crawler</span>
+            </button>
+            <button class="subtab-btn" data-subtab="datasets">
+                <i class="fas fa-chart-bar"></i>
+                <span>Dataset Viewer</span>
+            </button>
+        </div>
+
+        <!-- Subtab Content -->
+        <div id="satellites-subtab" class="subtab-content active">
+            <h3>Satellites Content</h3>
+            <p>This is the satellites subtab content. It should be visible when active.</p>
+        </div>
+
+        <div id="crawler-subtab" class="subtab-content">
+            <h3>Web Crawler Content</h3>
+            <p>This is the web crawler subtab content. It should be visible when active.</p>
+        </div>
+
+        <div id="datasets-subtab" class="subtab-content">
+            <h3>Dataset Viewer Content</h3>
+            <p>This is the dataset viewer subtab content. It should be visible when active.</p>
+        </div>
+
+        <!-- Test Results -->
+        <div class="test-results" id="test-results">
+            <h4>Test Results</h4>
+            <div id="test-output">Click "Run All Tests" to start testing...</div>
+        </div>
+
+        <!-- Test Buttons -->
+        <div class="test-buttons">
+            <button class="test-btn" onclick="runAllTests()">Run All Tests</button>
+            <button class="test-btn" onclick="testSubtabSwitch('satellites')">Test Satellites</button>
+            <button class="test-btn" onclick="testSubtabSwitch('crawler')">Test Crawler</button>
+            <button class="test-btn" onclick="testSubtabSwitch('datasets')">Test Datasets</button>
+            <button class="test-btn" onclick="simulateTabsJSFix()">Simulate Fixed Tabs.js</button>
+        </div>
+    </div>
+
+    <script>
+        // Simulate the fixed tabs.js behavior
+        function simulateTabsJSFix() {
+            console.log('=== SIMULATING FIXED TABS.JS ===');
+            
+            // This simulates what the FIXED tabs.js does
+            const contents = document.querySelectorAll('.subtab-content');
+            contents.forEach(content => {
+                content.style.display = 'block'; // FIXED: Use 'block' instead of ''
+                console.log(`[FIXED] Set ${content.id} display to: "${content.style.display}"`);
+            });
+            
+            // Now try to activate a subtab
+            switchSubtab('crawler');
+            
+            let debugText = '<strong>Fixed Tabs.js Simulation:</strong><br>';
+            debugText += '1. Set all subtab content display to "block"<br>';
+            debugText += '2. Called switchSubtab("crawler")<br>';
+            debugText += '3. Result:<br>';
+            
+            contents.forEach((content, i) => {
+                const computedStyle = window.getComputedStyle(content);
+                const isVisible = computedStyle.display !== 'none';
+                const isActive = content.classList.contains('active');
+                debugText += `  ${content.id}: CSS=${computedStyle.display}, Inline=${content.style.display}, Active=${isActive}, Visible=${isVisible}<br>`;
+            });
+            
+            document.getElementById('test-output').innerHTML = debugText;
+        }
+
+        // Simple subtab switching function (working version)
+        function switchSubtab(subtabName) {
+            console.log(`[TEST] Switching to: ${subtabName}`);
+            
+            // Remove active class from all subtab buttons
+            const allButtons = document.querySelectorAll('.subtab-btn');
+            allButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Remove active class from all subtab content
+            const allContents = document.querySelectorAll('.subtab-content');
+            allContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Add active class to target subtab button
+            const targetBtn = document.querySelector(`.subtab-btn[data-subtab="${subtabName}"]`);
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+                console.log(`[TEST] ✅ Activated button: ${subtabName}`);
+            } else {
+                console.error(`[TEST] ❌ Button not found for: ${subtabName}`);
+            }
+            
+            // Add active class to target subtab content
+            const targetContentId = `${subtabName}-subtab`;
+            const targetContent = document.getElementById(targetContentId);
+            
+            if (targetContent) {
+                targetContent.classList.add('active');
+                console.log(`[TEST] ✅ Activated content: ${targetContentId}`);
+            } else {
+                console.error(`[TEST] ❌ Content not found for: ${targetContentId}`);
+            }
+        }
+
+        // Test function
+        function testSubtabSwitch(subtabName) {
+            console.log(`=== TESTING SUBTAB SWITCH: ${subtabName} ===`);
+            switchSubtab(subtabName);
+            
+            // Check results
+            const targetBtn = document.querySelector(`.subtab-btn[data-subtab="${subtabName}"]`);
+            const targetContent = document.getElementById(`${subtabName}-subtab`);
+            const computedStyle = window.getComputedStyle(targetContent);
+            
+            const btnActive = targetBtn && targetBtn.classList.contains('active');
+            const contentActive = targetContent && targetContent.classList.contains('active');
+            const contentVisible = computedStyle.display !== 'none';
+            
+            let result = `<strong>Test: ${subtabName}</strong><br>`;
+            result += `Button Active: ${btnActive ? '<span class="success">✅</span>' : '<span class="error">❌</span>'}<br>`;
+            result += `Content Active: ${contentActive ? '<span class="success">✅</span>' : '<span class="error">❌</span>'}<br>`;
+            result += `Content Visible: ${contentVisible ? '<span class="success">✅</span>' : '<span class="error">❌</span>'}<br>`;
+            result += `Display Style: ${computedStyle.display}<br><br>`;
+            
+            document.getElementById('test-output').innerHTML = result;
+        }
+
+        // Run comprehensive tests
+        function runAllTests() {
+            console.log('=== RUNNING ALL TESTS ===');
+            let results = '<strong>Comprehensive Test Results:</strong><br><br>';
+            
+            // Test 1: Initial state
+            results += '<strong>Test 1: Initial State</strong><br>';
+            const initialActive = document.querySelector('.subtab-btn.active');
+            const initialContent = document.querySelector('.subtab-content.active');
+            results += `Initial Active Button: ${initialActive ? initialActive.dataset.subtab : 'None'}<br>`;
+            results += `Initial Active Content: ${initialContent ? initialContent.id : 'None'}<br><br>`;
+            
+            // Test 2: Switch to crawler
+            results += '<strong>Test 2: Switch to Crawler</strong><br>';
+            switchSubtab('crawler');
+            const crawlerBtn = document.querySelector('.subtab-btn[data-subtab="crawler"]');
+            const crawlerContent = document.getElementById('crawler-subtab');
+            const crawlerStyle = window.getComputedStyle(crawlerContent);
+            results += `Crawler Button Active: ${crawlerBtn.classList.contains('active') ? '<span class="success">✅</span>' : '<span class="error">❌</span>'}<br>`;
+            results += `Crawler Content Active: ${crawlerContent.classList.contains('active') ? '<span class="success">✅</span>' : '<span class="error">❌</span>'}<br>`;
+            results += `Crawler Content Visible: ${crawlerStyle.display !== 'none' ? '<span class="success">✅</span>' : '<span class="error">❌</span>'}<br><br>`;
+            
+            // Test 3: Switch to datasets
+            results += '<strong>Test 3: Switch to Datasets</strong><br>';
+            switchSubtab('datasets');
+            const datasetsBtn = document.querySelector('.subtab-btn[data-subtab="datasets"]');
+            const datasetsContent = document.getElementById('datasets-subtab');
+            const datasetsStyle = window.getComputedStyle(datasetsContent);
+            results += `Datasets Button Active: ${datasetsBtn.classList.contains('active') ? '<span class="success">✅</span>' : '<span class="error">❌</span>'}<br>`;
+            results += `Datasets Content Active: ${datasetsContent.classList.contains('active') ? '<span class="success">✅</span>' : '<span class="error">❌</span>'}<br>`;
+            results += `Datasets Content Visible: ${datasetsStyle.display !== 'none' ? '<span class="success">✅</span>' : '<span class="error">❌</span>'}<br><br>`;
+            
+            // Test 4: Switch back to satellites
+            results += '<strong>Test 4: Switch to Satellites</strong><br>';
+            switchSubtab('satellites');
+            const satellitesBtn = document.querySelector('.subtab-btn[data-subtab="satellites"]');
+            const satellitesContent = document.getElementById('satellites-subtab');
+            const satellitesStyle = window.getComputedStyle(satellitesContent);
+            results += `Satellites Button Active: ${satellitesBtn.classList.contains('active') ? '<span class="success">✅</span>' : '<span class="error">❌</span>'}<br>`;
+            results += `Satellites Content Active: ${satellitesContent.classList.contains('active') ? '<span class="success">✅</span>' : '<span class="error">❌</span>'}<br>`;
+            results += `Satellites Content Visible: ${satellitesStyle.display !== 'none' ? '<span class="success">✅</span>' : '<span class="error">❌</span>'}<br><br>`;
+            
+            // Overall assessment
+            const allTestsPassed = crawlerBtn.classList.contains('active') && 
+                                  crawlerContent.classList.contains('active') && 
+                                  crawlerStyle.display !== 'none' &&
+                                  datasetsBtn.classList.contains('active') && 
+                                  datasetsContent.classList.contains('active') && 
+                                  datasetsStyle.display !== 'none' &&
+                                  satellitesBtn.classList.contains('active') && 
+                                  satellitesContent.classList.contains('active') && 
+                                  satellitesStyle.display !== 'none';
+            
+            results += `<strong>Overall Result:</strong> ${allTestsPassed ? '<span class="success">✅ ALL TESTS PASSED</span>' : '<span class="error">❌ SOME TESTS FAILED</span>'}<br>`;
+            
+            document.getElementById('test-output').innerHTML = results;
+        }
+
+        // Setup event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('[TEST] DOM loaded, setting up event listeners');
+            
+            const buttons = document.querySelectorAll('.subtab-btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const subtab = e.currentTarget.dataset.subtab;
+                    console.log(`[TEST] Button clicked: ${subtab}`);
+                    switchSubtab(subtab);
+                });
+            });
+            
+            console.log('[TEST] Event listeners setup complete');
+        });
+    </script>
+</body>
+</html> 

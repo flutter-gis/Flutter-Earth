@@ -85,10 +85,13 @@ class CleanTabSystem {
             return;
         }
         
-        // Hide all tab contents
+        // Hide all tab contents (but NOT subtab content)
         this.tabContents.forEach(content => {
             content.classList.remove('active');
-            content.style.display = 'none';
+            // Only set display to none if it's NOT a subtab content
+            if (!content.classList.contains('subtab-content')) {
+                content.style.display = 'none';
+            }
             console.log(`[TABS] Hidden: ${content.id}`);
         });
         
@@ -101,6 +104,28 @@ class CleanTabSystem {
         targetContent.classList.add('active');
         targetContent.style.display = 'block';
         console.log(`[TABS] Activated: ${targetContent.id}`);
+        
+        // --- PATCH: Ensure subtabs are visible and functional for Satellite Info ---
+        if (tabName === 'satelliteInfo') {
+            // Activate the first subtab (satellites) if not already active
+            const firstSubtabBtn = document.querySelector('.subtab-btn[data-subtab="satellites"]');
+            if (firstSubtabBtn && !firstSubtabBtn.classList.contains('active')) {
+                firstSubtabBtn.click();
+            }
+            // Ensure subtab navigation is visible
+            const subtabNav = document.querySelector('.subtab-navigation');
+            if (subtabNav) subtabNav.style.display = 'flex';
+            // Ensure all subtab content containers are visible (let JS handle which is active)
+            document.querySelectorAll('.subtab-content').forEach(content => {
+                content.style.display = 'block';
+            });
+        } else {
+            // For non-satelliteInfo tabs, ensure subtab content is hidden
+            document.querySelectorAll('.subtab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+        }
+        // --- END PATCH ---
         
         // Add active class to target button
         const targetButton = document.querySelector(`.toolbar-item[data-view="${tabName}"]`);

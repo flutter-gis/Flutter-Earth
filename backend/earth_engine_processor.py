@@ -16,16 +16,19 @@ logs_dir = Path("logs")
 logs_dir.mkdir(exist_ok=True)
 log_file = logs_dir / f"earth_engine_processor_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler(log_file, mode='w', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
-logging.getLogger(__name__).info("[TEST] Logging initialized at top of script.")
-
-print("DEBUG: Script starting", file=sys.stderr)
+# Reduce verbose logging from external libraries
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('googleapiclient').setLevel(logging.WARNING)
+logging.getLogger('google_auth_httplib2').setLevel(logging.WARNING)
+logging.getLogger('google.auth').setLevel(logging.WARNING)
+logging.getLogger('google.auth.transport').setLevel(logging.WARNING)
 
 # Global variable for download progress tracking
 current_download_progress = {}
@@ -33,17 +36,13 @@ current_download_progress = {}
 # Add the flutter_earth_pkg to the path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'flutter_earth_pkg'))
 
-print("DEBUG: About to import modules", file=sys.stderr)
-
 try:
     from flutter_earth.earth_engine import EarthEngineManager
     from flutter_earth.download_manager import DownloadManager
     from flutter_earth.config import ConfigManager
     from flutter_earth.progress_tracker import ProgressTracker
     from flutter_earth.auth_setup import AuthManager
-    print("DEBUG: All imports successful", file=sys.stderr)
 except ImportError as e:
-    print(f"DEBUG: Import error: {e}", file=sys.stderr)
     print(json.dumps({"error": f"Import error: {e}"}))
     sys.exit(1)
 
@@ -54,7 +53,7 @@ def setup_logging():
     log_file = logs_dir / f"earth_engine_processor_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
     
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
             logging.FileHandler(log_file, mode='w', encoding='utf-8'),
@@ -62,7 +61,7 @@ def setup_logging():
         ]
     )
     logger = logging.getLogger(__name__)
-    logger.info("[TEST] Logging initialized and log file created.")
+    logger.info("Logging initialized.")
     return logger
 
 def initialize_earth_engine(logger):
@@ -302,16 +301,60 @@ def test_auth_connection(project_id, key_file):
 def get_auth_status():
     """Get comprehensive authentication status"""
     try:
+        logger = logging.getLogger(__name__)
+        logger.info("Getting authentication status...")
+        
         auth_manager = AuthManager()
         auth_info = auth_manager.get_auth_info()
         
+        logger.info(f"Auth info retrieved: {auth_info}")
+        
+        # Check if there's an auth test result with an error
+        auth_test_result = auth_info.get('auth_test_result')
+        if auth_test_result and not auth_test_result.get('success', True):
+            error_msg = auth_test_result.get('message', 'Unknown authentication error')
+            logger.error(f"Authentication test failed: {error_msg}")
+            return {
+                "status": "error",
+                "authenticated": False,
+                "message": f"Authentication failed: {error_msg}",
+                "auth_info": auth_info
+            }
+        
+        # Check if user has credentials but is not authenticated
+        if auth_info.get('has_credentials') and not auth_info.get('is_authenticated'):
+            logger.warning("User has credentials but is not authenticated")
+            return {
+                "status": "auth_required",
+                "authenticated": False,
+                "message": "Credentials found but authentication failed. Please check your credentials.",
+                "auth_info": auth_info
+            }
+        
+        # Check if user is authenticated
+        if auth_info.get('is_authenticated'):
+            logger.info("User is authenticated")
+            return {
+                "status": "success",
+                "authenticated": True,
+                "message": "Authentication verified successfully",
+                "auth_info": auth_info
+            }
+        
+        # No credentials found
+        logger.info("No authentication credentials found")
         return {
-            "status": "success",
-            "authenticated": auth_info.get('authenticated', False),
-            "message": auth_info.get('message', 'Authentication status checked'),
+            "status": "auth_required",
+            "authenticated": False,
+            "message": "No authentication credentials found. Please set up Earth Engine authentication.",
             "auth_info": auth_info
         }
+        
     except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to get auth status: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return {
             "status": "error",
             "authenticated": False,
@@ -426,12 +469,107 @@ def get_crawler_progress():
             "message": f"Crawler progress error: {str(e)}"
         }
 
+def get_datasets():
+    """Get datasets from crawler data"""
+    try:
+        # Try to load from compressed file first
+        crawler_data_path = Path('backend/crawler_data/gee_catalog_data_enhanced.json.gz')
+        if crawler_data_path.exists():
+            with gzip.open(crawler_data_path, 'rt', encoding='utf-8') as f:
+                data = json.load(f)
+        else:
+            # Try uncompressed file
+            crawler_data_path = Path('backend/crawler_data/gee_catalog_data_enhanced.json')
+            if crawler_data_path.exists():
+                with open(crawler_data_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            else:
+                return {
+                    "status": "success",
+                    "data": []
+                }
+        
+        return {
+            "status": "success",
+            "data": data.get('datasets', [])
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error loading datasets: {str(e)}"
+        }
+
+def get_satellites():
+    """Get satellites from crawler data"""
+    try:
+        # Try to load from compressed file first
+        crawler_data_path = Path('backend/crawler_data/gee_catalog_data_enhanced.json.gz')
+        if crawler_data_path.exists():
+            with gzip.open(crawler_data_path, 'rt', encoding='utf-8') as f:
+                data = json.load(f)
+        else:
+            # Try uncompressed file
+            crawler_data_path = Path('backend/crawler_data/gee_catalog_data_enhanced.json')
+            if crawler_data_path.exists():
+                with open(crawler_data_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            else:
+                return {
+                    "status": "success",
+                    "data": {}
+                }
+        
+        return {
+            "status": "success",
+            "data": data.get('satellites', {})
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error loading satellites: {str(e)}"
+        }
+
+def test_auth():
+    """Test authentication status"""
+    try:
+        # Import auth manager
+        from flutter_earth.auth_setup import AuthManager
+        
+        auth_manager = AuthManager()
+        auth_info = auth_manager.get_auth_info()
+        
+        return {
+            "status": "success",
+            "data": {
+                "authenticated": auth_manager.has_credentials(),
+                "auth_info": auth_info
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error testing auth: {str(e)}"
+        }
+
+def get_satellite_list():
+    """Get list of available satellites"""
+    try:
+        # Import satellite config
+        from flutter_earth.config import SATELLITE_DETAILS
+        
+        return {
+            "status": "success",
+            "data": SATELLITE_DETAILS
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error getting satellite list: {str(e)}"
+        }
+
 def main():
     """Main entry point for the processor"""
     logger = setup_logging()
-    logger.info("Earth Engine Processor started")
-    
-    logger.debug("Script starting")
     
     if len(sys.argv) < 2:
         logger.error("No command specified")
@@ -439,12 +577,10 @@ def main():
         sys.exit(1)
     
     command = sys.argv[1]
-    logger.debug(f"Command received: {command}")
     
     try:
         if command == "init":
-            logger.debug("Starting initialization")
-            result = initialize_earth_engine(logger)
+                    result = initialize_earth_engine(logger)
         elif command == "download":
             if len(sys.argv) < 3:
                 result = {"status": "error", "message": "No download parameters provided"}
@@ -483,12 +619,30 @@ def main():
                 result = compress_crawler_data(json_path)
         elif command == "crawler-progress":
             result = get_crawler_progress()
+        elif command == "get_crawler_progress":
+            result = get_crawler_progress()
+        elif command == "run_web_crawler":
+            result = run_web_crawler()
+        elif command == "get_datasets":
+            result = get_datasets()
+        elif command == "get_satellites":
+            result = get_satellites()
+        elif command == "start_download":
+            if len(sys.argv) < 3:
+                result = {"status": "error", "message": "No download parameters provided"}
+            else:
+                params = json.loads(sys.argv[2])
+                result = start_download(params)
+        elif command == "get_progress":
+            result = get_progress()
+        elif command == "test_auth":
+            result = test_auth()
+        elif command == "get_satellite_list":
+            result = get_satellite_list()
         else:
             result = {"status": "error", "message": f"Unknown command: {command}"}
         
-        logger.debug("About to print result")
         print(json.dumps(result))
-        logger.debug("Result printed")
         
     except Exception as e:
         logger.error(f"Error in main: {e}")

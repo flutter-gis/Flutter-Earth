@@ -28,15 +28,38 @@ def initialize_auth_system():
         # Add the flutter_earth_pkg to the path
         sys.path.insert(0, str(Path(__file__).parent / 'flutter_earth_pkg'))
         
-        from flutter_earth.auth_setup import AuthManager
+        # Lazy import to reduce startup time
+        try:
+            from flutter_earth.auth_setup import AuthManager
+        except ImportError as e:
+            logging.warning(f"Could not import AuthManager: {e}")
+            return {
+                "status": "error",
+                "message": f"Auth system import failed: {e}",
+                "initialized": False,
+                "auth_ready": False
+            }
         
         # Initialize auth manager only (don't initialize GEE here)
-        auth_manager = AuthManager()
-        logging.info("AuthManager initialized successfully")
+        try:
+            auth_manager = AuthManager()
+            logging.info("AuthManager initialized successfully")
+        except Exception as e:
+            logging.warning(f"AuthManager initialization failed: {e}")
+            return {
+                "status": "error",
+                "message": f"AuthManager initialization failed: {e}",
+                "initialized": False,
+                "auth_ready": False
+            }
         
         # Check auth status without initializing GEE
-        auth_info = auth_manager.get_auth_info()
-        logging.info(f"Auth status: {auth_info}")
+        try:
+            auth_info = auth_manager.get_auth_info()
+            logging.info(f"Auth status: {auth_info}")
+        except Exception as e:
+            logging.warning(f"Could not get auth info: {e}")
+            auth_info = {}
         
         # Return auth status without forcing GEE initialization
         if auth_manager.has_credentials():

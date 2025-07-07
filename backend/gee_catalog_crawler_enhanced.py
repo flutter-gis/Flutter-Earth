@@ -20,10 +20,29 @@ import argparse
 import shutil
 import threading
 import itertools
+import os
+from logging.handlers import RotatingFileHandler
 
 PROGRESS_FILE = 'backend/crawler_data/crawler_progress.json'
 
 SPINNER_STATES = ['.', '..', '...', '....']
+
+CRAWLER_DATA_DIR = os.path.join(os.path.dirname(__file__), 'crawler_data')
+LOCAL_HTML = os.path.join(CRAWLER_DATA_DIR, 'Earth Engine Data Catalog \u00A0_\u00A0 Google for Developers.html')
+
+LOG_DIR = os.path.join(os.path.dirname(__file__), 'logs')
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+LOG_FILE = os.path.join(LOG_DIR, 'gee_catalog_crawler.log')
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger('gee_catalog_crawler')
+
+# Set up rotating file handler for crawler logs
+file_handler = RotatingFileHandler(LOG_FILE, maxBytes=2*1024*1024, backupCount=3)
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
 
 def write_progress(progress):
     try:
@@ -368,9 +387,16 @@ Export.image.toDrive({{
         datasets = []
         soup = self.get_page_content(page_url)
         if not soup:
+            self.logger.warning(f"No soup returned for {page_url}")
             return datasets
         # Find all dataset cards
         cards = soup.find_all('div', class_='devsite-article-body') if hasattr(soup, 'find_all') else []
+        if not cards:
+            # Try alternative selectors if nothing found
+            cards = soup.find_all('section', class_='devsite-article-body') if hasattr(soup, 'find_all') else []
+        self.logger.info(f"[DEBUG] Found {len(cards)} 'devsite-article-body' cards on {page_url}")
+        if len(cards) == 0:
+            self.logger.warning(f"[DEBUG] No dataset cards found on {page_url}. HTML snippet: {str(soup)[:500]}")
         for card in cards:
             if isinstance(card, Tag):
                 for child in card.find_all('div', recursive=False) if hasattr(card, 'find_all') else []:
@@ -383,132 +409,92 @@ Export.image.toDrive({{
                                 dataset_info['thumbnail'] = self.download_thumbnail(thumb_url, dataset_info['dataset_id'])
                             datasets.append(dataset_info)
                             self.logger.info(f"Extracted dataset (link): {dataset_info['name']}")
+                        else:
+                            self.logger.warning(f"[DEBUG] Failed to extract dataset name from card. Card HTML: {str(child)[:300]}")
+        if len(datasets) == 0:
+            self.logger.warning(f"[DEBUG] No datasets extracted from {page_url}")
         # Update progress
         self.total_datasets += len(datasets)
         return datasets
     
+    def extract_dataset_links_from_local_html(self, local_html_path):
+        """Parse the local HTML file and extract all dataset links."""
+        from bs4 import BeautifulSoup, Tag
+        links = []
+        with open(local_html_path, 'r', encoding='utf-8') as f:
+            soup = BeautifulSoup(f, 'html.parser')
+        # Find all <a> tags with href matching /earth-engine/datasets/catalog/
+        for a in soup.find_all('a', href=True):
+            if isinstance(a, Tag):
+                href = a.get('href')
+                if isinstance(href, str):
+                    if href.startswith('/earth-engine/datasets/catalog/'):
+                        links.append('https://developers.google.com' + href)
+                    elif href.startswith('https://developers.google.com/earth-engine/datasets/catalog/'):
+                        links.append(href)
+        self.logger.info(f"[DEBUG] Found {len(links)} dataset links in local HTML file.")
+        return links
+
     def crawl_all_pages(self) -> List[Dict[str, Any]]:
-        """Crawl all catalog pages until no more datasets are found"""
-        all_datasets = []
-        page_num = 1
-        consecutive_empty_pages = 0
-        max_consecutive_empty = 5  # Stop after 5 consecutive empty pages
-        start_time = time.time()
-        progress = {
-            'status': 'init',
-            'message': 'Initializing web crawler...',
-            'current_page': 0,
-            'total_pages': 0,
-            'datasets_found': 0,
-            'satellites_found': 0,
-            'percent': 0,
-            'speed': 0,
-            'error': None
-        }
-        write_progress(progress)
-        # Pre-scan phase: count total datasets and satellites
-        prescan_datasets = []
-        prescan_page = 1
-        prescan_consecutive_empty = 0
-        spinner = itertools.cycle(SPINNER_STATES)
-        while True:
-            progress['status'] = 'prescan'
-            progress['message'] = f'Prescanning page {prescan_page}{next(spinner)}'
-            progress['current_page'] = prescan_page
+        """Crawl all dataset pages using links from local HTML if available."""
+        if Path(LOCAL_HTML).exists():
+            dataset_links = self.extract_dataset_links_from_local_html(LOCAL_HTML)
+            all_datasets = []
+            processed_datasets = 0
+            start_time = time.time()
+            progress = {
+                'status': 'crawling',
+                'message': 'Crawling dataset links from local HTML...',
+                'current_dataset': 0,
+                'total_datasets': len(dataset_links),
+                'datasets_found': 0,
+                'satellites_found': 0,
+                'percent': 0,
+                'speed': 0,
+                'error': None
+            }
             write_progress(progress)
-            if prescan_page == 1:
-                page_url = self.base_url
-            else:
-                page_url = f"{self.base_url}?page={prescan_page}"
-            soup = self.get_page_content(page_url)
-            if not soup:
-                break
-            cards = soup.find_all('div', class_='devsite-article-body') if hasattr(soup, 'find_all') else []
-            found = 0
-            for card in cards:
-                from bs4 import Tag
-                if isinstance(card, Tag):
-                    for child in card.find_all('div', recursive=False) if hasattr(card, 'find_all') else []:
-                        if isinstance(child, Tag):
-                            dataset_info = self.extract_dataset_from_card(child)
-                            if dataset_info['name']:
-                                prescan_datasets.append(dataset_info)
-                                found += 1
-            if found == 0:
-                prescan_consecutive_empty += 1
-                if prescan_consecutive_empty >= max_consecutive_empty:
-                    break
-            else:
-                prescan_consecutive_empty = 0
-            prescan_page += 1
-            if prescan_page > 10000:
-                break
-        total_datasets = len(prescan_datasets)
-        unique_satellites = set()
-        for d in prescan_datasets:
-            for s in d.get('satellites', []):
-                unique_satellites.add(s)
-        total_satellites = len(unique_satellites)
-        progress['total_pages'] = prescan_page-1
-        progress['datasets_found'] = total_datasets
-        progress['satellites_found'] = total_satellites
-        progress['status'] = 'crawling'
-        progress['message'] = 'Crawling catalog pages...'
-        write_progress(progress)
-        # Now do the actual crawl and download, logging progress for each
-        processed_satellites = set()
-        processed_datasets = 0
-        page_num = 1
-        consecutive_empty_pages = 0
-        spinner = itertools.cycle(SPINNER_STATES)
-        while True:
-            progress['current_page'] = page_num
-            progress['message'] = f'Crawling page {page_num}{next(spinner)}'
+            for i, url in enumerate(dataset_links):
+                self.logger.info(f"[DEBUG] Crawling dataset page: {url}")
+                soup = self.get_page_content(url)
+                if not soup:
+                    self.logger.warning(f"[DEBUG] Could not fetch {url}")
+                    continue
+                # Try to find the main dataset card on the page
+                main_card = soup.find('div', class_='devsite-article-body')
+                if not main_card:
+                    self.logger.warning(f"[DEBUG] No main card found on {url}")
+                    continue
+                for child in main_card.find_all('div', recursive=False) if isinstance(main_card, Tag) else []:
+                    if isinstance(child, Tag):
+                        dataset_info = self.extract_dataset_from_card(child)
+                        if dataset_info['name']:
+                            all_datasets.append(dataset_info)
+                            processed_datasets += 1
+                            # Save as unique JSON file
+                            dataset_id = dataset_info.get('dataset_id', f'{processed_datasets}')
+                            dataset_path = self.data_dir / f"dataset_{dataset_id}.json"
+                            try:
+                                with open(dataset_path, 'w', encoding='utf-8') as f:
+                                    json.dump(dataset_info, f, ensure_ascii=False, indent=2)
+                            except Exception as e:
+                                self.logger.warning(f"Failed to save dataset {dataset_id}: {e}")
+                            # Update progress
+                            progress['current_dataset'] = i + 1
+                            progress['datasets_found'] = processed_datasets
+                            progress['percent'] = int(100 * processed_datasets / max(1, len(dataset_links)))
+                            progress['last_saved_dataset'] = str(dataset_path)
+                            progress['last_saved_name'] = dataset_info.get('name', '')
+                            write_progress(progress)
+            progress['status'] = 'completed'
+            progress['message'] = f'Crawling completed! {processed_datasets} datasets.'
+            progress['percent'] = 100
             write_progress(progress)
-            if page_num == 1:
-                page_url = self.base_url
-            else:
-                page_url = f"{self.base_url}?page={page_num}"
-            self.current_page = page_num
-            print(f'\r🌍 Crawling Page {page_num} | Datasets found: {self.total_datasets} | Empty pages: {consecutive_empty_pages}', end='', flush=True)
-            self.logger.info(f"Crawling page {page_num}: {page_url}")
-            page_datasets = self.crawl_catalog_page(page_url)
-            if not page_datasets:
-                consecutive_empty_pages += 1
-                self.logger.info(f"No datasets found on page {page_num} (empty page #{consecutive_empty_pages})")
-                if consecutive_empty_pages >= max_consecutive_empty:
-                    print(f"\n✅ No more datasets found after {consecutive_empty_pages} consecutive empty pages.")
-                    break
-            else:
-                consecutive_empty_pages = 0
-                for i, dataset in enumerate(page_datasets):
-                    all_datasets.append(dataset)
-                    processed_datasets += 1
-                    for s in dataset.get('satellites', []):
-                        processed_satellites.add(s)
-                    elapsed = int(time.time() - start_time)
-                    progress['datasets_found'] = processed_datasets
-                    progress['satellites_found'] = len(processed_satellites)
-                    progress['percent'] = int(100 * processed_datasets / max(1, total_datasets))
-                    progress['speed'] = processed_datasets / max(1, elapsed)
-                    # Show a live message every 5 datasets
-                    if processed_datasets % 5 == 0 or processed_datasets == total_datasets:
-                        progress['message'] = f'Processed {processed_datasets}/{total_datasets} datasets{next(spinner)}'
-                        write_progress(progress)
-                self.logger.info(f"Found {len(page_datasets)} datasets on page {page_num}")
-            time.sleep(1)
-            page_num += 1
-            if page_num > 10000:
-                print(f"\n⚠️ Safety limit reached (10000 pages). Stopping to prevent infinite loop.")
-                break
-        progress['status'] = 'completed'
-        progress['message'] = f'Crawling completed! {processed_datasets} datasets.'
-        progress['percent'] = 100
-        write_progress(progress)
-        print(f"\n✅ Crawling completed! Found {len(all_datasets)} total datasets across {page_num-1} pages.")
-        print("=" * 60)
-        self.datasets = all_datasets
-        return all_datasets
+            self.datasets = all_datasets
+            return all_datasets
+        else:
+            # Fallback: return empty if no local HTML file
+            return []
     
     def categorize_datasets(self):
         """Categorize datasets by various criteria"""
@@ -583,6 +569,43 @@ Export.image.toDrive({{
         # Only save compressed JSON for frontend
         self.save_to_json_gz(f"{prefix}_enhanced.json.gz")
 
+def safe_filename(name):
+    return re.sub(r'[^a-zA-Z0-9_-]', '_', name)[:64]
+
+def crawl_local_html():
+    logger.info(f"Parsing local HTML: {LOCAL_HTML}")
+    with open(LOCAL_HTML, 'r', encoding='utf-8') as f:
+        soup = BeautifulSoup(f, 'html.parser')
+
+    dataset_cards = soup.find_all('li', class_='ee-sample-image')
+    logger.info(f"Found {len(dataset_cards)} dataset cards.")
+    for card in dataset_cards:
+        try:
+            a = card.find('a', href=True) if isinstance(card, Tag) else None
+            h3_tag = a.find('h3') if isinstance(a, Tag) else None
+            name = h3_tag.get_text(strip=True) if isinstance(h3_tag, Tag) else None
+            link = a.get('href') if isinstance(a, Tag) else None
+            img_tag = a.find('img') if isinstance(a, Tag) else None
+            img = img_tag.get('src') if isinstance(img_tag, Tag) else None
+            desc_td = card.find('td', class_='ee-dataset-description-snippet') if isinstance(card, Tag) else None
+            description = desc_td.get_text(strip=True) if isinstance(desc_td, Tag) else None
+            tags_td = card.find('td', class_='ee-tag-buttons') if isinstance(card, Tag) else None
+            tags = [t.get_text(strip=True) for t in tags_td.find_all('a', class_='ee-chip')] if isinstance(tags_td, Tag) else []
+            dataset = {
+                'name': name,
+                'link': link,
+                'thumbnail': img,
+                'description': description,
+                'tags': tags
+            }
+            fname = f"dataset_{safe_filename(name or 'unknown')}.json"
+            out_path = os.path.join(CRAWLER_DATA_DIR, fname)
+            with open(out_path, 'w', encoding='utf-8') as out:
+                json.dump(dataset, out, indent=2)
+            logger.info(f"Saved dataset: {name} -> {fname}")
+        except Exception as e:
+            logger.error(f"Failed to process a dataset card: {e}")
+
 def run_crawler():
     """Entry point for external scripts to run the crawler and save outputs."""
     try:
@@ -655,4 +678,5 @@ def main():
     return crawler
 
 if __name__ == "__main__":
+    crawl_local_html()
     main() 

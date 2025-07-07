@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tab Switching Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-result {
+            background: #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007acc;
+        }
+        .success {
+            border-left-color: #51cf66;
+        }
+        .error {
+            border-left-color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Tab Switching Test</h1>
+        <p>This page tests the tab switching functionality that was restored from the old system.</p>
+        
+        <div class="test-result">
+            <h3>Test Results:</h3>
+            <div id="test-results">
+                <p>Click the buttons below to test tab switching functionality...</p>
+            </div>
+        </div>
+        
+        <div>
+            <button class="test-button" onclick="testTabSystem()">Test Tab System</button>
+            <button class="test-button" onclick="testTabSwitching()">Test Tab Switching</button>
+            <button class="test-button" onclick="testSettingsInit()">Test Settings Init</button>
+            <button class="test-button" onclick="openMainApp()">Open Main App</button>
+        </div>
+    </div>
+
+    <script>
+        function addTestResult(message, type = 'info') {
+            const results = document.getElementById('test-results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `<p>${new Date().toLocaleTimeString()}: ${message}</p>`;
+            results.appendChild(div);
+        }
+
+        function testTabSystem() {
+            addTestResult('Testing tab system initialization...', 'info');
+            
+            // Check if tabs.js is loaded
+            if (typeof CleanTabSystem !== 'undefined') {
+                addTestResult('✓ CleanTabSystem class found', 'success');
+                
+                // Check if tab system is initialized
+                if (window.tabSystem) {
+                    addTestResult('✓ Tab system is initialized', 'success');
+                    addTestResult(`Current tab: ${window.tabSystem.getCurrentTab()}`, 'info');
+                } else {
+                    addTestResult('✗ Tab system not initialized', 'error');
+                }
+            } else {
+                addTestResult('✗ CleanTabSystem class not found', 'error');
+            }
+        }
+
+        function testTabSwitching() {
+            addTestResult('Testing tab switching functionality...', 'info');
+            
+            if (window.tabSystem) {
+                // Test switching to different tabs
+                const testTabs = ['welcome', 'map', 'download', 'satelliteInfo', 'settings', 'about'];
+                
+                testTabs.forEach((tab, index) => {
+                    setTimeout(() => {
+                        window.tabSystem.switchTab(tab);
+                        addTestResult(`✓ Switched to ${tab} tab`, 'success');
+                    }, index * 500);
+                });
+            } else {
+                addTestResult('✗ Tab system not available', 'error');
+            }
+        }
+
+        function testSettingsInit() {
+            addTestResult('Testing settings initialization...', 'info');
+            
+            if (window.flutterEarth && window.flutterEarth.initSettings) {
+                addTestResult('✓ initSettings function found', 'success');
+                try {
+                    window.flutterEarth.initSettings();
+                    addTestResult('✓ Settings initialized successfully', 'success');
+                } catch (error) {
+                    addTestResult(`✗ Settings initialization failed: ${error.message}`, 'error');
+                }
+            } else {
+                addTestResult('✗ initSettings function not found', 'error');
+            }
+        }
+
+        function openMainApp() {
+            addTestResult('Opening main application...', 'info');
+            window.open('flutter_earth_enhanced_v2.html', '_blank');
+        }
+
+        // Auto-run basic tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addTestResult('Page loaded, running basic tests...', 'info');
+                testTabSystem();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 
