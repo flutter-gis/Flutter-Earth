@@ -723,12 +723,12 @@ async def run_enhanced_crawler():
 def main():
     """Main function for command line usage"""
     parser = argparse.ArgumentParser(description="Enhanced GEE Catalog Crawler v2.0")
-    parser.add_argument("--async", action="store_true", help="Use async processing")
+    parser.add_argument("--is-async", dest="is_async", action="store_true", help="Use async processing")
     parser.add_argument("--output", type=str, help="Output file prefix")
     
     args = parser.parse_args()
     
-    if args.async:
+    if args.is_async:
         result = asyncio.run(run_enhanced_crawler())
     else:
         # Fallback to synchronous version

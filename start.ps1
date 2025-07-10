@@ -1,7 +1,7 @@
-# Flutter Earth - Enhanced v2.0 PowerShell Startup Script
+# Flutter Earth - Dear PyGui PowerShell Startup Script
 
 Write-Host "========================================" -ForegroundColor Green
-Write-Host "   FLUTTER EARTH - ENHANCED v2.0" -ForegroundColor Green
+Write-Host "   FLUTTER EARTH - DEAR PYGUI v2.0" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 
@@ -16,22 +16,7 @@ try {
     exit 1
 }
 
-# Check if local Node.js is available
-$nodePath = Join-Path $PWD "node-v22.17.0-win-x64\node.exe"
-if (!(Test-Path $nodePath)) {
-    Write-Host "[ERROR] Local Node.js not found at node-v22.17.0-win-x64\node.exe" -ForegroundColor Red
-    Write-Host "Please ensure Node.js is properly installed in the project directory" -ForegroundColor Yellow
-    Read-Host "Press Enter to exit"
-    exit 1
-}
-
-Write-Host "[INFO] Local Node.js found" -ForegroundColor Green
-Write-Host ""
-
-# Set PATH to include local Node.js
-$env:PATH = "$PWD\node-v22.17.0-win-x64;$env:PATH"
-
-Write-Host "[INFO] Starting Flutter Earth Enhanced v2.0..." -ForegroundColor Cyan
+Write-Host "[INFO] Starting Flutter Earth Dear PyGui v2.0..." -ForegroundColor Cyan
 Write-Host ""
 
 # Create logs directory if it doesn't exist
@@ -39,22 +24,35 @@ if (!(Test-Path "logs")) {
     New-Item -ItemType Directory -Path "logs" | Out-Null
 }
 
-# Start Python backend
-Write-Host "[INFO] Starting Python backend..." -ForegroundColor Yellow
+# Check if required packages are installed
+Write-Host "[INFO] Checking required packages..." -ForegroundColor Yellow
+try {
+    python -c "import dearpygui" 2>$null
+    Write-Host "[INFO] Dear PyGui found" -ForegroundColor Green
+} catch {
+    Write-Host "[WARNING] Dear PyGui not found, installing..." -ForegroundColor Yellow
+    pip install dearpygui
+}
+
+try {
+    python -c "import matplotlib" 2>$null
+    Write-Host "[INFO] Matplotlib found" -ForegroundColor Green
+} catch {
+    Write-Host "[WARNING] Matplotlib not found, installing..." -ForegroundColor Yellow
+    pip install matplotlib
+}
+
+# Run startup coordinator
+Write-Host "[INFO] Running startup coordinator..." -ForegroundColor Yellow
+python startup_coordinator.py
+
+# Start Dear PyGui application
+Write-Host "[INFO] Starting Dear PyGui application..." -ForegroundColor Yellow
 Start-Process -FilePath "cmd" -ArgumentList "/k", "cd /d $PWD && python main.py" -WindowStyle Normal
-
-# Wait a moment for backend to start
-Start-Sleep -Seconds 3
-
-# Start Electron frontend using local Node.js
-Write-Host "[INFO] Starting Electron frontend..." -ForegroundColor Yellow
-Set-Location frontend
-Start-Process -FilePath "cmd" -ArgumentList "/k", "npm start" -WindowStyle Normal
 
 Write-Host ""
 Write-Host "[SUCCESS] Flutter Earth is starting up!" -ForegroundColor Green
 Write-Host ""
-Write-Host "Backend: http://localhost:5000" -ForegroundColor Cyan
-Write-Host "Frontend: Electron app will open automatically" -ForegroundColor Cyan
+Write-Host "Application: Dear PyGui window will open automatically" -ForegroundColor Cyan
 Write-Host ""
 Read-Host "Press Enter to close this window" 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Startup Coordinator for Flutter Earth
-Ensures proper initialization sequence and prevents conflicts between different startup paths.
+Ensures proper initialization sequence for Dear PyGui application.
 """
 import os
 import sys
@@ -14,14 +14,13 @@ import threading
 import atexit
 
 class StartupCoordinator:
-    """Coordinates startup processes to prevent conflicts."""
+    """Coordinates startup processes for Dear PyGui application."""
     
     def __init__(self):
         self.lock_file = Path("startup.lock")
         self.coordinator_log = Path("logs/startup_coordinator.log")
         self.initialization_status = {
-            "main_py_initialized": False,
-            "electron_initialized": False,
+            "dearpygui_initialized": False,
             "gee_initialized": False,
             "auth_ready": False,
             "startup_time": None,
@@ -62,10 +61,11 @@ class StartupCoordinator:
                 json.dump({
                     "pid": os.getpid(),
                     "startup_time": datetime.now().isoformat(),
-                    "coordinator": True
+                    "coordinator": True,
+                    "app_type": "dearpygui"
                 }, f)
             
-            self.logger.info("Startup lock acquired")
+            self.logger.info("Startup lock acquired for Dear PyGui application")
             return True
             
         except Exception as e:
@@ -103,11 +103,6 @@ class StartupCoordinator:
         """Check for potential initialization conflicts."""
         conflicts = []
         
-        # Check if both main.py and Electron are trying to initialize GEE
-        if (self.initialization_status["main_py_initialized"] and 
-            self.initialization_status["electron_initialized"]):
-            conflicts.append("Both main.py and Electron initialized - potential GEE conflict")
-        
         # Check if GEE is initialized multiple times
         if self.initialization_status["gee_initialized"]:
             # Check for multiple GEE initialization attempts
@@ -115,9 +110,9 @@ class StartupCoordinator:
         
         return conflicts
     
-    def coordinate_main_py_startup(self):
-        """Coordinate main.py startup process."""
-        self.logger.info("Coordinating main.py startup")
+    def coordinate_dearpygui_startup(self):
+        """Coordinate Dear PyGui startup process."""
+        self.logger.info("Coordinating Dear PyGui startup")
         
         if not self.acquire_lock():
             self.logger.warning("Could not acquire lock, another instance may be running")
@@ -125,9 +120,10 @@ class StartupCoordinator:
         
         try:
             # Update status
-            self.update_status("main_py", True, {
+            self.update_status("dearpygui", True, {
                 "pid": os.getpid(),
-                "startup_time": datetime.now().isoformat()
+                "startup_time": datetime.now().isoformat(),
+                "gui_framework": "dearpygui"
             })
             
             # Check for conflicts
@@ -146,30 +142,7 @@ class StartupCoordinator:
             return True
             
         except Exception as e:
-            self.logger.error(f"Error in main.py coordination: {e}")
-            return False
-    
-    def coordinate_electron_startup(self):
-        """Coordinate Electron app startup process."""
-        self.logger.info("Coordinating Electron startup")
-        
-        try:
-            # Update status
-            self.update_status("electron", True, {
-                "pid": os.getpid(),
-                "startup_time": datetime.now().isoformat()
-            })
-            
-            # Check for conflicts
-            conflicts = self.check_conflicts()
-            if conflicts:
-                for conflict in conflicts:
-                    self.logger.warning(f"Conflict detected: {conflict}")
-            
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Error in Electron coordination: {e}")
+            self.logger.error(f"Error in Dear PyGui coordination: {e}")
             return False
     
     def coordinate_gee_initialization(self):
@@ -198,114 +171,73 @@ class StartupCoordinator:
     def initialize_auth_system(self):
         """Initialize authentication system (non-blocking)."""
         try:
-            # Add the flutter_earth_pkg to the path
-            sys.path.insert(0, str(Path(__file__).parent / 'flutter_earth_pkg'))
+            self.logger.info("Initializing authentication system")
             
-            from flutter_earth.auth_setup import AuthManager
-            
-            # Initialize auth manager only (don't initialize GEE here)
-            auth_manager = AuthManager()
-            self.logger.info("AuthManager initialized successfully")
-            
-            # Check auth status without initializing GEE
-            auth_info = auth_manager.get_auth_info()
-            self.logger.info(f"Auth status: {auth_info}")
-            
-            # Return auth status without forcing GEE initialization
-            if auth_manager.has_credentials():
-                return {
-                    "status": "auth_ready",
-                    "message": "Authentication credentials available - GEE will be initialized by Electron app",
-                    "initialized": False,
-                    "auth_ready": True
-                }
-            else:
-                self.logger.info("No authentication credentials found - user will need to set up auth")
-                return {
-                    "status": "auth_required",
-                    "message": "Authentication required",
-                    "initialized": False,
-                    "auth_ready": False
-                }
+            # Check if auth credentials exist
+            auth_file = Path("auth_credentials.json")
+            if auth_file.exists():
+                with open(auth_file, 'r') as f:
+                    auth_data = json.load(f)
                 
+                # Validate credentials
+                if auth_data.get("project_id") and auth_data.get("key_file"):
+                    self.logger.info("Auth credentials found")
+                    return {
+                        "auth_ready": True,
+                        "project_id": auth_data.get("project_id"),
+                        "key_file": auth_data.get("key_file")
+                    }
+            
+            self.logger.info("No valid auth credentials found")
+            return {"auth_ready": False, "reason": "no_credentials"}
+            
         except Exception as e:
             self.logger.error(f"Error initializing auth system: {e}")
-            return {
-                "status": "error",
-                "message": f"Auth system initialization failed: {e}",
-                "initialized": False,
-                "auth_ready": False
-            }
+            return {"auth_ready": False, "error": str(e)}
     
     def cleanup_temp_files(self):
-        """Clean up temporary files and old logs."""
+        """Clean up temporary files and directories."""
         try:
+            temp_dirs = ["temp", "__pycache__"]
+            for temp_dir in temp_dirs:
+                temp_path = Path(temp_dir)
+                if temp_path.exists():
+                    import shutil
+                    shutil.rmtree(temp_path)
+                    temp_path.mkdir(exist_ok=True)
+                    self.logger.info(f"Cleaned up {temp_dir}")
+            
+            # Clean up old log files (older than 7 days)
             logs_dir = Path("logs")
             if logs_dir.exists():
-                # Keep only the 5 most recent log files for each type
-                log_files = list(logs_dir.glob("*.log"))
-                log_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-                
-                # Group by log type
-                log_types = {}
-                for log_file in log_files:
-                    base_name = log_file.stem.split('_')[0]  # Get base name like 'flutter_earth'
-                    if base_name not in log_types:
-                        log_types[base_name] = []
-                    log_types[base_name].append(log_file)
-                
-                # Keep only 5 most recent of each type
-                for log_type, files in log_types.items():
-                    if len(files) > 5:
-                        for old_file in files[5:]:
-                            try:
-                                old_file.unlink()
-                                self.logger.info(f"Cleaned up old log file: {old_file}")
-                            except Exception as e:
-                                self.logger.warning(f"Could not delete old log file {old_file}: {e}")
-            
-            # Clean up any temporary files in crawler_data
-            crawler_data_dir = Path("backend/crawler_data")
-            if crawler_data_dir.exists():
-                temp_files = list(crawler_data_dir.glob("*_tmp.*"))
-                for temp_file in temp_files:
-                    try:
-                        temp_file.unlink()
-                        self.logger.info(f"Cleaned up temp file: {temp_file}")
-                    except Exception as e:
-                        self.logger.warning(f"Could not delete temp file {temp_file}: {e}")
-            
-            self.logger.info("Temporary file cleanup completed")
+                current_time = time.time()
+                for log_file in logs_dir.glob("*.log"):
+                    if current_time - log_file.stat().st_mtime > 604800:  # 7 days
+                        log_file.unlink()
+                        self.logger.info(f"Removed old log file: {log_file}")
             
         except Exception as e:
-            self.logger.error(f"Error during temp file cleanup: {e}")
+            self.logger.error(f"Error cleaning up temp files: {e}")
     
     def cleanup(self):
         """Cleanup on exit."""
-        self.release_lock()
-        self.logger.info("Startup coordinator cleanup completed")
+        try:
+            self.release_lock()
+            self.logger.info("Startup coordinator cleanup completed")
+        except Exception as e:
+            self.logger.error(f"Error during cleanup: {e}")
 
 def main():
     """Main entry point for startup coordination."""
     coordinator = StartupCoordinator()
     
-    print("=" * 60)
-    print("Flutter Earth - Startup Coordinator")
-    print("=" * 60)
-    print()
-    
-    # Coordinate main.py startup
-    if coordinator.coordinate_main_py_startup():
-        print("✅ Main.py startup coordinated successfully")
+    # Coordinate Dear PyGui startup
+    if coordinator.coordinate_dearpygui_startup():
+        print("Startup coordination completed successfully")
+        return True
     else:
-        print("❌ Main.py startup coordination failed")
-    
-    print()
-    print("Startup coordination completed!")
-    print("=" * 60)
-    
-    return 0
+        print("Startup coordination failed")
+        return False
 
 if __name__ == "__main__":
-    exit_code = main()
-    sys.exit(exit_code) 
+    main() 

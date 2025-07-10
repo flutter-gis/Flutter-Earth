@@ -1,5 +1,5 @@
 # Flutter Earth - Cleanup Script
-# Removes duplicate and unnecessary files
+# Removes unnecessary files and cleans up Dear PyGui application
 
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "   FLUTTER EARTH - CLEANUP SCRIPT" -ForegroundColor Green
@@ -7,22 +7,14 @@ Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 
 $filesToRemove = @(
-    "frontend\map_selector.html",
-    "frontend\themes.md",
-    "frontend\theme_effects.md",
-    "frontend\tabs.md",
-    "frontend\cleanup_themes.py",
-    "frontend\convert_themes_json_to_js.py",
-    "frontend\theme_converter.py",
-    "frontend\tailwind.config.js",
-    "frontend\preload.js",
-    "frontend\main_electron.js"
+    "startup.lock",
+    "console_log.txt"
 )
 
 $directoriesToClean = @(
-    "frontend\dist",
-    "frontend\node_modules",
-    "__pycache__"
+    "__pycache__",
+    "logs",
+    "temp"
 )
 
 Write-Host "[INFO] Starting cleanup process..." -ForegroundColor Yellow
@@ -35,23 +27,22 @@ foreach ($file in $filesToRemove) {
     }
 }
 
-# Clean directories (but keep node_modules for now as it's needed)
+# Clean directories
 foreach ($dir in $directoriesToClean) {
-    if ($dir -eq "frontend\node_modules") {
-        Write-Host "[SKIPPED] $dir (needed for npm)" -ForegroundColor Yellow
-        continue
-    }
-    
     if (Test-Path $dir) {
         Remove-Item $dir -Recurse -Force
         Write-Host "[REMOVED] $dir" -ForegroundColor Red
     }
 }
 
+# Recreate necessary directories
+Write-Host "[INFO] Recreating necessary directories..." -ForegroundColor Yellow
+New-Item -ItemType Directory -Path "logs" -Force | Out-Null
+New-Item -ItemType Directory -Path "temp" -Force | Out-Null
+
 Write-Host ""
 Write-Host "[SUCCESS] Cleanup completed!" -ForegroundColor Green
 Write-Host ""
-Write-Host "Remaining files:" -ForegroundColor Cyan
-Get-ChildItem -Path "frontend" -Name "*.html" | ForEach-Object { Write-Host "  $_" -ForegroundColor White }
+Write-Host "Application is ready for Dear PyGui startup" -ForegroundColor Cyan
 Write-Host ""
 Read-Host "Press Enter to continue" 

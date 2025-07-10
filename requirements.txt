@@ -18,5 +18,14 @@ pathlib2>=2.3.0
 beautifulsoup4>=4.9.0
 lxml>=4.6.0
 
-# Note: PySide6 and other GUI packages are not needed for the Electron version
-# as the UI is handled by HTML/CSS/JS in Electron 
+aiohttp>=3.8.0
+
+# GUI Framework - Dear PyGui
+dearpygui>=1.10.0
+
+# Graph visualization - PyGraph
+pygraph>=0.1.0
+matplotlib>=3.5.0
+
+# Additional utilities for Dear PyGui
+pillow>=8.0.0 
