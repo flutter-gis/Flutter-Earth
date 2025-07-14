@@ -676,6 +676,30 @@ Export.image.toDrive({{
             self.progress.errors.append(f"Save error: {e}")
             return None
 
+    def extract_dataset_links_from_local_html(self, local_html_path):
+        """Parse the local HTML file and extract all dataset links from image elements."""
+        from bs4 import BeautifulSoup, Tag
+        links = []
+        with open(local_html_path, 'r', encoding='utf-8') as f:
+            soup = BeautifulSoup(f, 'html.parser')
+        
+        # Extract all <a href=...> links that wrap <img> tags (image links)
+        for a in soup.find_all('a', href=True):
+            if isinstance(a, Tag) and a.find('img'):
+                href = a.get('href')
+                if isinstance(href, str):
+                    # Convert relative URLs to absolute URLs
+                    if href.startswith('/'):
+                        links.append('https://developers.google.com' + href)
+                    elif href.startswith('http'):
+                        links.append(href)
+                    else:
+                        # Handle relative URLs
+                        links.append('https://developers.google.com/earth-engine/datasets/catalog/' + href.lstrip('/'))
+        
+        self.logger.info(f"[DEBUG] Found {len(links)} image links in local HTML file.")
+        return links
+
 async def run_enhanced_crawler():
     """Run the enhanced crawler with async processing"""
     crawler = EnhancedGEECatalogCrawlerV2()

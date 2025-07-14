@@ -22,13 +22,17 @@ import threading
 import itertools
 import os
 from logging.handlers import RotatingFileHandler
+from glob import glob
+import urllib3
+
+# Suppress SSL warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 PROGRESS_FILE = 'backend/crawler_data/crawler_progress.json'
 
 SPINNER_STATES = ['.', '..', '...', '....']
 
 CRAWLER_DATA_DIR = os.path.join(os.path.dirname(__file__), 'crawler_data')
-LOCAL_HTML = os.path.join(CRAWLER_DATA_DIR, 'Earth Engine Data Catalog \u00A0_\u00A0 Google for Developers.html')
 
 LOG_DIR = os.path.join(os.path.dirname(__file__), 'logs')
 if not os.path.exists(LOG_DIR):
@@ -52,6 +56,15 @@ def write_progress(progress):
     except Exception as e:
         pass  # Don't crash on progress write error
 
+def get_local_html_path():
+    html_dir = Path(os.path.dirname(os.path.dirname(__file__))) / "gee cat"
+    html_files = list(html_dir.glob("*.html"))
+    if not html_files:
+        print(f"[ERROR] No HTML files found in {html_dir}")
+        return None
+    print(f"[INFO] Using HTML file: {html_files[0]}")
+    return str(html_files[0])
+
 class EnhancedGEECatalogCrawler:
     def __init__(self, base_url: str = "https://developers.google.com/earth-engine/datasets/catalog"):
         self.base_url = base_url
@@ -59,6 +72,9 @@ class EnhancedGEECatalogCrawler:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
+        
+        # Disable SSL verification completely for home network
+        self.session.verify = False
         
         # Setup logging
         self.setup_logging()
@@ -151,8 +167,8 @@ class EnhancedGEECatalogCrawler:
             # Get file extension
             ext = url.split('.')[-1].split('?')[0]
             local_path = self.thumbnail_dir / f"{dataset_id}.{ext}"
-            # Download
-            resp = self.session.get(url, stream=True, timeout=15)
+            # Download with SSL verification disabled
+            resp = self.session.get(url, stream=True, timeout=15, verify=False)
             resp.raise_for_status()
             with open(local_path, 'wb') as f:
                 shutil.copyfileobj(resp.raw, f)
@@ -418,27 +434,34 @@ Export.image.toDrive({{
         return datasets
     
     def extract_dataset_links_from_local_html(self, local_html_path):
-        """Parse the local HTML file and extract all dataset links."""
+        """Parse the local HTML file and extract all dataset links from image elements."""
         from bs4 import BeautifulSoup, Tag
         links = []
         with open(local_html_path, 'r', encoding='utf-8') as f:
             soup = BeautifulSoup(f, 'html.parser')
-        # Find all <a> tags with href matching /earth-engine/datasets/catalog/
+        
+        # Extract all <a href=...> links that wrap <img> tags (image links)
         for a in soup.find_all('a', href=True):
-            if isinstance(a, Tag):
+            if isinstance(a, Tag) and a.find('img'):
                 href = a.get('href')
                 if isinstance(href, str):
-                    if href.startswith('/earth-engine/datasets/catalog/'):
+                    # Convert relative URLs to absolute URLs
+                    if href.startswith('/'):
                         links.append('https://developers.google.com' + href)
-                    elif href.startswith('https://developers.google.com/earth-engine/datasets/catalog/'):
+                    elif href.startswith('http'):
                         links.append(href)
-        self.logger.info(f"[DEBUG] Found {len(links)} dataset links in local HTML file.")
+                    else:
+                        # Handle relative URLs
+                        links.append('https://developers.google.com/earth-engine/datasets/catalog/' + href.lstrip('/'))
+        
+        self.logger.info(f"[DEBUG] Found {len(links)} image links in local HTML file.")
         return links
 
     def crawl_all_pages(self) -> List[Dict[str, Any]]:
         """Crawl all dataset pages using links from local HTML if available."""
-        if Path(LOCAL_HTML).exists():
-            dataset_links = self.extract_dataset_links_from_local_html(LOCAL_HTML)
+        local_html_path = get_local_html_path()
+        if local_html_path and Path(local_html_path).exists():
+            dataset_links = self.extract_dataset_links_from_local_html(local_html_path)
             all_datasets = []
             processed_datasets = 0
             start_time = time.time()
@@ -455,37 +478,49 @@ Export.image.toDrive({{
             }
             write_progress(progress)
             for i, url in enumerate(dataset_links):
-                self.logger.info(f"[DEBUG] Crawling dataset page: {url}")
-                soup = self.get_page_content(url)
-                if not soup:
-                    self.logger.warning(f"[DEBUG] Could not fetch {url}")
-                    continue
-                # Try to find the main dataset card on the page
-                main_card = soup.find('div', class_='devsite-article-body')
-                if not main_card:
-                    self.logger.warning(f"[DEBUG] No main card found on {url}")
-                    continue
-                for child in main_card.find_all('div', recursive=False) if isinstance(main_card, Tag) else []:
-                    if isinstance(child, Tag):
-                        dataset_info = self.extract_dataset_from_card(child)
-                        if dataset_info['name']:
-                            all_datasets.append(dataset_info)
-                            processed_datasets += 1
-                            # Save as unique JSON file
-                            dataset_id = dataset_info.get('dataset_id', f'{processed_datasets}')
-                            dataset_path = self.data_dir / f"dataset_{dataset_id}.json"
-                            try:
-                                with open(dataset_path, 'w', encoding='utf-8') as f:
-                                    json.dump(dataset_info, f, ensure_ascii=False, indent=2)
-                            except Exception as e:
-                                self.logger.warning(f"Failed to save dataset {dataset_id}: {e}")
-                            # Update progress
-                            progress['current_dataset'] = i + 1
-                            progress['datasets_found'] = processed_datasets
-                            progress['percent'] = int(100 * processed_datasets / max(1, len(dataset_links)))
-                            progress['last_saved_dataset'] = str(dataset_path)
-                            progress['last_saved_name'] = dataset_info.get('name', '')
-                            write_progress(progress)
+                print(f"[DEBUG] Processing dataset link {i+1}/{len(dataset_links)}: {url}")
+                self.logger.info(f"[DEBUG] Processing dataset link {i+1}/{len(dataset_links)}: {url}")
+                try:
+                    soup = self.get_page_content(url)
+                    if not soup:
+                        self.logger.warning(f"[DEBUG] Could not fetch {url}")
+                        print(f"[WARN] Could not fetch {url}")
+                        continue
+                    # Try to find the main dataset card on the page
+                    main_card = soup.find('div', class_='devsite-article-body')
+                    if not main_card:
+                        self.logger.warning(f"[DEBUG] No main card found on {url}")
+                        print(f"[WARN] No main card found on {url}")
+                        continue
+                    for child in main_card.find_all('div', recursive=False) if isinstance(main_card, Tag) else []:
+                        if isinstance(child, Tag):
+                            dataset_info = self.extract_dataset_from_card(child)
+                            if dataset_info['name']:
+                                all_datasets.append(dataset_info)
+                                processed_datasets += 1
+                                print(f"[INFO] Extracted dataset: {dataset_info['name']}")
+                                # Save as unique JSON file
+                                dataset_id = dataset_info.get('dataset_id', f'{processed_datasets}')
+                                dataset_path = self.data_dir / f"dataset_{dataset_id}.json"
+                                try:
+                                    with open(dataset_path, 'w', encoding='utf-8') as f:
+                                        json.dump(dataset_info, f, ensure_ascii=False, indent=2)
+                                except Exception as e:
+                                    self.logger.warning(f"Failed to save dataset {dataset_id}: {e}")
+                                # Update progress
+                                progress['current_dataset'] = i + 1
+                                progress['datasets_found'] = processed_datasets
+                                progress['percent'] = int(100 * processed_datasets / max(1, len(dataset_links)))
+                                progress['last_saved_dataset'] = str(dataset_path)
+                                progress['last_saved_name'] = dataset_info.get('name', '')
+                                write_progress(progress)
+                            else:
+                                print(f"[WARN] Skipped a dataset card with no name at {url}")
+                    # Add a small delay to be polite to the server
+                    time.sleep(0.2)
+                except Exception as e:
+                    self.logger.error(f"[ERROR] Exception processing {url}: {e}")
+                    print(f"[ERROR] Exception processing {url}: {e}")
             progress['status'] = 'completed'
             progress['message'] = f'Crawling completed! {processed_datasets} datasets.'
             progress['percent'] = 100
@@ -493,7 +528,7 @@ Export.image.toDrive({{
             self.datasets = all_datasets
             return all_datasets
         else:
-            # Fallback: return empty if no local HTML file
+            print(f"[ERROR] LOCAL_HTML file not found: {local_html_path}")
             return []
     
     def categorize_datasets(self):
@@ -573,8 +608,13 @@ def safe_filename(name):
     return re.sub(r'[^a-zA-Z0-9_-]', '_', name)[:64]
 
 def crawl_local_html():
-    logger.info(f"Parsing local HTML: {LOCAL_HTML}")
-    with open(LOCAL_HTML, 'r', encoding='utf-8') as f:
+    local_html_path = get_local_html_path()
+    if not local_html_path:
+        logger.error("No HTML file found to parse")
+        return
+    
+    logger.info(f"Parsing local HTML: {local_html_path}")
+    with open(local_html_path, 'r', encoding='utf-8') as f:
         soup = BeautifulSoup(f, 'html.parser')
 
     dataset_cards = soup.find_all('li', class_='ee-sample-image')
@@ -678,5 +718,4 @@ def main():
     return crawler
 
 if __name__ == "__main__":
-    crawl_local_html()
     main() 

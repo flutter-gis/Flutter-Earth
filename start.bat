@@ -1,4 +1,6 @@
 @echo off
+cd /d %~dp0
+
 title Flutter Earth - Dear PyGui v2.0
 color 0A
 
