@@ -1,202 +1,121 @@
-# 🌍 Flutter Earth - Dear PyGui v2.0 🚀
+# Earth Engine Catalog Web Crawler - QML Interface
 
-> **A modern, beautiful, and powerful Earth observation platform built with Dear PyGui.**
+A modern, QML-based interface for crawling and extracting Earth Engine catalog datasets with advanced filtering and search capabilities.
 
----
+## Features
 
-## ✨ Overview
+- **Modern QML Interface**: Beautiful, responsive UI built with Qt Quick
+- **Advanced Search**: Real-time search through dataset titles and descriptions
+- **Category Filters**: Filter datasets by categories (Satellite, Climate, Land Cover, Hydrology)
+- **Detailed View**: View comprehensive dataset information in a modal dialog
+- **Progress Tracking**: Real-time progress updates during crawling
+- **Thumbnail Download**: Download dataset thumbnails automatically
+- **Export Options**: Export individual datasets as JSON files
+- **Console Output**: Real-time logging of crawling operations
 
-Flutter Earth v2.0 is a next-generation desktop application for exploring, downloading, and analyzing satellite data. It combines a powerful Python backend with a modern Dear PyGui interface and seamless Google Earth Engine integration—all in a single, easy-to-use package.
+## Installation
 
-- **Modern UI**: Beautiful Dear PyGui interface with dark/light themes
-- **Advanced Web Crawler**: Extracts the latest satellite datasets from Google Earth Engine
-- **Powerful Download Manager**: Customizable, reliable, and fast
-- **Real-Time Progress & Logs**: See everything as it happens
-- **Secure Authentication**: Easy GEE credential management
-- **Open Source & Extensible**: Built for the community
-
----
-
-## 🏗️ Architecture
-
-```mermaid
-graph TD;
-  User-->|Dear PyGui UI|GUI[Dear PyGui Interface]
-  GUI-->|Python Backend|Backend[Backend (Python)]
-  Backend-->|Earth Engine API|GEE[Google Earth Engine]
-  Backend-->|Web Crawler|Crawler[Enhanced GEE Catalog Crawler]
-  Backend-->|Local Storage|Data[Local Data/Thumbnails/Logs]
+1. Install Python dependencies:
+```bash
+pip install -r requirements.txt
 ```
 
-- **Frontend**: Dear PyGui with modern themes and responsive design
-- **Backend**: Python 3.8+, async, type-safe, robust error handling
-- **Web Crawler**: Async, multi-threaded, extracts and updates satellite catalog
-- **Data Storage**: Local JSON, thumbnails, logs, and user settings
+2. Make sure you have Microsoft Edge WebDriver installed for Selenium automation.
 
----
+## Usage
 
-## 🚦 Quick Start
+### Running the Application
 
-### 🛠️ Prerequisites
-- Python 3.8+
-- (Optional) Google Earth Engine account for full features
+```bash
+python qml_crawler_launcher.py
+```
 
-### ⚡ Installation & Startup
+### Interface Overview
 
-1. **Clone the repo**
-   ```bash
-   git clone <repository-url>
-   cd Flutter-Earth
-   ```
+#### File Selection
+- Click "Browse" to select an HTML file containing Earth Engine catalog links
+- The crawler will automatically detect and process dataset links
 
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+#### Crawling Options
+- **Download thumbnails**: Automatically download dataset thumbnail images
+- **Extract detailed information**: Extract comprehensive metadata from each dataset
+- **Save as individual JSON files**: Save each dataset as a separate JSON file
 
-3. **Start the app**
-   ```bash
-   # Windows
-   start.bat
-   # Or manually:
-   python main.py
-   ```
+#### Search & Filters
+- **Search Bar**: Type to search through dataset titles and descriptions
+- **Category Filters**: Click filter buttons to show only specific categories:
+  - All: Show all datasets
+  - Satellite: Satellite imagery datasets
+  - Climate: Climate and weather datasets
+  - Land Cover: Land cover and vegetation datasets
+  - Hydrology: Water and hydrological datasets
 
-**Note:** The application uses Dear PyGui for the interface, so no additional GUI frameworks are required.
+#### Results Display
+- **Datasets Tab**: View all crawled datasets in a card-based layout
+- **Console Tab**: View real-time crawling logs and status messages
 
----
+#### Dataset Actions
+- **View**: Open the dataset URL in your default browser
+- **Details**: Open a detailed view with comprehensive dataset information
 
-## 🎨 Features & UI
+### Output
 
-- 🌗 **Theme Switcher**: Toggle between Dark and Light themes
-- 🎉 **Modern Interface**: Clean, responsive design with tabs and panels
-- ⚡ **Real-time Updates**: Live progress tracking and status updates
-- 🖼️ **Data Visualization**: Built-in charts and graphs with PyGraph
-- 📊 **Dashboard**: Overview of system status and statistics
+- **JSON Files**: Individual dataset files saved in `extracted_data/` directory
+- **Thumbnails**: Dataset images saved in `thumbnails/` directory
+- **Console Logs**: Real-time logging of all operations
 
----
+## File Structure
 
-## 🛰️ Satellite Info & Web Crawler
+```
+Flutter-Earth/
+├── main.qml                    # Main QML interface
+├── DatasetDetailsDialog.qml    # Dataset details dialog
+├── qml_crawler_launcher.py     # Python launcher with backend logic
+├── enhanced_crawler_ui.py      # Original PySide6 implementation
+├── requirements.txt            # Python dependencies
+└── README.md                   # This file
+```
 
-### 🛰️ Satellite Info Tab
-- Browse all available satellites, sensors, and datasets
-- Filter, search, and view detailed info for each satellite
-- See real-time stats: total satellites, datasets, publishers, last update
-- Click any satellite for details, code snippets, and download options
+## Technical Details
 
-### 🕷️ Web Crawler Integration
-- **Fully integrated into the application**
-- Start/stop the crawler, see live progress, and view logs
-- Progress bar, step tracker, and ETA
-- Dataset viewer: search, filter, and explore all extracted datasets
-- Download thumbnails, metadata, and code snippets
-- All crawler actions and results are visible in the interface
+### QML Components
 
----
+- **main.qml**: Main application window with all UI elements
+- **DatasetDetailsDialog.qml**: Modal dialog for detailed dataset information
 
-## 🧭 Usage Guide
+### Backend Integration
 
-### 1️⃣ **Authenticate (Optional, for GEE features)**
-- Go to Settings tab and upload your Google Cloud service account JSON key and project ID
-- Test the connection to ensure credentials work
-- You can continue in offline mode for basic features
+The QML interface communicates with Python backend through:
+- **Signals**: Real-time updates for progress, status, and data
+- **Slots**: Method calls from QML to Python backend
+- **Context Properties**: Data sharing between QML and Python
 
-### 2️⃣ **Explore the Interface**
-- Use the tab bar to switch between Dashboard, Satellites, Datasets, Download, Analysis, and Settings
-- Each tab provides specific functionality and tools
+### Data Flow
 
-### 3️⃣ **Satellite Info & Crawler**
-- Go to the Satellites tab
-- Click "Start Crawler" to run the data collection
-- Watch real-time progress and view extracted datasets
-- Filter/search datasets and view details
+1. User selects HTML file and options
+2. Python backend crawls the file and extracts dataset information
+3. Real-time updates sent to QML interface via signals
+4. QML displays results with search and filtering capabilities
+5. Users can interact with datasets through the modern interface
 
-### 4️⃣ **Download Data**
-- Go to the Download tab
-- Select satellite, date range, region, and output options
-- Start download and monitor progress in real time
+## Troubleshooting
 
-### 5️⃣ **Data Analysis**
-- Go to the Analysis tab
-- Select input file and analysis type
-- Run analysis and view results
+### Common Issues
 
-### 6️⃣ **Settings & Customization**
-- Change themes and application settings
-- Manage authentication credentials
-- Configure output directories and preferences
+1. **WebDriver not found**: Install Microsoft Edge WebDriver
+2. **QML not loading**: Ensure PySide6 is properly installed
+3. **Permission errors**: Check file permissions for output directories
 
----
+### Performance Tips
 
-## 🛠️ Development & Contribution
+- Use SSD storage for better I/O performance
+- Close other applications during crawling
+- Consider reducing the number of concurrent operations for large datasets
 
-### 🐍 Backend (Python)
-- Main application logic in `main.py`
-- Backend processing in `backend/earth_engine_processor_enhanced.py`
-- Web crawler in `backend/gee_catalog_crawler_enhanced_v2.py`
-- Uses async, dataclasses, and robust error handling
-- Logs in `logs/` and progress in `backend/crawler_data/`
+## Contributing
 
-### 🖥️ Frontend (Dear PyGui)
-- Main UI in `main.py` using Dear PyGui
-- Modern themes and responsive design
-- Tab-based interface with real-time updates
+Feel free to submit issues and enhancement requests!
 
-### 🤝 Contributing
-- Fork, branch, and PRs welcome!
-- Follow modern Python style
-- Document new features
-- Test thoroughly
+## License
 
----
-
-## 🐞 Troubleshooting & FAQ
-
-- **Python not found?**
-  - Check your PATH and install Python 3.8+
-- **Dear PyGui installation issues?**
-  - Run `pip install dearpygui` manually
-- **Theme or UI glitches?**
-  - Try clearing cache or restarting
-- **Crawler errors?**
-  - Check logs in `logs/` and progress in `backend/crawler_data/`
-- **How do I update the satellite catalog?**
-  - Go to Satellites tab and run the crawler
-- **Where are my credentials stored?**
-  - In the application settings (securely)
-
----
-
-## 📚 Documentation & Resources
-
-- [Enhanced v2.0 Guide](ENHANCED_V2_README.md)
-- [Authentication Guide](docs_md/AUTHENTICATION_GUIDE.md)
-- [Earth Engine Setup](docs/EARTH_ENGINE_SETUP.md)
-- [Changelog](docs_md/CHANGELOG.md)
-
----
-
-## 📄 License
-
-MIT License. See [LICENSE](LICENSE) for details.
-
----
-
-## 💡 Project Vision
-
-> **Empowering everyone to explore, analyze, and download satellite data with ease, beauty, and power using modern Python technologies.**
-
----
-
-## 🏆 Special Thanks
-
-- All contributors, testers, and users!
-- The open-source community
-- Google Earth Engine team
-- Dear PyGui development team
-
----
-
-## 🚀 Get Started Now!
-
-**Clone, install, and launch. The Earth is at your fingertips! 🌍✨** 
+This project is open source and available under the MIT License. 
