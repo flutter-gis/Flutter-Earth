@@ -27,7 +27,11 @@ def check_package_installed(package_name):
     package_import_map = {
         'scikit-learn': 'sklearn',
         'pyyaml': 'yaml',
-        'dateparser': 'dateparser'
+        'dateparser': 'dateparser',
+        'torch': 'torch',
+        'torchvision': 'torchvision',
+        'torchaudio': 'torchaudio',
+        'pytesseract': 'pytesseract'
     }
     
     if package_name in package_import_map:
@@ -41,12 +45,16 @@ def check_package_installed(package_name):
 
 REQUIRED_PACKAGES = [
     'spacy',
-    'transformers', 
+    'transformers',
     'scikit-learn',
     'geopy',
     'pyyaml',
     'dash',
-    'dateparser'
+    'dateparser',
+    'torch',
+    'torchvision',
+    'torchaudio',
+    'pytesseract'
 ]
 
 missing = []
@@ -57,14 +65,33 @@ for pkg in REQUIRED_PACKAGES:
 if missing:
     print(f"Missing required packages: {', '.join(missing)}. Attempting to install...")
     try:
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade'] + missing)
+        # Handle PyTorch packages separately with specific index
+        torch_packages = [pkg for pkg in missing if pkg.startswith('torch')]
+        other_packages = [pkg for pkg in missing if not pkg.startswith('torch')]
+        
+        # Install PyTorch packages first with CPU version
+        if torch_packages:
+            print("Installing PyTorch packages...")
+            subprocess.check_call([
+                sys.executable, '-m', 'pip', 'install', '--upgrade',
+                '--index-url', 'https://download.pytorch.org/whl/cpu'
+            ] + torch_packages)
+        
+        # Install other packages
+        if other_packages:
+            print("Installing other packages...")
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade'] + other_packages)
+        
         print("All required packages installed. Please restart the program.")
         sys.exit(0)
     except Exception as e:
         print("Automatic installation failed.")
         print("Error:", e)
         print("Please install the missing packages manually:")
-        print(f"    {sys.executable} -m pip install {' '.join(missing)}")
+        if torch_packages:
+            print(f"    {sys.executable} -m pip install --index-url https://download.pytorch.org/whl/cpu {' '.join(torch_packages)}")
+        if other_packages:
+            print(f"    {sys.executable} -m pip install {' '.join(other_packages)}")
         sys.exit(1)
 
 # Ensure spaCy English model is downloaded
@@ -82,6 +109,18 @@ except OSError:
         print("Error:", e)
         print(f"Please run: {sys.executable} -m spacy download en_core_web_sm")
         sys.exit(1)
+
+# Check for Tesseract OCR (required for pytesseract)
+try:
+    import pytesseract
+    # Test if Tesseract is installed on the system
+    pytesseract.get_tesseract_version()
+except Exception as e:
+    print("⚠ Tesseract OCR not found. pytesseract requires Tesseract to be installed on your system.")
+    print("For Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki")
+    print("For Linux: sudo apt-get install tesseract-ocr")
+    print("For macOS: brew install tesseract")
+    print("OCR features will be disabled.")
 
 import os
 import threading
@@ -115,6 +154,7 @@ plotly = None
 sklearn = None
 yaml_module = None
 dateparser = None
+pytesseract = None
 
 # Import all available packages at startup
 try:
@@ -166,6 +206,16 @@ try:
     print("✓ Dateparser loaded successfully")
 except ImportError:
     print("⚠ Dateparser not available - fuzzy date parsing disabled")
+
+try:
+    import pytesseract
+    pytesseract.get_tesseract_version()
+    pytesseract = True
+    print("✓ pytesseract loaded successfully")
+except ImportError:
+    print("⚠ pytesseract not available - OCR features disabled")
+except Exception as e:
+    print("⚠ pytesseract available but Tesseract not found - OCR features disabled")
 
 from datetime import datetime
 
@@ -242,6 +292,9 @@ class EnhancedCrawlerUI(QWidget):
                 print("Analytics dashboard started on http://127.0.0.1:8080")
             except Exception as e:
                 print(f"Analytics dashboard not started: {e}")
+        # Initialize OCR capabilities
+        self.ocr_available = pytesseract is not None
+        
         # Error handling and retry configuration
         self.error_tracker = {
             'total_errors': 0,
@@ -272,8 +325,9 @@ class EnhancedCrawlerUI(QWidget):
         self.geo_status = QLabel("Geospatial: ❌")
         self.dashboard_status = QLabel("Dashboard: ❌")
         self.config_status = QLabel("Config: ❌")
+        self.ocr_status = QLabel("OCR: ❌")
         
-        for status in [self.spacy_status, self.bert_status, self.geo_status, self.dashboard_status, self.config_status]:
+        for status in [self.spacy_status, self.bert_status, self.geo_status, self.dashboard_status, self.config_status, self.ocr_status]:
             status.setStyleSheet("padding: 5px; border: 1px solid #bdc3c7; border-radius: 3px;")
             status_layout.addWidget(status)
         
@@ -428,6 +482,7 @@ class EnhancedCrawlerUI(QWidget):
         print(f"DEBUG: self.geocoder = {self.geocoder}")
         print(f"DEBUG: self.dashboard = {self.dashboard}")
         print(f"DEBUG: self.config = {self.config}")
+        print(f"DEBUG: pytesseract = {pytesseract}")
         
         if self.nlp:
             self.spacy_status.setText("spaCy: ✅")
@@ -464,6 +519,13 @@ class EnhancedCrawlerUI(QWidget):
         else:
             self.config_status.setText("Config: ❌")
             self.config_status.setStyleSheet("padding: 5px; border: 1px solid #e74c3c; border-radius: 3px; color: #e74c3c;")
+        
+        if pytesseract:
+            self.ocr_status.setText("OCR: ✅")
+            self.ocr_status.setStyleSheet("padding: 5px; border: 1px solid #27ae60; border-radius: 3px; color: #27ae60;")
+        else:
+            self.ocr_status.setText("OCR: ❌")
+            self.ocr_status.setStyleSheet("padding: 5px; border: 1px solid #e74c3c; border-radius: 3px; color: #e74c3c;")
         
         print(f"DEBUG: Status indicators updated")
 
