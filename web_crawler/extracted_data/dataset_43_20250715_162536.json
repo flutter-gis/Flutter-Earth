@@ -1,0 +1,120 @@
+{
+  "title": "GEDI L2A Vector Canopy Top Height (Version 2)  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "USFS Laboratory for Applications of Remote Sensing in Ecology (LARSE)",
+  "tags": [
+    "Github",
+    "Tree-Cover",
+    "Forest-Biomass",
+    "Nasa",
+    "Gedi",
+    "Gis Stack Exchange",
+    "Videos",
+    "Twitter",
+    "Elevation",
+    "Larse",
+    "Elevation\nForest-Biomass\nGedi\nLarse\nNasa\nTree-Cover\nUsgs",
+    "Usgs",
+    "Medium"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/catalog/LARSE_GEDI_GEDI02_A_002",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "ORG": [
+        "GEDI L2A Vector Canopy",
+        "Earth Engine Data Catalog",
+        "Google for Developers\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n      \n      Skip",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "PERSON": [
+        "Top Height",
+        "Landsat\n   \n\n\n\n\n\n\n\n      MODIS"
+      ],
+      "CARDINAL": [
+        "2"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ]
+    },
+    "title_entities": [
+      [
+        "GEDI L2A Vector Canopy",
+        "ORG"
+      ],
+      [
+        "Top Height",
+        "PERSON"
+      ],
+      [
+        "2",
+        "CARDINAL"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "geocoded_location": {
+          "name": "Version",
+          "coordinates": [
+            50.0767586,
+            14.4333886
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 12,
+    "text_length": 101
+  }
+}

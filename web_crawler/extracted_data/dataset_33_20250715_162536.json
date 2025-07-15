@@ -1,0 +1,104 @@
+{
+  "title": "GOES-17 MCMIPM Series ABI Level 2 Cloud and Moisture Imagery Mesoscale  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "NOAA",
+  "tags": [
+    "Github",
+    "Goes-S",
+    "Ospo",
+    "Weather",
+    "Gis Stack Exchange",
+    "Abi",
+    "Goes",
+    "Videos",
+    "Nesdis",
+    "Atmosphere",
+    "Noaa",
+    "Satellite-Imagery",
+    "Twitter",
+    "Goes-17",
+    "Abi\nAtmosphere\nGoes\nGoes-17\nGoes-S\nMcmip\nNesdis\nNoaa\nOspo\nSatellite-Imagery\nWeather",
+    "Medium",
+    "Mcmip"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/catalog/NOAA_GOES_17_MCMIPM",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "ORG": [
+        "Earth Engine Data Catalog",
+        "Google for Developers\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n      \n      Skip",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ]
+    },
+    "title_entities": [
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "geocoded_location": {
+          "name": "Series",
+          "coordinates": [
+            44.7905386,
+            2.3003107
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 16,
+    "text_length": 126
+  }
+}

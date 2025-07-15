@@ -1,0 +1,119 @@
+{
+  "title": "VNP09H1: VIIRS Surface Reflectance 8-Day L3 Global 500m  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "NASA LP DAAC at the USGS EROS Center",
+  "tags": [
+    "Github",
+    "Sr",
+    "Nasa",
+    "Daily\nNasa\nNoaa\nNpp\nReflectance\nSatellite-Imagery\nSr\nViirs",
+    "Gis Stack Exchange",
+    "Reflectance",
+    "Videos",
+    "Viirs",
+    "Npp",
+    "Noaa",
+    "Satellite-Imagery",
+    "Daily",
+    "Twitter",
+    "Medium"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/catalog/NASA_VIIRS_002_VNP09H1",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "DATE": [
+        "8-Day"
+      ],
+      "PRODUCT": [
+        "L3 Global 500"
+      ],
+      "ORG": [
+        "Earth Engine Data Catalog",
+        "Google for Developers\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n      \n      Skip",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ],
+      "PERSON": [
+        "Landsat\n   \n\n\n\n\n\n\n\n      MODIS"
+      ]
+    },
+    "title_entities": [
+      [
+        "8-Day",
+        "DATE"
+      ],
+      [
+        "L3 Global 500",
+        "PRODUCT"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "spatial_scope": "global",
+        "geocoded_location": {
+          "name": "Global",
+          "coordinates": [
+            55.702215,
+            12.5592485
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 14,
+    "text_length": 111
+  }
+}

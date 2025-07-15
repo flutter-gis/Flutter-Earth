@@ -1,0 +1,122 @@
+{
+  "title": "TEMPO gridded HCHO (QA filtered) vertical columns V03  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "QA Filtered: Google and NASA ASDC",
+  "tags": [
+    "Github",
+    "Nasa",
+    "Gis Stack Exchange",
+    "Pollution",
+    "Air-Quality\nFormaldehyde\nNasa\nPollution\nSatellite-Imagery\nTropomi",
+    "Videos",
+    "Twitter",
+    "Satellite-Imagery",
+    "Tropomi",
+    "Medium",
+    "Formaldehyde",
+    "Air-Quality"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/catalog/NASA_TEMPO_HCHO_L3_QA",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "ORG": [
+        "TEMPO",
+        "HCHO",
+        "QA",
+        "V03",
+        "Earth Engine Data Catalog",
+        "Google for Developers\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n      \n      Skip",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ],
+      "PERSON": [
+        "Landsat\n   \n\n\n\n\n\n\n\n      MODIS"
+      ]
+    },
+    "title_entities": [
+      [
+        "TEMPO",
+        "ORG"
+      ],
+      [
+        "HCHO",
+        "ORG"
+      ],
+      [
+        "QA",
+        "ORG"
+      ],
+      [
+        "V03",
+        "ORG"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "geocoded_location": {
+          "name": "Google",
+          "coordinates": [
+            42.35092,
+            -71.0783603
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 14,
+    "text_length": 109
+  }
+}

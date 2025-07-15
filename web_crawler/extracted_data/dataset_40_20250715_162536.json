@@ -1,0 +1,109 @@
+{
+  "title": "GPWv411: Land Area (Gridded Population of the World Version 4.11)  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "NASA SEDAC at the Center for International Earth Science Information Network",
+  "tags": [
+    "Ciesin",
+    "Github",
+    "Gpw",
+    "Nasa",
+    "Gis Stack Exchange",
+    "Videos",
+    "Twitter",
+    "Population",
+    "Medium",
+    "Ciesin\nGpw\nNasa\nPopulation"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/catalog/CIESIN_GPWv411_GPW_Land_Area",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "ORG": [
+        "Land Area (Gridded Population of the World Version",
+        "Earth Engine Data Catalog",
+        "Google for Developers\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n      \n      Skip",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "CARDINAL": [
+        "4.11"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ]
+    },
+    "title_entities": [
+      [
+        "Land Area (Gridded Population of the World Version",
+        "ORG"
+      ],
+      [
+        "4.11",
+        "CARDINAL"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "geocoded_location": {
+          "name": "Land Area",
+          "coordinates": [
+            8.4418035,
+            77.0980129
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 14,
+    "text_length": 121
+  }
+}

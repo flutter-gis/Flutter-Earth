@@ -1,0 +1,107 @@
+{
+  "title": "Datasets tagged openet in Earth Engine  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "management applications.An ensemble ET dataset is available, combining results from individual models to provide a comprehensive estimate.OpenET data is openly accessible through Google Earth Engine, facilitating analysis and integration with other geospatial datasets.",
+  "tags": [
+    "Github",
+    "Monthly",
+    "Gis Stack Exchange",
+    "Evapotranspiration",
+    "Videos",
+    "Water",
+    "Openet",
+    "Gridmet-Derived",
+    "Twitter",
+    "Medium",
+    "Landsat-Derived"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/tags/openet",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "LOC": [
+        "Earth Engine"
+      ],
+      "ORG": [
+        "Earth Engine Data Catalog",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ],
+      "PERSON": [
+        "Landsat\n   \n\n\n\n\n\n\n\n      MODIS\n   \n\n\n\n\n\n      "
+      ]
+    },
+    "title_entities": [
+      [
+        "Earth Engine",
+        "LOC"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "geocoded_location": {
+          "name": "Google",
+          "coordinates": [
+            42.35092,
+            -71.0783603
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 9,
+    "text_length": 94
+  }
+}

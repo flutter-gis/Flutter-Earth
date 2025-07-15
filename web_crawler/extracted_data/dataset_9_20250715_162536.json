@@ -1,0 +1,107 @@
+{
+  "title": "Datasets tagged mod44w in Earth Engine  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "",
+  "tags": [
+    "Github",
+    "Surface-Ground-Water",
+    "Modis",
+    "Nasa",
+    "Gis Stack Exchange",
+    "Videos",
+    "Water-Mask",
+    "Twitter",
+    "Srtm",
+    "Mod44W",
+    "Medium",
+    "Geophysical"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/tags/mod44w",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "LOC": [
+        "Earth Engine"
+      ],
+      "ORG": [
+        "Earth Engine Data Catalog",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ],
+      "PERSON": [
+        "Landsat\n   \n\n\n\n\n\n\n\n      MODIS\n   \n\n\n\n\n\n      Sen"
+      ]
+    },
+    "title_entities": [
+      [
+        "Earth Engine",
+        "LOC"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "geocoded_location": {
+          "name": "Google",
+          "coordinates": [
+            42.35092,
+            -71.0783603
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 80,
+      "errors": [],
+      "enriched": {
+        "quality_score": 80
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 9,
+    "text_length": 94
+  }
+}

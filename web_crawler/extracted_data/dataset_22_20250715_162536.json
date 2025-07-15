@@ -1,0 +1,121 @@
+{
+  "title": "WorldPop Global Project Population Data: Constrained Estimated Age and Sex Structures of Residential Population per 100x100m Grid Square  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "WorldPop",
+  "tags": [
+    "Github",
+    "Gis Stack Exchange",
+    "Videos",
+    "Demography",
+    "Worldpop",
+    "Population",
+    "Twitter",
+    "Medium",
+    "Demography\nPopulation\nWorldpop"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/catalog/WorldPop_GP_100m_pop_age_sex_cons_unadj",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "ORG": [
+        "Global Project Population Data",
+        "Earth Engine Data Catalog",
+        "Google for Developers\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n      \n      Skip",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "PERSON": [
+        "Sex Structures",
+        "Grid Square"
+      ],
+      "CARDINAL": [
+        "100x100"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ]
+    },
+    "title_entities": [
+      [
+        "WorldPop Global Project Population Data",
+        "ORG"
+      ],
+      [
+        "Sex Structures",
+        "PERSON"
+      ],
+      [
+        "100x100",
+        "CARDINAL"
+      ],
+      [
+        "Grid Square",
+        "PERSON"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "spatial_scope": "global",
+        "geocoded_location": {
+          "name": "Grid Square",
+          "coordinates": [
+            51.4884251,
+            -2.7600898
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 19,
+    "text_length": 192
+  }
+}

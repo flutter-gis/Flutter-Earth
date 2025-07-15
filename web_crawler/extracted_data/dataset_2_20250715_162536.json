@@ -1,0 +1,126 @@
+{
+  "title": "Iran Land Cover Map v1 13-class (2017)  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "K. N. Toosi University of Technology LiDAR Lab",
+  "tags": [
+    "Github",
+    "Iran",
+    "Landuse-Landcover",
+    "Gis Stack Exchange",
+    "Videos",
+    "Twitter",
+    "Landcover\nLanduse-Landcover\nIran\nKntu",
+    "Kntu",
+    "Landcover",
+    "Medium"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/catalog/KNTU_LiDARLab_IranLandCover_V1",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "GPE": [
+        "Iran",
+        "Indonesia",
+        "বাংলা"
+      ],
+      "CARDINAL": [
+        "13"
+      ],
+      "DATE": [
+        "2017"
+      ],
+      "ORG": [
+        "Earth Engine Data Catalog",
+        "Google for Developers\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n      \n      Skip",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ],
+      "PERSON": [
+        "Landsat\n   \n\n\n\n\n\n\n\n      MODIS\n   \n\n\n\n\n\n      "
+      ]
+    },
+    "title_entities": [
+      [
+        "Iran",
+        "GPE"
+      ],
+      [
+        "13",
+        "CARDINAL"
+      ],
+      [
+        "2017",
+        "DATE"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "geocoded_location": {
+          "name": "Google",
+          "coordinates": [
+            42.35092,
+            -71.0783603
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "temporal_references": [
+          "2017"
+        ],
+        "fuzzy_dates": [
+          "2017-07-15"
+        ]
+      }
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 14,
+    "text_length": 94
+  }
+}

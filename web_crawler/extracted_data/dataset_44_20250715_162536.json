@@ -1,0 +1,158 @@
+{
+  "title": "Datasets tagged population in Earth Engine  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "used to produce the GPW v4.11 populations estimates. Pixels that have the same value reflect the same data source, most often a country or territory. General Documentation The Gridded Population of World Version 4 (GPWv4), Revision 11 models …",
+  "tags": [
+    "Ghsl",
+    "Global",
+    "Built-Environment",
+    "Open-Buildings",
+    "Copernicus",
+    "Alos",
+    "Fragmentation",
+    "Worldpop",
+    "Twitter",
+    "Built",
+    "Dmsp",
+    "Landsat-Derived",
+    "Builtup",
+    "Gpw",
+    "Built-Up",
+    "Dnb",
+    "Videos",
+    "Fao",
+    "Plant-Productivity",
+    "Building",
+    "Demography",
+    "Population",
+    "Csp",
+    "Brdf",
+    "Landcover",
+    "Jrc",
+    "Height",
+    "Eog",
+    "Tsinghua",
+    "Oxford",
+    "Surface-Ground-Water",
+    "Dem",
+    "Nasa",
+    "Monthly",
+    "Sdg",
+    "Gis Stack Exchange",
+    "Community-Dataset",
+    "Accessibility",
+    "Lights",
+    "Ols",
+    "Sat-Io",
+    "Daily",
+    "Nighttime",
+    "Twente",
+    "Landscan",
+    "Ciesin",
+    "Annual",
+    "Github",
+    "Settlement",
+    "Urban",
+    "Africa",
+    "Viirs",
+    "Agriculture",
+    "Landscape-Gradient",
+    "Human-Modification",
+    "Forest",
+    "Asia",
+    "Noaa",
+    "Imagery",
+    "Sentinel1-Derived",
+    "Medium",
+    "Map"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/tags/population",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "LOC": [
+        "Earth Engine"
+      ],
+      "ORG": [
+        "Earth Engine Data Catalog",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ],
+      "PERSON": [
+        "Landsat\n   \n\n\n\n\n\n\n\n      MODIS\n   \n\n\n\n\n\n   "
+      ]
+    },
+    "title_entities": [
+      [
+        "Earth Engine",
+        "LOC"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "geocoded_location": {
+          "name": "Google",
+          "coordinates": [
+            42.35092,
+            -71.0783603
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 9,
+    "text_length": 98
+  }
+}
