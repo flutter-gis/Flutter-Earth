@@ -1,4 +1,53 @@
 import sys
+import subprocess
+import random
+
+REQUIRED_PACKAGES = [
+    'spacy',
+    'transformers',
+    'scikit-learn',
+    'geopy',
+    'pyyaml',
+    'dash',
+    'dateparser'
+]
+
+missing = []
+for pkg in REQUIRED_PACKAGES:
+    try:
+        __import__(pkg.replace('-', '_'))
+    except ImportError:
+        missing.append(pkg)
+
+if missing:
+    print(f"Missing required packages: {', '.join(missing)}. Attempting to install...")
+    try:
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade'] + missing)
+        print("All required packages installed. Please restart the program.")
+        sys.exit(0)
+    except Exception as e:
+        print("Automatic installation failed.")
+        print("Error:", e)
+        print("Please install the missing packages manually:")
+        print(f"    {sys.executable} -m pip install {' '.join(missing)}")
+        sys.exit(1)
+
+# Ensure spaCy English model is downloaded
+try:
+    import spacy
+    spacy.load('en_core_web_sm')
+except OSError:
+    print("Downloading spaCy English model (en_core_web_sm)...")
+    try:
+        subprocess.check_call([sys.executable, '-m', 'spacy', 'download', 'en_core_web_sm'])
+        print("spaCy English model installed. Please restart the program.")
+        sys.exit(0)
+    except Exception as e:
+        print("Failed to download spaCy English model.")
+        print("Error:", e)
+        print(f"Please run: {sys.executable} -m spacy download en_core_web_sm")
+        sys.exit(1)
+
 import os
 import threading
 import json
@@ -10,6 +59,9 @@ from bs4 import BeautifulSoup
 import re
 from selenium import webdriver
 from selenium.webdriver.edge.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, 
     QProgressBar, QLabel, QFileDialog, QLineEdit, QGroupBox, QCheckBox, QTabWidget
@@ -17,6 +69,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import QTimer, Qt, QThread
 import csv
 from collections import defaultdict
+from datetime import datetime
 
 # Advanced imports with fallbacks
 spacy = None
@@ -64,6 +117,20 @@ except ImportError:
 
 from datetime import datetime
 
+import subprocess
+
+try:
+    import dateparser
+except ImportError:
+    dateparser = None
+
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.1 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/117.0',
+]
+
 class EnhancedCrawlerUI(QWidget):
     def __init__(self):
         super().__init__()
@@ -87,7 +154,6 @@ class EnhancedCrawlerUI(QWidget):
                 print("spaCy model loaded successfully")
             except Exception as e:
                 print(f"spaCy model not loaded: {e}")
-        
         # Load advanced ML models for ensemble classification
         self.bert_classifier = None
         self.tfidf_vectorizer = None
@@ -97,13 +163,11 @@ class EnhancedCrawlerUI(QWidget):
                 self.bert_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
                 self.bert_model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased")
                 self.bert_classifier = pipeline("text-classification", model=self.bert_model, tokenizer=self.bert_tokenizer)
-                
                 # Initialize TF-IDF vectorizer for traditional ML
                 self.tfidf_vectorizer = TfidfVectorizer(max_features=1000, stop_words='english')
                 print("Advanced ML models loaded successfully.")
             except Exception as e:
                 print(f"Advanced ML models not loaded: {e}")
-        
         # Load config and plugins
         self.config = None
         self.plugins = {}
@@ -114,7 +178,6 @@ class EnhancedCrawlerUI(QWidget):
                 print("Config and plugins loaded.")
         except Exception as e:
             print(f"Config/plugins not loaded: {e}")
-        
         # Initialize validation components
         self.geocoder = None
         if geopy:
@@ -123,10 +186,8 @@ class EnhancedCrawlerUI(QWidget):
                 print("Geocoder initialized successfully")
             except Exception as e:
                 print(f"Geocoder not initialized: {e}")
-        
         # Validation settings from config
         self.validation_config = self.config.get('validation', {}) if self.config else {}
-        
         # Initialize analytics dashboard
         self.dashboard = None
         if dash:
@@ -136,7 +197,6 @@ class EnhancedCrawlerUI(QWidget):
                 print("Analytics dashboard started on http://127.0.0.1:8080")
             except Exception as e:
                 print(f"Analytics dashboard not started: {e}")
-        
         # Error handling and retry configuration
         self.error_tracker = {
             'total_errors': 0,
@@ -146,6 +206,9 @@ class EnhancedCrawlerUI(QWidget):
         }
         self.max_retries = 3
         self.retry_delay = 2  # seconds
+        # Now safe to call status indicators
+        # if hasattr(self, 'update_status_indicators'):
+        #     self.update_status_indicators()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -279,6 +342,12 @@ class EnhancedCrawlerUI(QWidget):
         self.error_console.setStyleSheet("background: #2e1a1a; color: #ff6b6b; font-family: Consolas; font-size: 12px;")
         self.tab_widget.addTab(self.error_console, "Error Log")
         
+        # Add summary tab
+        self.summary_console = QTextEdit()
+        self.summary_console.setReadOnly(True)
+        self.summary_console.setStyleSheet("background: #222; color: #ffe066; font-family: Consolas; font-size: 12px;")
+        self.tab_widget.addTab(self.summary_console, "Summary")
+
         console_layout.addWidget(self.tab_widget)
         console_group.setLayout(console_layout)
         layout.addWidget(console_group, 1)
@@ -305,7 +374,7 @@ class EnhancedCrawlerUI(QWidget):
         layout.addLayout(button_layout)
         
         # Update status indicators
-        self.update_status_indicators()
+        # self.update_status_indicators()
 
     def update_status_indicators(self):
         """Update the status indicators for advanced features."""
@@ -344,6 +413,23 @@ class EnhancedCrawlerUI(QWidget):
         else:
             self.config_status.setText("Config: ❌")
             self.config_status.setStyleSheet("padding: 5px; border: 1px solid #e74c3c; border-radius: 3px; color: #e74c3c;")
+
+    def update_ui(self):
+        """Update UI elements."""
+        # Process progress updates
+        while not self.progress_queue.empty():
+            progress = self.progress_queue.get()
+            self.progress.setValue(progress)
+        
+        # Process log messages
+        while not self.log_queue.empty():
+            message = self.log_queue.get()
+            self.console.append(message)
+            self.console.ensureCursorVisible()
+        
+        # Check if crawl thread is finished
+        if hasattr(self, 'crawl_thread') and not self.crawl_thread.is_alive():
+            self.crawl_finished()
 
     def open_dashboard(self):
         """Open the analytics dashboard in default browser."""
@@ -410,215 +496,7 @@ class EnhancedCrawlerUI(QWidget):
 
     def log_error(self, message):
         """Log errors to the error console."""
-import sys
-import os
-import threading
-import json
-import time
-import requests
-from queue import Queue
-from urllib.parse import urljoin, urlparse
-from bs4 import BeautifulSoup
-import re
-from selenium import webdriver
-from selenium.webdriver.edge.options import Options
-from PySide6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, 
-    QProgressBar, QLabel, QFileDialog, QLineEdit, QGroupBox, QCheckBox
-)
-from PySide6.QtCore import QTimer, Qt, QThread
-import csv
-from collections import defaultdict
-
-# Advanced imports with fallbacks
-spacy = None
-transformers = None
-geopy = None
-dash = None
-plotly = None
-
-try:
-    import spacy
-except ImportError:
-    print("spaCy not available - ML/NLP features disabled")
-
-try:
-    import transformers
-    from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
-except ImportError:
-    print("Transformers not available - BERT features disabled")
-
-try:
-    from sklearn.ensemble import VotingClassifier
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    import numpy as np
-except ImportError:
-    print("Scikit-learn not available - some ML features disabled")
-
-try:
-    from geopy.geocoders import Nominatim
-    from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
-    geopy = True
-except ImportError:
-    print("Geopy not available - geospatial validation disabled")
-
-try:
-    import yaml
-    from config_utils import load_config, load_plugins
-except ImportError:
-    print("YAML/config_utils not available - config features disabled")
-
-try:
-    from analytics_dashboard import get_dashboard
-    dash = True
-except ImportError:
-    print("Dash not available - analytics dashboard disabled")
-
-from datetime import datetime
-
-class EnhancedCrawlerUI(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Earth Engine Catalog Web Crawler - Enhanced")
-        self.resize(1000, 700)
-        self.setup_ui()
-        self.log_queue = Queue()
-        self.progress_queue = Queue()
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_ui)
-        self.thread = None  # type: threading.Thread | None
-        self.output_dir = "extracted_data"
-        self.images_dir = "thumbnails"
-        os.makedirs(self.output_dir, exist_ok=True)
-        os.makedirs(self.images_dir, exist_ok=True)
-        # Load spaCy model for ML/NLP-based classification
-        self.nlp = None
-        if spacy:
-            try:
-                self.nlp = spacy.load("en_core_web_sm")
-                print("spaCy model loaded successfully")
-            except Exception as e:
-                print(f"spaCy model not loaded: {e}")
-        
-        # Load advanced ML models for ensemble classification
-        self.bert_classifier = None
-        self.tfidf_vectorizer = None
-        if transformers:
-            try:
-                # Load BERT model for text classification
-                self.bert_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-                self.bert_model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased")
-                self.bert_classifier = pipeline("text-classification", model=self.bert_model, tokenizer=self.bert_tokenizer)
-                
-                # Initialize TF-IDF vectorizer for traditional ML
-                self.tfidf_vectorizer = TfidfVectorizer(max_features=1000, stop_words='english')
-                print("Advanced ML models loaded successfully.")
-            except Exception as e:
-                print(f"Advanced ML models not loaded: {e}")
-        
-        # Load config and plugins
-        self.config = None
-        self.plugins = {}
-        try:
-            if 'yaml' in globals() and 'load_config' in globals():
-                self.config = load_config()
-                self.plugins = load_plugins(self.config.get('plugins', []))
-                print("Config and plugins loaded.")
-        except Exception as e:
-            print(f"Config/plugins not loaded: {e}")
-        
-        # Initialize validation components
-        self.geocoder = None
-        if geopy:
-            try:
-                self.geocoder = Nominatim(user_agent="earth_engine_crawler")
-                print("Geocoder initialized successfully")
-            except Exception as e:
-                print(f"Geocoder not initialized: {e}")
-        
-        # Validation settings from config
-        self.validation_config = self.config.get('validation', {}) if self.config else {}
-        
-        # Initialize analytics dashboard
-        self.dashboard = None
-        if dash:
-            try:
-                self.dashboard = get_dashboard()
-                self.dashboard.start_background()
-                print("Analytics dashboard started on http://127.0.0.1:8080")
-            except Exception as e:
-                print(f"Analytics dashboard not started: {e}")
-        
-        # Error handling and retry configuration
-        self.error_tracker = {
-            'total_errors': 0,
-            'retry_attempts': 0,
-            'recovered_results': 0,
-            'error_categories': defaultdict(int)
-        }
-        self.max_retries = 3
-        self.retry_delay = 2  # seconds
-
-    def setup_ui(self):
-        layout = QVBoxLayout(self)
-        
-        # File selection group
-        file_group = QGroupBox("HTML File Selection")
-        file_layout = QHBoxLayout()
-        self.file_path_edit = QLineEdit()
-        self.file_path_edit.setPlaceholderText("Select local HTML file to crawl...")
-        self.browse_btn = QPushButton("Browse")
-        self.browse_btn.clicked.connect(self.browse_file)
-        file_layout.addWidget(self.file_path_edit, 1)
-        file_layout.addWidget(self.browse_btn)
-        file_group.setLayout(file_layout)
-        layout.addWidget(file_group)
-        
-        # Options group
-        options_group = QGroupBox("Crawling Options")
-        options_layout = QVBoxLayout()
-        self.download_thumbs = QCheckBox("Download thumbnails")
-        self.download_thumbs.setChecked(True)
-        self.extract_details = QCheckBox("Extract detailed information")
-        self.extract_details.setChecked(True)
-        self.save_individual = QCheckBox("Save as individual JSON files")
-        self.save_individual.setChecked(True)
-        options_layout.addWidget(self.download_thumbs)
-        options_layout.addWidget(self.extract_details)
-        options_layout.addWidget(self.save_individual)
-        options_group.setLayout(options_layout)
-        layout.addWidget(options_group)
-        
-        # Status and progress
-        self.status = QLabel("Ready. Select an HTML file to begin.")
-        layout.addWidget(self.status)
-        
-        self.progress = QProgressBar()
-        self.progress.setMaximum(100)
-        self.progress.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.progress.setStyleSheet("QProgressBar {height: 30px; font-size: 16px;} QProgressBar::chunk {background: #3a6ea5;}")
-        layout.addWidget(self.progress)
-        
-        # Console output
-        self.console = QTextEdit()
-        self.console.setReadOnly(True)
-        self.console.setStyleSheet("background: #181818; color: #e0e0e0; font-family: Consolas; font-size: 12px;")
-        layout.addWidget(self.console, 1)
-        
-        # Control buttons
-        button_layout = QHBoxLayout()
-        self.crawl_btn = QPushButton("Start Crawling")
-        self.crawl_btn.clicked.connect(self.start_crawl)
-        self.crawl_btn.setEnabled(False)
-        self.stop_btn = QPushButton("Stop")
-        self.stop_btn.clicked.connect(self.stop_crawl)
-        self.stop_btn.setEnabled(False)
-        self.clear_btn = QPushButton("Clear Console")
-        self.clear_btn.clicked.connect(self.console.clear)
-        button_layout.addWidget(self.crawl_btn)
-        button_layout.addWidget(self.stop_btn)
-        button_layout.addWidget(self.clear_btn)
-        layout.addLayout(button_layout)
+        self.error_console.append(f"[{time.strftime('%H:%M:%S')}] {message}")
 
     def browse_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -629,1092 +507,539 @@ class EnhancedCrawlerUI(QWidget):
             self.crawl_btn.setEnabled(True)
             self.log_message(f"Selected file: {file_path}")
 
-    def log_message(self, message):
-        self.log_queue.put(f"[{time.strftime('%H:%M:%S')}] {message}")
-
-    def log_sectioned(self, info_dict):
-        """Log info in clear, separated sections."""
-        for key, value in info_dict.items():
-            if value:
-                self.log_message(f"[{key.upper()}] {value}")
-        self.log_message("-")
-
-    def ml_classify_field(self, text):
-        """Classify and normalize a field using spaCy NER and text categorization."""
-        if not self.nlp or not text or not isinstance(text, str):
-            return None, 0.0, None
-        doc = self.nlp(text)
-        # Try to extract entities and label
-        if doc.ents:
-            # Use the first entity as the label
-            ent = doc.ents[0]
-            return ent.label_, 0.9, ent.text
-        # Fallback: use textcat if available
-        if hasattr(self.nlp, 'textcat') and self.nlp.textcat is not None:
-            cats = self.nlp(text).cats
-            if cats:
-                best = max(cats, key=cats.get)
-                return best, cats[best], text
-        return None, 0.0, None
-
-    def advanced_extract(self, soup, link):
-        """Advanced extraction and classification for a dataset page, with config-driven extraction and plugin support."""
-        result = {
-            'title': '', 'provider': '', 'tags': [], 'date_range': '', 'description': '',
-            'bands': [], 'terms_of_use': '', 'snippet': '', 'spatial_coverage': '',
-            'temporal_coverage': '', 'citation': '', 'type': '', 'region': '', 'source_url': link,
-            'extraction_report': {}, 'confidence': {}, 'ml_classification': {}
-        }
-        report = {}
-        confidence = {}
-        ml_classification = {}
-        
-        # Use config-driven extraction if available
-        if self.config and 'fields' in self.config:
-            for field_config in self.config['fields']:
-                field_name = field_config['name']
-                selectors = field_config.get('selectors', [])
-                ml_types = field_config.get('ml_types', [])
-                
-                # Extract using config selectors
-                extracted_value = self.extract_with_selectors(soup, selectors, field_name)
-                if extracted_value:
-                    result[field_name] = extracted_value
-                    report[field_name] = f"config selectors: {', '.join(selectors)}"
-                    confidence[field_name] = 0.8
-                    
-                    # ML classification with config-defined types
-                    label, conf, norm = self.ml_classify_field_with_types(extracted_value, ml_types)
-                    if label:
-                        ml_classification[field_name] = {'label': label, 'confidence': conf, 'normalized': norm}
-                
-                # Use plugins for specialized processing
-                if field_name == 'bands' and self.plugins and 'custom_band_parser' in self.plugins:
-                    try:
-                        plugin_bands = self.plugins['custom_band_parser'].parse_bands(soup)
-                        if plugin_bands:
-                            result['bands'] = plugin_bands
-                            report['bands'] = 'custom_band_parser plugin'
-                            confidence['bands'] = 0.9
-                    except Exception as e:
-                        self.log_message(f"[PLUGIN ERROR] Band parser failed: {e}")
-        else:
-            # Fallback to original extraction logic
-            result = self.fallback_extraction(soup, link)
-            report = result['extraction_report']
-            confidence = result['confidence']
-            ml_classification = result['ml_classification']
-        
-        # Apply OCR to thumbnails if plugin available
-        if self.plugins and 'thumbnail_ocr' in self.plugins and result.get('thumbnail_url'):
-            try:
-                ocr_text = self.plugins['thumbnail_ocr'].extract_text_from_thumbnail(result['thumbnail_url'])
-                if ocr_text and not ocr_text.startswith('[OCR ERROR]'):
-                    result['thumbnail_ocr_text'] = ocr_text
-                    report['thumbnail_ocr_text'] = 'thumbnail_ocr plugin'
-                    confidence['thumbnail_ocr_text'] = 0.7
-            except Exception as e:
-                self.log_message(f"[PLUGIN ERROR] OCR failed: {e}")
-        
-        result['extraction_report'] = report
-        result['confidence'] = confidence
-        result['ml_classification'] = ml_classification
-        
-        # Apply validation and enrichment
-        result = self.validate_and_enrich_data(result)
-        
-        # Add to analytics dashboard
-        if self.dashboard:
-            try:
-                self.dashboard.add_data(result)
-            except Exception as e:
-                self.log_message(f"[DASHBOARD ERROR] {e}")
-        
-        return result
-
-    def extract_with_selectors(self, soup, selectors, field_name):
-        """Extract field value using config-defined selectors."""
-        for selector in selectors:
-            try:
-                if selector.startswith('meta['):
-                    # Handle meta tag selectors
-                    attr_name = selector.split('[')[1].split('=')[0]
-                    attr_value = selector.split('=')[1].rstrip(']').strip('"\'')
-                    meta = soup.find('meta', attrs={attr_name: attr_value})
-                    if meta and meta.get('content'):
-                        return meta['content']
-                else:
-                    # Handle regular CSS selectors
-                    elements = soup.select(selector)
-                    if elements:
-                        if field_name == 'tags':
-                            # Handle multiple tags
-                            tags = []
-                            for elem in elements:
-                                tags.extend([t.strip() for t in elem.get_text().split(',') if t.strip()])
-                            return list(set(tags))  # Remove duplicates
-                        else:
-                            return elements[0].get_text(strip=True)
-            except Exception as e:
-                continue
-        return None
-
-    def ml_classify_field_with_types(self, text, expected_types):
-        """Classify field with specific expected ML types from config using ensemble methods."""
-        return self.ensemble_ml_classify(text, expected_types)
-
-    def fallback_extraction(self, soup, link):
-        """Original extraction logic as fallback when config is not available."""
-        # This is the original advanced_extract logic
-        result = {
-            'title': '', 'provider': '', 'tags': [], 'date_range': '', 'description': '',
-            'bands': [], 'terms_of_use': '', 'snippet': '', 'spatial_coverage': '',
-            'temporal_coverage': '', 'citation': '', 'type': '', 'region': '', 'source_url': link,
-            'extraction_report': {}, 'confidence': {}, 'ml_classification': {}
-        }
-        report = {}
-        confidence = {}
-        ml_classification = {}
-        
-        # Title
-        title = ''
-        title_elem = soup.find(['h1', 'title'])
-        if title_elem:
-            title = title_elem.get_text(strip=True)
-            report['title'] = 'h1/title tag'
-            confidence['title'] = 1.0
-        else:
-            meta_title = soup.find('meta', attrs={'property': 'og:title'})
-            if meta_title and meta_title.get('content'):
-                title = meta_title['content']
-                report['title'] = 'og:title meta'
-                confidence['title'] = 1.0
-            else:
-                confidence['title'] = 0.7
-        result['title'] = title
-        label, conf, norm = self.ml_classify_field(title)
-        if label:
-            ml_classification['title'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        # Provider
-        provider = ''
-        prov_elem = soup.find(string=re.compile(r'Provider|Source|Agency|Organization', re.IGNORECASE))
-        if prov_elem:
-            provider = prov_elem.strip()
-            report['provider'] = 'text match'
-            confidence['provider'] = 0.7
-        else:
-            meta_provider = soup.find('meta', attrs={'name': 'provider'})
-            if meta_provider and meta_provider.get('content'):
-                provider = meta_provider['content']
-                report['provider'] = 'meta[name=provider]'
-                confidence['provider'] = 1.0
-            else:
-                confidence['provider'] = 0.5
-        result['provider'] = provider
-        label, conf, norm = self.ml_classify_field(provider)
-        if label:
-            ml_classification['provider'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        # Tags
-        tags = set()
-        tag_elems = soup.find_all(['span', 'div', 'a'], class_=re.compile(r'tag|chip|label|badge', re.IGNORECASE))
-        if tag_elems:
-            confidence['tags'] = 1.0
-        for elem in tag_elems:
-            tags.update([t.strip().title() for t in elem.get_text().split(',') if t.strip()])
-        tag_text = soup.find(string=re.compile(r'Tags', re.IGNORECASE))
-        if tag_text:
-            tags.update([t.strip().title() for t in re.split(r'[^a-z0-9\-]+', tag_text, flags=re.IGNORECASE) if t.strip()])
-            confidence['tags'] = 0.7
-        if not tags:
-            confidence['tags'] = 0.5
-        result['tags'] = list(tags)
-        report['tags'] = 'class/tag/chip/label/badge or text'
-        label, conf, norm = self.ml_classify_field(", ".join(result['tags']))
-        if label:
-            ml_classification['tags'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        # Date Range
-        date_range = ''
-        date_elem = soup.find(string=re.compile(r'\d{4}-\d{2}-\d{2}.*[–-].*\d{4}-\d{2}-\d{2}', re.IGNORECASE))
-        if date_elem:
-            date_range = date_elem.strip().replace('–', ' to ').replace('-', ' to ', 1)
-            report['date_range'] = 'text match'
-            confidence['date_range'] = 0.7
-        else:
-            confidence['date_range'] = 0.5
-        result['date_range'] = date_range
-        label, conf, norm = self.ml_classify_field(date_range)
-        if label:
-            ml_classification['date_range'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        # Description
-        desc = ''
-        desc_elem = soup.find('div', class_=re.compile(r'description|body|content|summary', re.IGNORECASE))
-        if desc_elem:
-            desc = desc_elem.get_text(strip=True)
-            report['description'] = 'div.description/body/content/summary'
-            confidence['description'] = 1.0
-        else:
-            for p in soup.find_all('p'):
-                if len(p.get_text(strip=True)) > 50:
-                    desc = p.get_text(strip=True)
-                    report['description'] = 'first long <p>'
-                    confidence['description'] = 0.7
-                    break
-            if not desc:
-                confidence['description'] = 0.5
-        result['description'] = desc
-        label, conf, norm = self.ml_classify_field(desc)
-        if label:
-            ml_classification['description'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        # Bands
-        bands = []
-        bands_table = soup.find('table', class_=re.compile(r'band', re.IGNORECASE))
-        if bands_table:
-            for row in bands_table.find_all('tr'):
-                cols = row.find_all(['td', 'th'])
-                if len(cols) >= 2:
-                    bands.append(f"{cols[0].get_text(strip=True)}: {cols[1].get_text(strip=True)}")
-            report['bands'] = 'table.band'
-            confidence['bands'] = 1.0
-        else:
-            bands_text = soup.find(string=re.compile(r'Bands', re.IGNORECASE))
-            if bands_text:
-                bands.append(bands_text.strip())
-                report['bands'] = 'text match'
-                confidence['bands'] = 0.7
-            else:
-                confidence['bands'] = 0.5
-        result['bands'] = bands
-        label, conf, norm = self.ml_classify_field(", ".join(bands))
-        if label:
-            ml_classification['bands'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        # Terms of Use
-        terms = ''
-        terms_elem = soup.find(string=re.compile(r'Terms of Use|License|Copyright', re.IGNORECASE))
-        if terms_elem:
-            terms = terms_elem.strip()
-            report['terms_of_use'] = 'text match'
-            confidence['terms_of_use'] = 0.7
-        else:
-            confidence['terms_of_use'] = 0.5
-        result['terms_of_use'] = terms
-        label, conf, norm = self.ml_classify_field(terms)
-        if label:
-            ml_classification['terms_of_use'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        # Snippet
-        snippet = ''
-        snippet_elem = soup.find(string=re.compile(r'ee\.', re.IGNORECASE))
-        if snippet_elem:
-            snippet = snippet_elem.strip()
-            report['snippet'] = 'text match'
-            confidence['snippet'] = 0.7
-        else:
-            confidence['snippet'] = 0.5
-        result['snippet'] = snippet
-        label, conf, norm = self.ml_classify_field(snippet)
-        if label:
-            ml_classification['snippet'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        # Spatial Coverage
-        spatial = ''
-        spatial_elem = soup.find(string=re.compile(r'Lat:|Lon:|Bounding Box|Extent', re.IGNORECASE))
-        if spatial_elem:
-            spatial = spatial_elem.strip()
-            report['spatial_coverage'] = 'text match'
-            confidence['spatial_coverage'] = 0.7
-        else:
-            confidence['spatial_coverage'] = 0.5
-        result['spatial_coverage'] = spatial
-        label, conf, norm = self.ml_classify_field(spatial)
-        if label:
-            ml_classification['spatial_coverage'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        # Temporal Coverage
-        temporal = ''
-        temporal_elem = soup.find(string=re.compile(r'Period|Temporal|Time', re.IGNORECASE))
-        if temporal_elem:
-            temporal = temporal_elem.strip()
-            report['temporal_coverage'] = 'text match'
-            confidence['temporal_coverage'] = 0.7
-        else:
-            confidence['temporal_coverage'] = 0.5
-        result['temporal_coverage'] = temporal
-        label, conf, norm = self.ml_classify_field(temporal)
-        if label:
-            ml_classification['temporal_coverage'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        # Citation
-        citation = ''
-        citation_elem = soup.find(string=re.compile(r'Citation|How to Cite', re.IGNORECASE))
-        if citation_elem:
-            citation = citation_elem.strip()
-            report['citation'] = 'text match'
-            confidence['citation'] = 0.7
-        else:
-            confidence['citation'] = 0.5
-        result['citation'] = citation
-        label, conf, norm = self.ml_classify_field(citation)
-        if label:
-            ml_classification['citation'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        # Type
-        dtype = ''
-        if any(x in desc.lower() for x in ['raster', 'image', 'pixel']):
-            dtype = 'Raster'
-            confidence['type'] = 0.7
-        elif any(x in desc.lower() for x in ['vector', 'feature', 'polygon', 'point', 'line']):
-            dtype = 'Vector'
-            confidence['type'] = 0.7
-        else:
-            confidence['type'] = 0.5
-        result['type'] = dtype
-        report['type'] = 'inferred from description'
-        label, conf, norm = self.ml_classify_field(dtype)
-        if label:
-            ml_classification['type'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        # Region
-        region = ''
-        region_elem = soup.find(string=re.compile(r'Region|Country|Area', re.IGNORECASE))
-        if region_elem:
-            region = region_elem.strip()
-            report['region'] = 'text match'
-            confidence['region'] = 0.7
-        else:
-            confidence['region'] = 0.5
-        result['region'] = region
-        label, conf, norm = self.ml_classify_field(region)
-        if label:
-            ml_classification['region'] = {'label': label, 'confidence': conf, 'normalized': norm}
-        
-        result['extraction_report'] = report
-        result['confidence'] = confidence
-        result['ml_classification'] = ml_classification
-        return result
-
-    def log_advanced_sectioned(self, info_dict):
-        """Log info in clear, separated sections with extraction method/confidence and ML classification."""
-        for key, value in info_dict.items():
-            if key in ('extraction_report', 'confidence', 'ml_classification'):
-                continue
-            if value:
-                method = info_dict['extraction_report'].get(key, '')
-                conf_score = info_dict['confidence'].get(key, '')
-                ml_info = info_dict.get('ml_classification', {}).get(key, {})
-                
-                log_msg = f"[{key.upper()}] {value}"
-                if method:
-                    log_msg += f" (method: {method})"
-                if conf_score:
-                    log_msg += f" (confidence: {conf_score})"
-                if ml_info:
-                    log_msg += f" (ML: {ml_info.get('label', 'N/A')} @ {ml_info.get('confidence', 0):.2f})"
-                
-                self.log_message(log_msg)
-        self.log_message("-")
-
-    def pre_scan_link(self, link, driver, summary_table):
-        try:
-            self.log_message(f"[PRE-SCAN] Analyzing: {link}")
-            
-            # Use intelligent retry for page loading
-            def load_page():
-                driver.get(link)
-                return driver.page_source
-            
-            page_html = self.intelligent_retry(load_page)
-            if not page_html:
-                raise Exception("Failed to load page content")
-                
-            soup = BeautifulSoup(page_html, 'html.parser')
-            
-            # Use intelligent retry for extraction
-            def extract_data():
-                return self.advanced_extract(soup, link)
-            
-            info = self.intelligent_retry(extract_data)
-            self.log_advanced_sectioned(info)
-            summary_table.append({
-                'url': link,
-                'fields_found': [k for k, v in info.items() if v and k not in ('extraction_report', 'confidence', 'ml_classification', 'validation_results')],
-                'confidence': info['confidence'],
-                'ml_classification': info.get('ml_classification', {})
-            })
-            self.log_message(f"[PRE-SCAN] Completed analysis for: {link}")
-            
-        except Exception as e:
-            error_category = self.categorize_error(e)
-            self.log_message(f"[ERROR] Pre-scan failed for {link}: {error_category} - {str(e)}")
-            
-            # Attempt partial result recovery
-            try:
-                # Create a minimal soup for recovery if page_html is available
-                recovery_soup = None
-                if 'page_html' in locals() and page_html:
-                    recovery_soup = BeautifulSoup(page_html, 'html.parser')
-                
-                partial_result = self.recover_partial_results(recovery_soup, link, e)
-                if partial_result and (partial_result.get('title') or partial_result.get('description')):
-                    summary_table.append({
-                        'url': link,
-                        'fields_found': [k for k, v in partial_result.items() if v and k not in ('extraction_report', 'confidence', 'ml_classification', 'validation_results', 'recovery_error')],
-                        'confidence': partial_result['confidence'],
-                        'ml_classification': partial_result.get('ml_classification', {}),
-                        'recovered': True
-                    })
-                    self.log_message(f"[RECOVERY] Partial results saved for {link}")
-            except Exception as recovery_error:
-                self.log_message(f"[RECOVERY FAILED] Could not recover partial results for {link}: {str(recovery_error)}")
-
     def start_crawl(self):
-        html_file = self.file_path_edit.text()
-        if not html_file or not os.path.exists(html_file):
-            self.log_message("ERROR: Please select a valid HTML file")
+        """Start the advanced crawling process with all features enabled."""
+        file_path = self.file_path_edit.text()
+        if not file_path:
+            self.log_message("No HTML file selected.")
             return
         
-        self.console.clear()
-        self.status.setText("Crawling...")
-        self.progress.setValue(0)
+        if not os.path.exists(file_path):
+            self.log_message(f"File not found: {file_path}")
+            return
+        
+        # Update UI state
         self.crawl_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         self.browse_btn.setEnabled(False)
+        self.progress.setValue(0)
+        self.status.setText("Crawling in progress...")
+        spacy and 
+        # Clear consoles
+        self.clear_all_consoles()
         
-        self.thread = threading.Thread(
-            target=self.crawl_html_file, 
-            args=(html_file, self.log_queue, self.progress_queue),
+        # Start crawling in a separate thread
+        self.crawl_thread = threading.Thread(
+            target=self.crawl_html_file,
+            args=(file_path,),
             daemon=True
         )
-        if hasattr(self.thread, 'start'):
-            self.thread.start()
-        self.timer.start(100)
+        self.crawl_thread.start()
+        
+        # Start UI update timer
+        self.timer.start(100)  # Update every 100ms
+        
+        self.log_message(f"Starting advanced crawl for: {file_path}")
+        self.log_message("Advanced features enabled:")
+        if self.nlp:
+            self.log_message("  - spaCy NLP for text analysis")
+        if self.bert_classifier:
+            self.log_message("  - BERT for advanced text classification")
+        if self.geocoder:
+            self.log_message("  - Geospatial validation and enrichment")
+        if self.dashboard:
+            self.log_message("  - Analytics dashboard integration")
 
     def stop_crawl(self):
-        if self.thread and hasattr(self.thread, 'is_alive') and self.thread.is_alive():
-            self.log_message("Stopping crawler...")
+        """Stop the crawling process."""
+        if hasattr(self, 'crawl_thread') and self.crawl_thread.is_alive():
             self.stop_requested = True
+            self.log_message("Stopping crawler... Please wait for current operation to complete.")
+            self.status.setText("Stopping...")
 
-    def update_ui(self):
-        # Process log messages
-        while not self.log_queue.empty():
-            msg = self.log_queue.get()
-            self.console.append(msg)
-            # Auto-scroll to bottom
-            self.console.verticalScrollBar().setValue(self.console.verticalScrollBar().maximum())
-            # Force update
-            self.console.repaint()
-            if "[DONE]" in msg or "[ERROR]" in msg:
-                self.status.setText("Done!")
-                self.crawl_btn.setEnabled(True)
-                self.stop_btn.setEnabled(False)
-                self.browse_btn.setEnabled(True)
-        
-        # Process progress updates
-        while not self.progress_queue.empty():
-            val = self.progress_queue.get()
-            self.progress.setValue(val)
-        
-        # Check if thread has finished
-        if self.thread and hasattr(self.thread, 'is_alive') and not self.thread.is_alive():
-            self.timer.stop()
-            self.crawl_btn.setEnabled(True)
-            self.stop_btn.setEnabled(False)
-            self.browse_btn.setEnabled(True)
-            self.status.setText("Done!")
-
-    def export_summary(self, summary_table):
-        # Export as JSON
-        with open('summary.json', 'w', encoding='utf-8') as f:
-            json.dump(summary_table, f, ensure_ascii=False, indent=2)
-        # Export as CSV
-        if not summary_table:
-            return
-        # Collect all possible field names
-        all_fields = set()
-        all_conf_fields = set()
-        all_ml_fields = set()
-        for entry in summary_table:
-            all_fields.update(entry['fields_found'])
-            all_conf_fields.update(entry.get('confidence', {}).keys())
-            all_ml_fields.update(entry.get('ml_classification', {}).keys())
-        all_fields = sorted(list(all_fields))
-        all_conf_fields = sorted(list(all_conf_fields))
-        all_ml_fields = sorted(list(all_ml_fields))
-        with open('summary.csv', 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            header = ['url'] + all_fields + [f'conf_{field}' for field in all_conf_fields] + [f'ml_label_{field}' for field in all_ml_fields] + [f'ml_conf_{field}' for field in all_ml_fields]
-            writer.writerow(header)
-            for entry in summary_table:
-                row = [entry['url']]
-                for field in all_fields:
-                    row.append('Y' if field in entry['fields_found'] else '')
-                for field in all_conf_fields:
-                    row.append(entry.get('confidence', {}).get(field, ''))
-                for field in all_ml_fields:
-                    ml_info = entry.get('ml_classification', {}).get(field, {})
-                    row.append(ml_info.get('label', ''))
-                for field in all_ml_fields:
-                    ml_info = entry.get('ml_classification', {}).get(field, {})
-                    row.append(ml_info.get('confidence', ''))
-                writer.writerow(row)
-
-    def crawl_html_file(self, html_file, log_queue, progress_queue):
+    def crawl_html_file(self, html_file):
+        """Main crawling method with all advanced features."""
         try:
-            log_queue.put(f"Starting crawl of: {html_file}")
+            self.stop_requested = False
+            self.log_message("Reading HTML file...")
+            
+            # Read the HTML file
             with open(html_file, 'r', encoding='utf-8') as f:
                 html_content = f.read()
-            log_queue.put("Parsing HTML content...")
+            
+            self.log_message("Parsing HTML content...")
             soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # Find all dataset links
             links = soup.find_all('a', href=True)
             dataset_links = []
+            
             for link in links:
-                # Only call get('href') if link is a Tag (not NavigableString/PageElement)
-                from bs4 import Tag
-                if isinstance(link, Tag):
-                    href = link.get('href')
-                    if href and isinstance(href, str) and ('catalog' in href or 'datasets' in href):
-                        if href.startswith('/'):
-                            href = f"https://developers.google.com{href}"
-                        elif not href.startswith('http'):
-                            href = urljoin("https://developers.google.com/earth-engine/datasets/", href)
-                        dataset_links.append(href)
-            log_queue.put(f"Found {len(dataset_links)} potential dataset links")
+                if self.stop_requested:
+                    break
+                
+                href = link.get('href')
+                if href and ('catalog' in href or 'datasets' in href):
+                    # Convert relative URLs to absolute
+                    if href.startswith('/'):
+                        href = f"https://developers.google.com{href}"
+                    elif not href.startswith('http'):
+                        href = urljoin("https://developers.google.com/earth-engine/datasets/", href)
+                    dataset_links.append(href)
+            
+            self.log_message(f"Found {len(dataset_links)} potential dataset links")
+            
+            # Remove duplicates
             dataset_links = list(set(dataset_links))
-            log_queue.put(f"Unique links to process: {len(dataset_links)}")
+            self.log_message(f"Unique links to process: {len(dataset_links)}")
+            
+            if not dataset_links:
+                self.log_message("No dataset links found. Processing as single page...")
+                # Process the current page as a single dataset
+                result = self.advanced_extract(soup, html_file)
+                if result:
+                    self.save_results([result])
+                return
+            
+            # Setup webdriver for detailed crawling
             options = Options()
             options.add_argument('--headless')
             options.add_argument('--disable-gpu')
             options.add_argument('--no-sandbox')
             options.add_argument('--window-size=1920,1080')
+            # User-agent randomization
+            user_agent = random.choice(USER_AGENTS)
+            options.add_argument(f'user-agent={user_agent}')
             driver = webdriver.Edge(options=options)
-            # --- ADVANCED PRE-SCAN PHASE ---
-            log_queue.put("[PRE-SCAN] Advanced analysis of all links for key structures...")
-            summary_table = []
-            for i, link in enumerate(dataset_links):
-                self.pre_scan_link(link, driver, summary_table)
-                progress = int((i + 1) / len(dataset_links) * 10)
-                progress_queue.put(progress)
-            log_queue.put("[PRE-SCAN] Complete. Proceeding to download/extraction phase.")
-            # Output summary table
-            log_queue.put("[SUMMARY TABLE]")
-            for entry in summary_table:
-                log_queue.put(f"URL: {entry['url']}")
-                log_queue.put(f"Fields found: {', '.join(entry['fields_found'])}")
-                log_queue.put(f"Confidence: {entry['confidence']}")
-                log_queue.put("-")
-            # Export summary
-            self.export_summary(summary_table)
-            log_queue.put("[SUMMARY TABLE EXPORTED as summary.json and summary.csv]")
-            # --- NORMAL CRAWL PHASE (as before) ---
+            
             processed_count = 0
             total_links = len(dataset_links)
+            results = []
+            
             for i, link in enumerate(dataset_links):
-                if hasattr(self, 'stop_requested') and self.stop_requested:
-                    log_queue.put("Crawling stopped by user")
+                if self.stop_requested:
+                    self.log_message("Crawling stopped by user")
                     break
-                try:
-                    log_queue.put(f"Processing {i+1}/{total_links}: {link}")
-                    driver.get(link)
-                    time.sleep(2)
-                    page_html = driver.page_source
-                    page_soup = BeautifulSoup(page_html, 'html.parser')
-                    dataset_data = self.extract_dataset_info(page_soup, link)
-                    if dataset_data:
-                        # Download thumbnail if requested
-                        if self.download_thumbs.isChecked() and dataset_data.get('thumbnail_url'):
-                            thumb_path = self.download_image(dataset_data['thumbnail_url'])
-                            dataset_data['thumbnail_path'] = thumb_path
-                        
-                        # Save as individual JSON file
-                        if self.save_individual.isChecked():
-                            safe_title = "".join(c for c in dataset_data.get('title', 'dataset') if c.isalnum() or c in (' ', '-', '_')).rstrip()
-                            safe_title = safe_title[:50]  # Limit length
-                            json_filename = f"{safe_title}_{i}.json"
-                            json_path = os.path.join(self.output_dir, json_filename)
-                            
-                            with open(json_path, 'w', encoding='utf-8') as f:
-                                json.dump(dataset_data, f, ensure_ascii=False, indent=2)
-                            
-                            log_queue.put(f"Saved: {json_filename}")
+                retry_count = 0
+                max_retries = 3
+                while retry_count <= max_retries:
+                    try:
+                        # Update progress
+                        progress = int((i / total_links) * 100)
+                        self.progress_queue.put(progress)
+                        self.log_message(f"Processing link {i+1}/{total_links}: {link}")
+                        driver.get(link)
+                        WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located((By.TAG_NAME, "body"))
+                        )
+                        page_source = driver.page_source
+                        page_soup = BeautifulSoup(page_source, 'html.parser')
+                        dataset_info = self.advanced_extract(page_soup, link)
+                        if dataset_info:
+                            results.append(dataset_info)
                             processed_count += 1
-                    
-                    # Update progress
-                    progress = int(10 + (i + 1) / total_links * 90)  # 10-100% for crawl
-                    progress_queue.put(progress)
-                    
-                    # Small delay to be respectful
-                    time.sleep(0.5)
-                    
-                except Exception as e:
-                    log_queue.put(f"ERROR processing {link}: {str(e)}")
-                    continue
+                            self.log_message(f"Extracted: {dataset_info.get('title', 'Unknown')}")
+                            if dataset_info.get('ml_classification'):
+                                for field, ml_data in dataset_info['ml_classification'].items():
+                                    if isinstance(ml_data, dict):
+                                        self.log_ml_classification(f"{field}: {ml_data.get('label', 'Unknown')} (confidence: {ml_data.get('confidence', 0):.2f})")
+                            if dataset_info.get('validation_results'):
+                                for validation_type, result in dataset_info['validation_results'].items():
+                                    status = "✅" if result.get('valid') else "❌"
+                                    self.log_validation(f"{validation_type}: {status} {result.get('errors', [])}")
+                        time.sleep(1)
+                        break  # Success, break retry loop
+                    except Exception as e:
+                        retry_count += 1
+                        delay = 2 ** retry_count
+                        self.log_error(f"Error processing {link} (attempt {retry_count}): {str(e)}. Retrying in {delay}s...")
+                        time.sleep(delay)
+                        if retry_count > max_retries:
+                            self.error_tracker['total_errors'] += 1
+                            self.error_tracker['error_categories'][type(e).__name__] += 1
+                            break
+
             driver.quit()
             
-            # Log error summary
-            self.log_error_summary()
+            # Save results
+            if results:
+                self.save_results(results)
+                self.log_message(f"Crawling completed! Processed {processed_count} datasets successfully.")
+                self.status.setText(f"Crawl completed - {processed_count} datasets extracted")
+            else:
+                self.log_message("No datasets were successfully extracted.")
+                self.status.setText("Crawl completed - No data extracted")
             
-            log_queue.put(f"[DONE] Crawling complete! Processed {processed_count} datasets.")
-            log_queue.put(f"Data saved to: {self.output_dir}")
-            if self.download_thumbs.isChecked():
-                log_queue.put(f"Thumbnails saved to: {self.images_dir}")
+            # Log error summary
+            if self.error_tracker['total_errors'] > 0:
+                self.log_error_summary()
             
         except Exception as e:
-            log_queue.put(f"[ERROR] Crawling failed: {str(e)}")
-            # Log error summary even on failure
-            self.log_error_summary()
+            error_msg = f"Crawling error: {str(e)}"
+            self.log_error(error_msg)
+            self.status.setText("Crawl failed")
+        finally:
+            # Reset UI state
+            self.progress_queue.put(100)
+            self.crawl_finished()
 
-    def extract_dataset_info(self, soup, url):
-        """Extract dataset information from a page"""
-        data = {
-            'url': url,
-            'title': None,
-            'description': None,
-            'thumbnail_url': None,
-            'metadata': {},
-            'tags': [],
-            'provider': None
+    def advanced_extract(self, soup, url):
+        """Advanced extraction with ML classification and validation."""
+        result = {
+            'title': '', 'provider': '', 'tags': [], 'date_range': '', 'description': '',
+            'bands': [], 'terms_of_use': '', 'snippet': '', 'spatial_coverage': '',
+            'temporal_coverage': '', 'citation': '', 'type': '', 'region': '', 'source_url': url,
+            'extraction_report': {}, 'confidence': {}, 'ml_classification': {}, 'validation_results': {}
         }
         
-        # Extract title
-        title_elem = soup.find('h1') or soup.find('title')
+        # Extract basic information
+        result = self.extract_basic_info(soup, result)
+        
+        # Apply ML classification
+        if hasattr(self, 'use_ml_classification') and self.use_ml_classification.isChecked():
+            result = self.apply_ml_classification(soup, result)
+        
+        # Apply validation
+        if hasattr(self, 'use_validation') and self.use_validation.isChecked():
+            result = self.apply_validation(result)
+        
+        # Apply ensemble methods
+        if hasattr(self, 'use_ensemble') and self.use_ensemble.isChecked():
+            result = self.apply_ensemble_methods(result)
+        
+        return result
+
+    def extract_basic_info(self, soup, result):
+        """Extract basic dataset information."""
+        # Title
+        title_elem = soup.find(['h1', 'title'])
         if title_elem:
-            data['title'] = title_elem.get_text(strip=True)
+            result['title'] = title_elem.get_text(strip=True)
+            result['confidence']['title'] = 1.0
+        else:
+            meta_title = soup.find('meta', attrs={'property': 'og:title'})
+            if meta_title and meta_title.get('content'):
+                result['title'] = meta_title['content']
+                result['confidence']['title'] = 0.9
         
-        # Extract description
-        desc_elem = soup.find('div', class_='devsite-article-body') or soup.find('p')
+        # Description
+        desc_elem = soup.find('div', class_=re.compile(r'description|body|content|summary', re.IGNORECASE))
         if desc_elem:
-            data['description'] = desc_elem.get_text(strip=True)
+            result['description'] = desc_elem.get_text(strip=True)[:500] + "..."
+            result['confidence']['description'] = 1.0
+        else:
+            meta_desc = soup.find('meta', attrs={'name': 'description'})
+            if meta_desc and meta_desc.get('content'):
+                result['description'] = meta_desc['content']
+                result['confidence']['description'] = 0.8
         
-        # Extract thumbnail
-        img_elem = soup.find('img')
-        if img_elem and img_elem.get('src'):
-            src = img_elem['src']
-            if not src.startswith('http'):
-                src = urljoin(url, src)
-            data['thumbnail_url'] = src
+        # Tags
+        tags = set()
+        tag_elems = soup.find_all(['span', 'div', 'a'], class_=re.compile(r'tag|chip|label|badge', re.IGNORECASE))
+        for elem in tag_elems:
+            tags.update([t.strip().title() for t in elem.get_text().split(',') if t.strip()])
+        result['tags'] = list(tags)
+        if result['tags']:
+            result['confidence']['tags'] = 0.9
         
-        # Extract metadata from tables
-        tables = soup.find_all('table')
-        for table in tables:
-            rows = table.find_all('tr')
-            for row in rows:
-                cols = row.find_all(['td', 'th'])
-                if len(cols) >= 2:
-                    key = cols[0].get_text(strip=True)
-                    value = cols[1].get_text(strip=True)
-                    if key and value:
-                        data['metadata'][key] = value
+        # Provider
+        provider_patterns = [r'Provider[:\s]+([^\n]+)', r'Source[:\s]+([^\n]+)', r'Organization[:\s]+([^\n]+)']
+        for pattern in provider_patterns:
+            match = re.search(pattern, soup.get_text(), re.IGNORECASE)
+            if match:
+                result['provider'] = match.group(1).strip()
+                result['confidence']['provider'] = 0.8
+                break
         
-        # Extract tags/chips
-        chips = soup.find_all('span', class_='devsite-chip-label')
-        data['tags'] = [chip.get_text(strip=True) for chip in chips if chip.get_text(strip=True)]
-        
-        # Extract provider
-        provider_elem = soup.find('a', class_='devsite-link')
-        if provider_elem:
-            data['provider'] = provider_elem.get_text(strip=True)
-        
-        return data
+        return result
 
-    def download_image(self, url):
-        """Download an image and return the local path"""
-        if not url:
-            return None
+    def apply_ml_classification(self, soup, result):
+        """Apply ML classification to extracted data."""
+        ml_results = {}
         
-        try:
-            parsed = urlparse(url)
-            filename = os.path.basename(parsed.path)
-            if not filename or '.' not in filename:
-                filename = f"thumb_{int(time.time())}.jpg"
-            
-            filepath = os.path.join(self.images_dir, filename)
-            
-            headers = {"User-Agent": "Mozilla/5.0 (compatible; EarthEngineCrawler/1.0)"}
-            response = requests.get(url, headers=headers, stream=True, timeout=10)
-            response.raise_for_status()
-            
-            with open(filepath, 'wb') as f:
-                for chunk in response.iter_content(8192):
-                    f.write(chunk)
-            
-            return filepath
-            
-        except Exception as e:
-            self.log_queue.put(f"Failed to download image {url}: {str(e)}")
-            return None
-
-    def ensemble_ml_classify(self, text, expected_types=None):
-        """Advanced ensemble classification using multiple ML models."""
-        if not text or not isinstance(text, str):
-            return None, 0.0, None
-        
-        results = []
-        weights = []
-        
-        # 1. spaCy NER classification
+        # spaCy NER
         if self.nlp:
-            try:
-                doc = self.nlp(text)
-                if doc.ents:
-                    ent = doc.ents[0]
-                    results.append(ent.label_)
-                    weights.append(0.4)  # spaCy weight
-            except Exception as e:
-                pass
+            text = soup.get_text()[:1000]  # Limit text length
+            doc = self.nlp(text)
+            
+            # Extract entities
+            entities = {}
+            for ent in doc.ents:
+                if ent.label_ not in entities:
+                    entities[ent.label_] = []
+                entities[ent.label_].append(ent.text)
+            
+            ml_results['spacy_entities'] = entities
+            
+            # Classify title if available
+            if result['title']:
+                title_doc = self.nlp(result['title'])
+                title_entities = [(ent.text, ent.label_) for ent in title_doc.ents]
+                ml_results['title_entities'] = title_entities
         
-        # 2. BERT classification
+        # BERT classification
         if self.bert_classifier:
             try:
-                bert_result = self.bert_classifier(text[:512])  # BERT has token limit
-                if bert_result:
-                    results.append(bert_result[0]['label'])
-                    weights.append(0.4)  # BERT weight
+                if result['title']:
+                    bert_result = self.bert_classifier(result['title'])
+                    ml_results['bert_classification'] = bert_result
             except Exception as e:
-                pass
+                self.log_error(f"BERT classification error: {e}")
         
-        # 3. Rule-based classification
-        rule_label = self.rule_based_classify(text)
-        if rule_label:
-            results.append(rule_label)
-            weights.append(0.2)  # Rule-based weight
-        
-        # Ensemble decision
-        if results:
-            # Simple weighted voting
-            label_counts = {}
-            for i, label in enumerate(results):
-                if label in label_counts:
-                    label_counts[label] += weights[i]
-                else:
-                    label_counts[label] = weights[i]
-            
-            best_label = max(label_counts, key=label_counts.get)
-            confidence = label_counts[best_label] / sum(weights)
-            
-            # Filter by expected types if provided
-            if expected_types and best_label not in expected_types:
-                # Find best matching expected type
-                for label in results:
-                    if label in expected_types:
-                        best_label = label
-                        break
-            
-            return best_label, confidence, text
-        
-        return None, 0.0, None
+        # Fallback keyword extraction if spaCy/BERT unavailable
+        if not self.nlp and not self.bert_classifier:
+            text = soup.get_text()[:1000]
+            keywords = set(re.findall(r'\b[A-Za-z]{5,}\b', text))
+            ml_results['keywords'] = list(keywords)[:20]
 
-    def rule_based_classify(self, text):
-        """Rule-based classification using patterns and keywords."""
-        text_lower = text.lower()
-        
-        # Date patterns
-        if re.search(r'\d{4}-\d{2}-\d{2}', text):
-            return 'DATE'
-        
-        # Organization patterns
-        org_keywords = ['inc', 'corp', 'ltd', 'university', 'institute', 'agency', 'organization']
-        if any(keyword in text_lower for keyword in org_keywords):
-            return 'ORG'
-        
-        # Location patterns
-        loc_keywords = ['country', 'region', 'area', 'continent', 'ocean', 'sea']
-        if any(keyword in text_lower for keyword in loc_keywords):
-            return 'GPE'
-        
-        # Product patterns
-        product_keywords = ['satellite', 'sensor', 'instrument', 'band', 'collection']
-        if any(keyword in text_lower for keyword in product_keywords):
-            return 'PRODUCT'
-        
-        return None
+        result['ml_classification'] = ml_results
+        return result
 
-    def validate_and_enrich_data(self, extracted_data):
-        """Advanced validation and enrichment of extracted data."""
-        enriched_data = extracted_data.copy()
+    def apply_validation(self, result):
+        """Apply data validation."""
         validation_results = {}
         
-        # Geospatial validation
-        if self.validation_config.get('geospatial', False):
-            spatial_validation = self.validate_spatial_data(extracted_data)
-            validation_results['spatial'] = spatial_validation
-            if spatial_validation.get('enriched'):
-                enriched_data.update(spatial_validation['enriched'])
+        # Spatial validation
+        if self.geocoder:
+            spatial_result = self.validate_spatial_data(result)
+            validation_results['spatial'] = spatial_result
         
         # Temporal validation
-        if self.validation_config.get('temporal', False):
-            temporal_validation = self.validate_temporal_data(extracted_data)
-            validation_results['temporal'] = temporal_validation
-            if temporal_validation.get('enriched'):
-                enriched_data.update(temporal_validation['enriched'])
+        temporal_result = self.validate_temporal_data(result)
+        validation_results['temporal'] = temporal_result
         
-        # API cross-referencing
-        if self.validation_config.get('cross_reference_apis'):
-            api_validation = self.cross_reference_apis(extracted_data)
-            validation_results['api_cross_reference'] = api_validation
-            if api_validation.get('enriched'):
-                enriched_data.update(api_validation['enriched'])
+        # Data quality validation
+        quality_result = self.validate_data_quality(result)
+        validation_results['quality'] = quality_result
         
-        # Data quality scoring
-        quality_score = self.calculate_data_quality_score(extracted_data, validation_results)
-        enriched_data['data_quality_score'] = quality_score
-        enriched_data['validation_results'] = validation_results
+        result['validation_results'] = validation_results
+        return result
+
+    def apply_ensemble_methods(self, result):
+        """Apply ensemble ML methods."""
+        if self.tfidf_vectorizer and result['title']:
+            try:
+                # TF-IDF analysis
+                tfidf_result = self.tfidf_vectorizer.fit_transform([result['title']])
+                result['ensemble_features'] = {
+                    'tfidf_features': tfidf_result.shape[1],
+                    'text_length': len(result['title'])
+                }
+            except Exception as e:
+                self.log_error(f"Ensemble method error: {e}")
         
-        return enriched_data
+        return result
 
     def validate_spatial_data(self, data):
-        """Validate and enrich spatial coverage data."""
-        result = {'valid': False, 'enriched': {}, 'errors': []}
-        
-        spatial_text = data.get('spatial_coverage', '') or data.get('region', '')
-        if not spatial_text:
-            return result
+        """Validate spatial information."""
+        result = {'valid': False, 'errors': [], 'enriched': {}}
         
         try:
-            if self.geocoder:
-                # Try to geocode the spatial description
-                location = self.geocoder.geocode(spatial_text, timeout=10)
-                if location:
+            # Look for geographic references
+            text = data.get('title', '') + ' ' + data.get('description', '')
+            geographic_terms = ['global', 'worldwide', 'continental', 'regional', 'local']
+            
+            for term in geographic_terms:
+                if term.lower() in text.lower():
+                    result['enriched']['spatial_scope'] = term
                     result['valid'] = True
-                    result['enriched'] = {
-                        'latitude': location.latitude,
-                        'longitude': location.longitude,
-                        'normalized_location': location.address,
-                        'location_type': 'point'
-                    }
-                else:
-                    result['errors'].append(f"Could not geocode: {spatial_text}")
-        except (GeocoderTimedOut, GeocoderUnavailable) as e:
-            result['errors'].append(f"Geocoding service unavailable: {e}")
+                    break
+            
+            # Try geocoding if specific location mentioned
+            if self.geocoder:
+                # Look for country names, cities, etc.
+                location_patterns = [
+                    r'\b[A-Z][a-z]+(?:[-\s][A-Z][a-z]+)*\b',  # Capitalized words
+                ]
+                
+                for pattern in location_patterns:
+                    matches = re.findall(pattern, text)
+                    for match in matches:
+                        if len(match) > 3:  # Avoid short words
+                            try:
+                                location = self.geocoder.geocode(match, timeout=5)
+                                if location:
+                                    result['enriched']['geocoded_location'] = {
+                                        'name': match,
+                                        'coordinates': (location.latitude, location.longitude)
+                                    }
+                                    result['valid'] = True
+                                    break
+                            except:
+                                continue
+                
         except Exception as e:
-            result['errors'].append(f"Geospatial validation error: {e}")
+            result['errors'].append(f"Spatial validation error: {e}")
         
         return result
 
     def validate_temporal_data(self, data):
-        """Validate and enrich temporal coverage data."""
-        result = {'valid': False, 'enriched': {}, 'errors': []}
-        
-        temporal_text = data.get('temporal_coverage', '') or data.get('date_range', '')
-        if not temporal_text:
-            return result
+        """Validate temporal information."""
+        result = {'valid': False, 'errors': [], 'enriched': {}}
         
         try:
-            # Try to parse date ranges
+            text = data.get('title', '') + ' ' + data.get('description', '')
+            
+            # Look for date patterns
             date_patterns = [
-                r'(\d{4}-\d{2}-\d{2})\s*(?:to|-|–)\s*(\d{4}-\d{2}-\d{2})',
-                r'(\d{4})\s*(?:to|-|–)\s*(\d{4})',
-                r'(\d{4}-\d{2})\s*(?:to|-|–)\s*(\d{4}-\d{2})'
+                r'\b\d{4}-\d{2}-\d{2}\b',  # YYYY-MM-DD
+                r'\b\d{4}\b',  # Year
+                r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}\b',  # Month Year
             ]
             
             for pattern in date_patterns:
-                match = re.search(pattern, temporal_text)
-                if match:
-                    start_date = match.group(1)
-                    end_date = match.group(2)
-                    
-                    # Validate dates
-                    try:
-                        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
-                        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
-                        
-                        if start_dt <= end_dt:
-                            result['valid'] = True
-                            result['enriched'] = {
-                                'start_date': start_date,
-                                'end_date': end_date,
-                                'duration_days': (end_dt - start_dt).days,
-                                'is_current': end_dt >= datetime.now()
-                            }
-                        else:
-                            result['errors'].append("End date before start date")
-                    except ValueError as e:
-                        result['errors'].append(f"Invalid date format: {e}")
+                matches = re.findall(pattern, text, re.IGNORECASE)
+                if matches:
+                    result['enriched']['temporal_references'] = matches
+                    result['valid'] = True
                     break
-            else:
-                result['errors'].append("No valid date range pattern found")
+            
+            # Look for temporal keywords
+            temporal_keywords = ['historical', 'current', 'recent', 'archived', 'ongoing', 'continuous']
+            for keyword in temporal_keywords:
+                if keyword.lower() in text.lower():
+                    result['enriched']['temporal_keyword'] = keyword
+                    result['valid'] = True
+                    break
                 
+            # Fuzzy date parsing if dateparser is available
+            if dateparser:
+                fuzzy_dates = []
+                for match in re.findall(r'\b\d{4}-\d{2}-\d{2}\b|\b\d{4}\b', text):
+                    dt = dateparser.parse(match)
+                    if dt:
+                        fuzzy_dates.append(str(dt.date()))
+                if fuzzy_dates:
+                    result['enriched']['fuzzy_dates'] = fuzzy_dates
+                    result['valid'] = True
+
         except Exception as e:
             result['errors'].append(f"Temporal validation error: {e}")
         
         return result
 
-    def cross_reference_apis(self, data):
-        """Cross-reference data with external APIs (NASA, ESA, etc.)."""
-        result = {'valid': False, 'enriched': {}, 'errors': []}
+    def validate_data_quality(self, data):
+        """Validate overall data quality."""
+        result = {'valid': False, 'score': 0, 'errors': [], 'enriched': {}}
         
-        title = data.get('title', '')
-        provider = data.get('provider', '')
-        
-        # NASA API cross-reference
-        if 'NASA' in self.validation_config.get('cross_reference_apis', []):
-            nasa_result = self.query_nasa_api(title, provider)
-            if nasa_result:
-                result['enriched']['nasa_reference'] = nasa_result
-        
-        # ESA API cross-reference (placeholder)
-        if 'ESA' in self.validation_config.get('cross_reference_apis', []):
-            esa_result = self.query_esa_api(title, provider)
-            if esa_result:
-                result['enriched']['esa_reference'] = esa_result
-        
-        if result['enriched']:
-            result['valid'] = True
+        try:
+            score = 0
+            max_score = 100
+            
+            # Title quality
+            if data.get('title'):
+                score += 20
+                if len(data['title']) > 10:
+                    score += 10
+            
+            # Description quality
+            if data.get('description'):
+                score += 20
+                if len(data['description']) > 50:
+                    score += 10
+            
+            # Tags quality
+            if data.get('tags'):
+                score += 15
+                if len(data['tags']) > 2:
+                    score += 5
+            
+            # Provider quality
+            if data.get('provider'):
+                score += 10
+            
+            # ML classification quality
+            if data.get('ml_classification'):
+                score += 10
+            
+            result['score'] = min(score, max_score)
+            result['valid'] = score >= 50
+            result['enriched']['quality_score'] = score
+            
+        except Exception as e:
+            result['errors'].append(f"Quality validation error: {e}")
         
         return result
 
-    def query_nasa_api(self, title, provider):
-        """Query NASA API for dataset information."""
+    def save_results(self, results):
+        """Save crawling results to files."""
         try:
-            # NASA CMR (Common Metadata Repository) API
-            url = "https://cmr.earthdata.nasa.gov/search/collections.json"
-            params = {
-                'keyword': title,
-                'limit': 5
-            }
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             
-            response = requests.get(url, params=params, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('feed', {}).get('entry'):
-                    return {
-                        'found': True,
-                        'results_count': len(data['feed']['entry']),
-                        'first_result': data['feed']['entry'][0]
-                    }
-        except Exception as e:
-            pass
-        
-        return None
-
-    def query_esa_api(self, title, provider):
-        """Query ESA API for dataset information (placeholder)."""
-        # ESA API integration would go here
-        return None
-
-    def calculate_data_quality_score(self, data, validation_results):
-        """Calculate overall data quality score based on validation results."""
-        score = 0.0
-        max_score = 100.0
-        
-        # Base score from extraction confidence
-        confidence_scores = data.get('confidence', {}).values()
-        if confidence_scores:
-            avg_confidence = sum(confidence_scores) / len(confidence_scores)
-            score += avg_confidence * 40  # 40% weight for extraction confidence
-        
-        # Validation bonus
-        if validation_results.get('spatial', {}).get('valid'):
-            score += 20  # 20% bonus for valid spatial data
-        
-        if validation_results.get('temporal', {}).get('valid'):
-            score += 20  # 20% bonus for valid temporal data
-        
-        if validation_results.get('api_cross_reference', {}).get('valid'):
-            score += 20  # 20% bonus for API cross-reference
-        
-        # Penalty for validation errors
-        total_errors = 0
-        for validation in validation_results.values():
-            total_errors += len(validation.get('errors', []))
-        
-        score -= total_errors * 5  # 5 points penalty per error
-        
-        return max(0.0, min(100.0, score))
-
-    def intelligent_retry(self, func, *args, **kwargs):
-        """Intelligent retry mechanism with exponential backoff."""
-        for attempt in range(self.max_retries + 1):
+            # Create output directory
+            os.makedirs(self.output_dir, exist_ok=True)
+            
+            # Save as JSON
+            json_file = os.path.join(self.output_dir, f"enhanced_crawl_results_{timestamp}.json")
+            with open(json_file, 'w', encoding='utf-8') as f:
+                json.dump(results, f, indent=2, ensure_ascii=False)
+            
+            # Save individual files if requested
+            if hasattr(self, 'save_individual') and self.save_individual.isChecked():
+                for i, result in enumerate(results):
+                    individual_file = os.path.join(self.output_dir, f"dataset_{i+1}_{timestamp}.json")
+                    with open(individual_file, 'w', encoding='utf-8') as f:
+                        json.dump(result, f, indent=2, ensure_ascii=False)
+            
+            # CSV export
             try:
-                return func(*args, **kwargs)
+                csv_file = os.path.join(self.output_dir, f"enhanced_crawl_results_{timestamp}.csv")
+                with open(csv_file, 'w', encoding='utf-8', newline='') as f:
+                    if results:
+                        fieldnames = list(results[0].keys())
+                        writer = csv.DictWriter(f, fieldnames=fieldnames)
+                        writer.writeheader()
+                        for row in results:
+                            writer.writerow(row)
+                self.log_message(f"Results also saved to: {csv_file}")
             except Exception as e:
-                error_type = type(e).__name__
-                self.error_tracker['total_errors'] += 1
-                self.error_tracker['error_categories'][error_type] += 1
-                
-                if attempt < self.max_retries:
-                    self.error_tracker['retry_attempts'] += 1
-                    delay = self.retry_delay * (2 ** attempt)  # Exponential backoff
-                    self.log_message(f"[RETRY] Attempt {attempt + 1}/{self.max_retries + 1} failed: {error_type}. Retrying in {delay}s...")
-                    time.sleep(delay)
-                else:
-                    self.log_message(f"[ERROR] All retry attempts failed: {error_type} - {str(e)}")
-                    raise e
-
-    def recover_partial_results(self, soup, link, error):
-        """Attempt to recover partial results when full extraction fails."""
-        self.log_message(f"[RECOVERY] Attempting partial result recovery for {link}")
-        
-        partial_result = {
-            'source_url': link,
-            'extraction_report': {'recovery': 'partial'},
-            'confidence': {'recovery': 0.3},
-            'ml_classification': {},
-            'recovery_error': str(error)
-        }
-        
-        # Try to extract at least title and URL
-        if soup:
-            try:
-                title_elem = soup.find(['h1', 'title'])
-                if title_elem:
-                    partial_result['title'] = title_elem.get_text(strip=True)
-                    partial_result['confidence']['title'] = 0.5
-            except:
-                pass
+                self.log_error(f"Error saving CSV: {e}")
             
-            # Try to extract any available metadata
-            try:
-                meta_tags = soup.find_all('meta')
-                for meta in meta_tags:
-                    if meta.get('name') == 'description' and meta.get('content'):
-                        partial_result['description'] = meta['content'][:200] + "..."
-                        partial_result['confidence']['description'] = 0.4
-                        break
-            except:
-                pass
-        
-        self.error_tracker['recovered_results'] += 1
-        return partial_result
-
-    def categorize_error(self, error):
-        """Categorize errors for better error handling and reporting."""
-        error_str = str(error).lower()
-        
-        if 'timeout' in error_str or 'timed out' in error_str:
-            return 'TIMEOUT'
-        elif 'connection' in error_str or 'network' in error_str:
-            return 'NETWORK'
-        elif 'not found' in error_str or '404' in error_str:
-            return 'NOT_FOUND'
-        elif 'permission' in error_str or '403' in error_str:
-            return 'PERMISSION'
-        elif 'geocoding' in error_str:
-            return 'GEOCODING'
-        elif 'ml' in error_str or 'model' in error_str:
-            return 'ML_MODEL'
-        elif 'validation' in error_str:
-            return 'VALIDATION'
-        else:
-            return 'UNKNOWN'
+            self.log_message(f"Results saved to: {json_file}")
+            
+            # Update dashboard
+            if self.dashboard:
+                try:
+                    for result in results:
+                        self.dashboard.add_data(result)
+                except Exception as e:
+                    self.log_error(f"Dashboard update error: {e}")
+            
+        except Exception as e:
+            self.log_error(f"Error saving results: {e}")
 
     def log_error_summary(self):
-        """Log a summary of all errors encountered during crawling."""
+        """Log a summary of all errors encountered."""
         if self.error_tracker['total_errors'] == 0:
-            self.log_message("[ERROR SUMMARY] No errors encountered!")
+            self.log_message("No errors encountered during crawling!")
             return
         
-        self.log_message(f"[ERROR SUMMARY] Total errors: {self.error_tracker['total_errors']}")
-        self.log_message(f"[ERROR SUMMARY] Retry attempts: {self.error_tracker['retry_attempts']}")
-        self.log_message(f"[ERROR SUMMARY] Recovered results: {self.error_tracker['recovered_results']}")
+        self.log_error(f"Error Summary:")
+        self.log_error(f"  Total errors: {self.error_tracker['total_errors']}")
+        self.log_error(f"  Retry attempts: {self.error_tracker['retry_attempts']}")
+        self.log_error(f"  Recovered results: {self.error_tracker['recovered_results']}")
         
-        self.log_message("[ERROR SUMMARY] Error categories:")
-        for category, count in self.error_tracker['error_categories'].items():
-            self.log_message(f"  - {category}: {count}")
+        if self.error_tracker['error_categories']:
+            self.log_error("  Error categories:")
+            for category, count in self.error_tracker['error_categories'].items():
+                self.log_error(f"    - {category}: {count}")
+
+    def crawl_finished(self):
+        """Handle crawl completion."""
+        # Reset UI state
+        self.crawl_btn.setEnabled(True)
+        self.stop_btn.setEnabled(False)
+        self.browse_btn.setEnabled(True)
+        self.timer.stop()
+        
+        # Update status indicators
+        self.update_status_indicators()
+
+        # Update summary tab
+        summary = f"Total datasets: {len(getattr(self, 'results', []))}\n"
+        summary += f"Total errors: {self.error_tracker['total_errors']}\n"
+        summary += f"Error categories: {dict(self.error_tracker['error_categories'])}\n"
+        self.summary_console.setPlainText(summary)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
