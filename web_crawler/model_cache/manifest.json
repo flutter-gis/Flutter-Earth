@@ -1,0 +1,10 @@
+{
+  "1513d3b3fb4b0a8f6ed430b1553214a9": {
+    "model_name": "en_core_web_sm",
+    "model_type": "ner",
+    "kwargs": {},
+    "size_mb": 15.51050090789795,
+    "created": "2025-07-15T10:32:21.761494",
+    "last_access": "2025-07-15T11:22:00.336649"
+  }
+}
