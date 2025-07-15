@@ -491,7 +491,7 @@ class EnhancedCrawlerUI(QWidget):
         self.summary_console.setReadOnly(True)
         self.summary_console.setStyleSheet("background: #222; color: #ffe066; font-family: Consolas; font-size: 12px;")
         self.tab_widget.addTab(self.summary_console, "Summary")
-
+        
         console_layout.addWidget(self.tab_widget)
         console_group.setLayout(console_layout)
         layout.addWidget(console_group, 1)
@@ -700,7 +700,7 @@ class EnhancedCrawlerUI(QWidget):
         
         # Start crawling in a separate thread
         self.crawl_thread = threading.Thread(
-            target=self.crawl_html_file,
+            target=self.crawl_html_file, 
             args=(file_path,),
             daemon=True
         )
@@ -748,14 +748,14 @@ class EnhancedCrawlerUI(QWidget):
                 if self.stop_requested:
                     break
                 
-                href = link.get('href')
+                    href = link.get('href')
                 if href and ('catalog' in href or 'datasets' in href):
                     # Convert relative URLs to absolute
-                    if href.startswith('/'):
-                        href = f"https://developers.google.com{href}"
-                    elif not href.startswith('http'):
-                        href = urljoin("https://developers.google.com/earth-engine/datasets/", href)
-                    dataset_links.append(href)
+                        if href.startswith('/'):
+                            href = f"https://developers.google.com{href}"
+                        elif not href.startswith('http'):
+                            href = urljoin("https://developers.google.com/earth-engine/datasets/", href)
+                        dataset_links.append(href)
             
             self.log_message(f"Found {len(dataset_links)} potential dataset links")
             
@@ -797,12 +797,12 @@ class EnhancedCrawlerUI(QWidget):
                 retry_count = 0
                 max_retries = 3
                 while retry_count <= max_retries:
-                    try:
+                try:
                         # Update progress
                         progress = int((i / total_links) * 100)
                         self.progress_queue.put(progress)
                         self.log_message(f"Processing link {i+1}/{total_links}: {link}")
-                        driver.get(link)
+                    driver.get(link)
                         WebDriverWait(driver, 10).until(
                             EC.presence_of_element_located((By.TAG_NAME, "body"))
                         )
@@ -834,7 +834,7 @@ class EnhancedCrawlerUI(QWidget):
                                 
                         time.sleep(1)
                         break  # Success, break retry loop
-                    except Exception as e:
+                except Exception as e:
                         retry_count += 1
                         delay = 2 ** retry_count
                         self.log_error(f"Error processing {link} (attempt {retry_count}): {str(e)}. Retrying in {delay}s...")
@@ -857,7 +857,7 @@ class EnhancedCrawlerUI(QWidget):
             
             # Log error summary
             if self.error_tracker['total_errors'] > 0:
-                self.log_error_summary()
+            self.log_error_summary()
             
         except Exception as e:
             error_msg = f"Crawling error: {str(e)}"
@@ -985,7 +985,7 @@ class EnhancedCrawlerUI(QWidget):
                             try:
                                 bert_result = self.bert_classifier(result['title'])
                                 result_queue.put(('success', bert_result))
-                            except Exception as e:
+            except Exception as e:
                                 result_queue.put(('error', str(e)))
                         
                         # Start BERT classification in separate thread
@@ -995,7 +995,7 @@ class EnhancedCrawlerUI(QWidget):
                         
                         if bert_thread.is_alive():
                             self.log_error("BERT classification timed out - skipping")
-                        else:
+                else:
                             status, bert_result = result_queue.get_nowait()
                             if status == 'success':
                                 ml_results['bert_classification'] = bert_result
@@ -1039,8 +1039,8 @@ class EnhancedCrawlerUI(QWidget):
         validation_results['quality'] = quality_result
         
         result['validation_results'] = validation_results
-        return result
-
+            return result
+        
     def apply_ensemble_methods(self, result):
         """Apply ensemble ML methods."""
         if self.tfidf_vectorizer and result['title']:
@@ -1057,7 +1057,7 @@ class EnhancedCrawlerUI(QWidget):
                         'tfidf_features': 0,
                         'text_length': len(result['title'])
                     }
-            except Exception as e:
+        except Exception as e:
                 self.log_error(f"Ensemble method error: {e}")
         
         return result
@@ -1096,7 +1096,7 @@ class EnhancedCrawlerUI(QWidget):
                                         'coordinates': (location.latitude, location.longitude)
                                     }
                                     result['valid'] = True
-                                    break
+                    break
                             except:
                                 continue
                 
@@ -1131,7 +1131,7 @@ class EnhancedCrawlerUI(QWidget):
             for keyword in temporal_keywords:
                 if keyword.lower() in text.lower():
                     result['enriched']['temporal_keyword'] = keyword
-                    result['valid'] = True
+            result['valid'] = True
                     break
                 
             # Fuzzy date parsing if dateparser is available
@@ -1253,7 +1253,7 @@ class EnhancedCrawlerUI(QWidget):
         
         if self.error_tracker['error_categories']:
             self.log_error("  Error categories:")
-            for category, count in self.error_tracker['error_categories'].items():
+        for category, count in self.error_tracker['error_categories'].items():
                 self.log_error(f"    - {category}: {count}")
 
     def crawl_finished(self):
