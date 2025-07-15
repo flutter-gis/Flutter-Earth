@@ -1,0 +1,122 @@
+{
+  "title": "NOAA AVHRR Pathfinder Version 5.3 Collated Global 4km Sea Surface Temperature  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "NOAA",
+  "tags": [
+    "Oceans",
+    "Sst",
+    "Sea-Ice",
+    "Medium",
+    "Wind",
+    "Gis Stack Exchange",
+    "Videos",
+    "Twitter",
+    "Temperature",
+    "Noaa",
+    "Avhrr\nNoaa\nOceans\nSst\nTemperature\nWind\nPathfinder\nSea-Ice",
+    "Pathfinder",
+    "Avhrr",
+    "Github"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/catalog/NOAA_CDR_SST_PATHFINDER_V53",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "PERSON": [
+        "NOAA"
+      ],
+      "CARDINAL": [
+        "5.3"
+      ],
+      "ORG": [
+        "Earth Engine Data Catalog",
+        "Google for Developers\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n      \n      Skip",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ]
+    },
+    "title_entities": [
+      [
+        "NOAA",
+        "ORG"
+      ],
+      [
+        "5.3",
+        "CARDINAL"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ],
+    "bert_classification": [
+      {
+        "label": "LABEL_1",
+        "score": 0.539615273475647
+      }
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "spatial_scope": "global",
+        "geocoded_location": {
+          "name": "Google",
+          "coordinates": [
+            42.35092,
+            -71.0783603
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 16,
+    "text_length": 133
+  }
+}

@@ -241,28 +241,26 @@ class EnhancedCrawlerUI(QWidget):
         self.images_dir = "thumbnails"
         os.makedirs(self.output_dir, exist_ok=True)
         os.makedirs(self.images_dir, exist_ok=True)
-        # Load spaCy model for ML/NLP-based classification
+        
+        # Initialize ML models as None - will be loaded asynchronously
         self.nlp = None
+        self.bert_classifier = None
+        self.tfidf_vectorizer = None
+        self.bert_tokenizer = None
+        self.bert_model = None
+        
+        # Load spaCy model for ML/NLP-based classification (lightweight, can load immediately)
         if spacy:
             try:
                 self.nlp = spacy.load("en_core_web_sm")
                 print("spaCy model loaded successfully")
             except Exception as e:
                 print(f"spaCy model not loaded: {e}")
-        # Load advanced ML models for ensemble classification
-        self.bert_classifier = None
-        self.tfidf_vectorizer = None
-        if transformers:
-            try:
-                # Load BERT model for text classification
-                self.bert_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-                self.bert_model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased")
-                self.bert_classifier = pipeline("text-classification", model=self.bert_model, tokenizer=self.bert_tokenizer)
-                # Initialize TF-IDF vectorizer for traditional ML
-                self.tfidf_vectorizer = TfidfVectorizer(max_features=1000, stop_words='english')
-                print("Advanced ML models loaded successfully.")
-            except Exception as e:
-                print(f"Advanced ML models not loaded: {e}")
+        
+        # Load advanced ML models asynchronously to prevent UI freezing
+        self.ml_loading_thread = threading.Thread(target=self.load_ml_models_async, daemon=True)
+        self.ml_loading_thread.start()
+        
         # Load config and plugins
         self.config = None
         self.plugins = {}
@@ -273,6 +271,7 @@ class EnhancedCrawlerUI(QWidget):
                 print("Config and plugins loaded.")
         except Exception as e:
             print(f"Config/plugins not loaded: {e}")
+        
         # Initialize validation components
         self.geocoder = None
         if geopy:
@@ -281,8 +280,10 @@ class EnhancedCrawlerUI(QWidget):
                 print("Geocoder initialized successfully")
             except Exception as e:
                 print(f"Geocoder not initialized: {e}")
+        
         # Validation settings from config
         self.validation_config = self.config.get('validation', {}) if self.config else {}
+        
         # Initialize analytics dashboard
         self.dashboard = None
         if dash:
@@ -292,6 +293,7 @@ class EnhancedCrawlerUI(QWidget):
                 print("Analytics dashboard started on http://127.0.0.1:8080")
             except Exception as e:
                 print(f"Analytics dashboard not started: {e}")
+        
         # Initialize OCR capabilities
         self.ocr_available = pytesseract is not None
         
@@ -304,8 +306,52 @@ class EnhancedCrawlerUI(QWidget):
         }
         self.max_retries = 3
         self.retry_delay = 2  # seconds
+        
+        # ML loading status
+        self.ml_models_loaded = False
+        self.ml_loading_failed = False
+        
         # Now safe to call status indicators
         self.update_status_indicators()
+        
+        # Start timer to check ML model loading status
+        self.ml_check_timer = QTimer()
+        self.ml_check_timer.timeout.connect(self.check_ml_loading_status)
+        self.ml_check_timer.start(1000)  # Check every second
+
+    def load_ml_models_async(self):
+        """Load ML models in background thread to prevent UI freezing"""
+        try:
+            if transformers:
+                print("Loading BERT model in background...")
+                # Load BERT model for text classification
+                self.bert_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+                self.bert_model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased")
+                self.bert_classifier = pipeline("text-classification", model=self.bert_model, tokenizer=self.bert_tokenizer)
+                
+                # Initialize TF-IDF vectorizer for traditional ML
+                if sklearn:
+                    self.tfidf_vectorizer = TfidfVectorizer(max_features=1000, stop_words='english')
+                
+                print("Advanced ML models loaded successfully in background.")
+                self.ml_models_loaded = True
+            else:
+                print("Transformers not available - skipping BERT model loading")
+                self.ml_models_loaded = True  # Mark as complete even if not available
+        except Exception as e:
+            print(f"Advanced ML models failed to load in background: {e}")
+            self.ml_loading_failed = True
+            self.ml_models_loaded = True  # Mark as complete to stop checking
+
+    def check_ml_loading_status(self):
+        """Check if ML models have finished loading and update UI"""
+        if self.ml_models_loaded:
+            self.ml_check_timer.stop()
+            self.update_status_indicators()
+            if self.ml_loading_failed:
+                print("⚠ ML models failed to load - advanced features will be limited")
+            else:
+                print("✓ All ML models loaded successfully")
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -494,6 +540,12 @@ class EnhancedCrawlerUI(QWidget):
         if self.bert_classifier:
             self.bert_status.setText("BERT: ✅")
             self.bert_status.setStyleSheet("padding: 5px; border: 1px solid #27ae60; border-radius: 3px; color: #27ae60;")
+        elif not self.ml_models_loaded:
+            self.bert_status.setText("BERT: ⏳")
+            self.bert_status.setStyleSheet("padding: 5px; border: 1px solid #f39c12; border-radius: 3px; color: #f39c12;")
+        elif self.ml_loading_failed:
+            self.bert_status.setText("BERT: ❌")
+            self.bert_status.setStyleSheet("padding: 5px; border: 1px solid #e74c3c; border-radius: 3px; color: #e74c3c;")
         else:
             self.bert_status.setText("BERT: ❌")
             self.bert_status.setStyleSheet("padding: 5px; border: 1px solid #e74c3c; border-radius: 3px; color: #e74c3c;")
@@ -734,6 +786,10 @@ class EnhancedCrawlerUI(QWidget):
             total_links = len(dataset_links)
             results = []
             
+            # Memory management settings
+            max_memory_items = 50  # Save in smaller batches
+            batch_count = 0
+            
             for i, link in enumerate(dataset_links):
                 if self.stop_requested:
                     self.log_message("Crawling stopped by user")
@@ -756,6 +812,7 @@ class EnhancedCrawlerUI(QWidget):
                         if dataset_info:
                             results.append(dataset_info)
                             processed_count += 1
+                            batch_count += 1
                             self.log_message(f"Extracted: {dataset_info.get('title', 'Unknown')}")
                             if dataset_info.get('ml_classification'):
                                 for field, ml_data in dataset_info['ml_classification'].items():
@@ -765,6 +822,16 @@ class EnhancedCrawlerUI(QWidget):
                                 for validation_type, result in dataset_info['validation_results'].items():
                                     status = "✅" if result.get('valid') else "❌"
                                     self.log_validation(f"{validation_type}: {status} {result.get('errors', [])}")
+                            
+                            # Memory management: save batch and clear memory
+                            if batch_count >= max_memory_items:
+                                self.log_message(f"Memory management: Saving batch of {batch_count} items...")
+                                self.save_results(results)
+                                # Clear memory
+                                import gc
+                                gc.collect()
+                                batch_count = 0
+                                
                         time.sleep(1)
                         break  # Success, break retry loop
                     except Exception as e:
@@ -796,6 +863,14 @@ class EnhancedCrawlerUI(QWidget):
             error_msg = f"Crawling error: {str(e)}"
             self.log_error(error_msg)
             self.status.setText("Crawl failed")
+            
+            # Try to save any partial results
+            if results:
+                try:
+                    self.log_message("Attempting to save partial results...")
+                    self.save_results(results)
+                except Exception as save_error:
+                    self.log_error(f"Failed to save partial results: {save_error}")
         finally:
             # Reset UI state
             self.progress_queue.put(100)
@@ -875,40 +950,73 @@ class EnhancedCrawlerUI(QWidget):
         """Apply ML classification to extracted data."""
         ml_results = {}
         
-        # spaCy NER
-        if self.nlp:
-            text = soup.get_text()[:1000]  # Limit text length
-            doc = self.nlp(text)
-            
-            # Extract entities
-            entities = {}
-            for ent in doc.ents:
-                if ent.label_ not in entities:
-                    entities[ent.label_] = []
-                entities[ent.label_].append(ent.text)
-            
-            ml_results['spacy_entities'] = entities
-            
-            # Classify title if available
-            if result['title']:
-                title_doc = self.nlp(result['title'])
-                title_entities = [(ent.text, ent.label_) for ent in title_doc.ents]
-                ml_results['title_entities'] = title_entities
-        
-        # BERT classification
-        if self.bert_classifier:
-            try:
+        try:
+            # spaCy NER
+            if self.nlp:
+                text = soup.get_text()[:1000]  # Limit text length
+                doc = self.nlp(text)
+                
+                # Extract entities
+                entities = {}
+                for ent in doc.ents:
+                    if ent.label_ not in entities:
+                        entities[ent.label_] = []
+                    entities[ent.label_].append(ent.text)
+                
+                ml_results['spacy_entities'] = entities
+                
+                # Classify title if available
                 if result['title']:
-                    bert_result = self.bert_classifier(result['title'])
-                    ml_results['bert_classification'] = bert_result
-            except Exception as e:
-                self.log_error(f"BERT classification error: {e}")
-        
-        # Fallback keyword extraction if spaCy/BERT unavailable
-        if not self.nlp and not self.bert_classifier:
-            text = soup.get_text()[:1000]
-            keywords = set(re.findall(r'\b[A-Za-z]{5,}\b', text))
-            ml_results['keywords'] = list(keywords)[:20]
+                    title_doc = self.nlp(result['title'])
+                    title_entities = [(ent.text, ent.label_) for ent in title_doc.ents]
+                    ml_results['title_entities'] = title_entities
+            
+            # BERT classification with timeout
+            if self.bert_classifier:
+                try:
+                    if result['title']:
+                        # Use threading with timeout to prevent hanging
+                        import threading
+                        import queue
+                        
+                        result_queue = queue.Queue()
+                        
+                        def bert_classify():
+                            try:
+                                bert_result = self.bert_classifier(result['title'])
+                                result_queue.put(('success', bert_result))
+                            except Exception as e:
+                                result_queue.put(('error', str(e)))
+                        
+                        # Start BERT classification in separate thread
+                        bert_thread = threading.Thread(target=bert_classify, daemon=True)
+                        bert_thread.start()
+                        bert_thread.join(timeout=5)  # 5 second timeout
+                        
+                        if bert_thread.is_alive():
+                            self.log_error("BERT classification timed out - skipping")
+                        else:
+                            status, bert_result = result_queue.get_nowait()
+                            if status == 'success':
+                                ml_results['bert_classification'] = bert_result
+                            else:
+                                self.log_error(f"BERT classification error: {bert_result}")
+                            
+                except Exception as e:
+                    self.log_error(f"BERT classification error: {e}")
+            
+            # Fallback keyword extraction if spaCy/BERT unavailable
+            if not self.nlp and not self.bert_classifier:
+                text = soup.get_text()[:1000]
+                keywords = set(re.findall(r'\b[A-Za-z]{5,}\b', text))
+                ml_results['keywords'] = list(keywords)[:20]
+
+        except Exception as e:
+            self.log_error(f"ML classification failed: {e}")
+            # Provide fallback
+            text = soup.get_text()[:500]
+            keywords = set(re.findall(r'\b[A-Za-z]{4,}\b', text))
+            ml_results['fallback_keywords'] = list(keywords)[:10]
 
         result['ml_classification'] = ml_results
         return result

@@ -1,0 +1,112 @@
+{
+  "title": "MERIT Hydro: Supplementary Visualization Layers  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "Dai Yamazaki (University of Tokyo)",
+  "tags": [
+    "Merit",
+    "Dem",
+    "Hydrosheds",
+    "Medium",
+    "Dem\nElevation\nFlow-Direction\nHand\nHydrography\nHydrosheds\nMerit\nRiver-Width\nSurface-Ground-Water\nUpstream-Drainage-Area",
+    "Hydrography",
+    "Gis Stack Exchange",
+    "Videos",
+    "Elevation",
+    "Twitter",
+    "Upstream-Drainage-Area",
+    "River-Width",
+    "Flow-Direction",
+    "Hand",
+    "Surface-Ground-Water",
+    "Github"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/catalog/MERIT_Hydro_reduced_v1_0_1",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "ORG": [
+        "Earth Engine Data Catalog",
+        "Google for Developers\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n      \n      Skip",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ],
+      "PERSON": [
+        "Landsat\n   \n\n\n\n\n\n\n\n      MODIS"
+      ]
+    },
+    "title_entities": [
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ],
+    "bert_classification": [
+      {
+        "label": "LABEL_1",
+        "score": 0.5173935890197754
+      }
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "geocoded_location": {
+          "name": "Hydro",
+          "coordinates": [
+            55.8601411,
+            -4.2852072
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 11,
+    "text_length": 103
+  }
+}

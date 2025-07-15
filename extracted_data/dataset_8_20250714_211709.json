@@ -1,0 +1,109 @@
+{
+  "title": "WAPOR Daily Reference Evapotranspiration 3.0  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "FAO UN",
+  "tags": [
+    "Gis Stack Exchange",
+    "Medium",
+    "Water",
+    "Videos",
+    "Agriculture\nFao\nWapor\nWater\nWater-Vapor",
+    "Twitter",
+    "Wapor",
+    "Water-Vapor",
+    "Fao",
+    "Agriculture",
+    "Github"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/catalog/FAO_WAPOR_3_L1_RET-E",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "ORG": [
+        "WAPOR Daily Reference Evapotranspiration",
+        "Earth Engine Data Catalog",
+        "Google for Developers\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n      \n      Skip",
+        "Deutsch\n\n\nEspañol\n\n\nFrançais"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ],
+      "PERSON": [
+        "Landsat\n   \n\n\n\n\n\n\n\n      MODIS\n   \n\n\n\n\n\n      "
+      ]
+    },
+    "title_entities": [
+      [
+        "WAPOR Daily Reference Evapotranspiration",
+        "ORG"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ],
+    "bert_classification": [
+      {
+        "label": "LABEL_1",
+        "score": 0.5324087738990784
+      }
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "geocoded_location": {
+          "name": "Google",
+          "coordinates": [
+            42.35092,
+            -71.0783603
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 10,
+    "text_length": 100
+  }
+}

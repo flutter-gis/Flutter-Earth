@@ -1,0 +1,136 @@
+{
+  "title": "Datasets tagged vegetation-indices in Earth Engine  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "",
+  "tags": [
+    "Vegetation",
+    "Viirs",
+    "Ndvi",
+    "Twitter",
+    "Lai",
+    "16-Day",
+    "Daily",
+    "Global",
+    "Brightness",
+    "Vegetation-Indices",
+    "Gcom-C",
+    "Nasa",
+    "Github",
+    "Gis Stack Exchange",
+    "Tcb",
+    "Map",
+    "Modis",
+    "Gcom",
+    "Aqua",
+    "Land",
+    "Jaxa",
+    "Medium",
+    "Tasseled-Cap",
+    "Oxford",
+    "Evi",
+    "Noaa",
+    "Avhrr",
+    "Npp",
+    "Usgs",
+    "Cdr",
+    "Videos",
+    "Surface",
+    "G-Portal",
+    "Terra",
+    "Monthly"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/tags/vegetation-indices",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "LOC": [
+        "Earth Engine"
+      ],
+      "ORG": [
+        "Earth Engine Data Catalog",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ],
+      "PERSON": [
+        "Landsat\n   \n\n\n\n\n\n\n\n      MODIS"
+      ]
+    },
+    "title_entities": [
+      [
+        "Earth Engine",
+        "LOC"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ],
+    "bert_classification": [
+      {
+        "label": "LABEL_1",
+        "score": 0.5512925386428833
+      }
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "geocoded_location": {
+          "name": "Google",
+          "coordinates": [
+            42.35092,
+            -71.0783603
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 80,
+      "errors": [],
+      "enriched": {
+        "quality_score": 80
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 10,
+    "text_length": 106
+  }
+}

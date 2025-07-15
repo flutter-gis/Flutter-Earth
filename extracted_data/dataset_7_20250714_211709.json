@@ -1,0 +1,126 @@
+{
+  "title": "SPL4SMGP.007 SMAP L4 Global 3-hourly 9-km Surface and Root Zone Soil Moisture  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "Google and NSIDC",
+  "tags": [
+    "Gis Stack Exchange",
+    "Medium",
+    "Videos",
+    "Twitter",
+    "Weather",
+    "Smap",
+    "Soil-Moisture",
+    "Drought",
+    "Surface",
+    "Soil",
+    "Github",
+    "Drought\nNasa\nSmap\nSoil\nSoil-Moisture\nSurface\nWeather",
+    "Nasa"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/catalog/NASA_SMAP_SPL4SMGP_007",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "QUANTITY": [
+        "9-km"
+      ],
+      "LOC": [
+        "Surface"
+      ],
+      "PERSON": [
+        "Root Zone Soil Moisture",
+        "Landsat\n   \n\n\n\n\n\n\n\n      MODIS\n   \n\n\n\n\n\n      "
+      ],
+      "ORG": [
+        "Earth Engine Data Catalog",
+        "Google for Developers\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n      \n      Skip",
+        "Deutsch\n\n\nEspañol\n\n\nFrançais"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n    Categories\n  \n    \n\n\n    All"
+      ]
+    },
+    "title_entities": [
+      [
+        "9-km",
+        "QUANTITY"
+      ],
+      [
+        "Surface",
+        "LOC"
+      ],
+      [
+        "Root Zone",
+        "PERSON"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ],
+    "bert_classification": [
+      {
+        "label": "LABEL_1",
+        "score": 0.5404312610626221
+      }
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "spatial_scope": "global",
+        "geocoded_location": {
+          "name": "Global",
+          "coordinates": [
+            55.702215,
+            12.5592485
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 18,
+    "text_length": 133
+  }
+}

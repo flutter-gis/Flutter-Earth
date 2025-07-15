@@ -1,0 +1,117 @@
+{
+  "title": "VNP43IA4: BRDF/Albedo Quality Daily L3 Global 500m SIN Grid  |  Earth Engine Data Catalog  |  Google for Developers",
+  "provider": "NASA LP DAAC at the USGS EROS Center",
+  "tags": [
+    "Gis Stack Exchange",
+    "Medium",
+    "Viirs",
+    "Videos",
+    "Twitter",
+    "Surface",
+    "Github",
+    "Brdf",
+    "Satellite-Imagery",
+    "Brdf\nLand\nNasa\nNoaa\nSatellite-Imagery\nSurface\nViirs",
+    "Land",
+    "Noaa",
+    "Nasa"
+  ],
+  "date_range": "",
+  "description": "...",
+  "bands": [],
+  "terms_of_use": "",
+  "snippet": "",
+  "spatial_coverage": "",
+  "temporal_coverage": "",
+  "citation": "",
+  "type": "",
+  "region": "",
+  "source_url": "https://developers.google.com/earth-engine/datasets/catalog/NASA_VIIRS_002_VNP43IA4",
+  "extraction_report": {},
+  "confidence": {
+    "title": 1.0,
+    "description": 1.0,
+    "tags": 0.9,
+    "provider": 0.8
+  },
+  "ml_classification": {
+    "spacy_entities": {
+      "ORG": [
+        "BRDF/Albedo Quality Daily L3 Global 500",
+        "SIN",
+        "Earth Engine Data Catalog",
+        "Google for Developers\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n      \n      Skip",
+        "Deutsch\n\n\nEspañol\n\n\nEspañol – América Latina\n\n\nFrançais",
+        "Italiano\n\n\nPolski\n\n\nPortuguês",
+        "Türkçe"
+      ],
+      "NORP": [
+        "English"
+      ],
+      "GPE": [
+        "Indonesia",
+        "বাংলা"
+      ],
+      "WORK_OF_ART": [
+        "Home\n  \n    \n\n\n\n    Categories\n  \n    \n\n\n\n    All"
+      ]
+    },
+    "title_entities": [
+      [
+        "BRDF/Albedo Quality Daily L3 Global 500",
+        "ORG"
+      ],
+      [
+        "SIN",
+        "ORG"
+      ],
+      [
+        "Earth Engine Data Catalog",
+        "ORG"
+      ],
+      [
+        "Google for Developers",
+        "ORG"
+      ]
+    ],
+    "bert_classification": [
+      {
+        "label": "LABEL_1",
+        "score": 0.5399037599563599
+      }
+    ]
+  },
+  "validation_results": {
+    "spatial": {
+      "valid": true,
+      "errors": [],
+      "enriched": {
+        "spatial_scope": "global",
+        "geocoded_location": {
+          "name": "Global",
+          "coordinates": [
+            55.702215,
+            12.5592485
+          ]
+        }
+      }
+    },
+    "temporal": {
+      "valid": false,
+      "errors": [],
+      "enriched": {}
+    },
+    "quality": {
+      "valid": true,
+      "score": 90,
+      "errors": [],
+      "enriched": {
+        "quality_score": 90
+      }
+    }
+  },
+  "ensemble_features": {
+    "tfidf_features": 16,
+    "text_length": 115
+  }
+}
