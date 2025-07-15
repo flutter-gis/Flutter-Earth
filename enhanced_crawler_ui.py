@@ -1,10 +1,47 @@
 import sys
 import subprocess
 import random
+import importlib.util
+
+def check_package_installed(package_name):
+    """Check if a package is actually installed and importable"""
+    # Handle package name variations
+    module_name = package_name.replace('-', '_')
+    
+    # First try direct import
+    try:
+        __import__(module_name)
+        return True
+    except ImportError:
+        pass
+    
+    # Check if it's installed but has a different import name
+    try:
+        spec = importlib.util.find_spec(module_name)
+        if spec is not None:
+            return True
+    except:
+        pass
+    
+    # Special cases for packages with different import names
+    package_import_map = {
+        'scikit-learn': 'sklearn',
+        'pyyaml': 'yaml',
+        'dateparser': 'dateparser'
+    }
+    
+    if package_name in package_import_map:
+        try:
+            __import__(package_import_map[package_name])
+            return True
+        except ImportError:
+            pass
+    
+    return False
 
 REQUIRED_PACKAGES = [
     'spacy',
-    'transformers',
+    'transformers', 
     'scikit-learn',
     'geopy',
     'pyyaml',
@@ -14,9 +51,7 @@ REQUIRED_PACKAGES = [
 
 missing = []
 for pkg in REQUIRED_PACKAGES:
-    try:
-        __import__(pkg.replace('-', '_'))
-    except ImportError:
+    if not check_package_installed(pkg):
         missing.append(pkg)
 
 if missing:
@@ -71,58 +106,68 @@ import csv
 from collections import defaultdict
 from datetime import datetime
 
-# Advanced imports with fallbacks
+# Advanced imports with fallbacks - only import once
 spacy = None
 transformers = None
 geopy = None
 dash = None
 plotly = None
+sklearn = None
+yaml_module = None
+dateparser = None
 
+# Import all available packages at startup
 try:
     import spacy
+    print("✓ spaCy loaded successfully")
 except ImportError:
-    print("spaCy not available - ML/NLP features disabled")
+    print("⚠ spaCy not available - ML/NLP features disabled")
 
 try:
     import transformers
     from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+    print("✓ Transformers loaded successfully")
 except ImportError:
-    print("Transformers not available - BERT features disabled")
+    print("⚠ Transformers not available - BERT features disabled")
 
 try:
+    import sklearn
     from sklearn.ensemble import VotingClassifier
     from sklearn.feature_extraction.text import TfidfVectorizer
     import numpy as np
+    print("✓ Scikit-learn loaded successfully")
 except ImportError:
-    print("Scikit-learn not available - some ML features disabled")
+    print("⚠ Scikit-learn not available - some ML features disabled")
 
 try:
     from geopy.geocoders import Nominatim
     from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
     geopy = True
+    print("✓ Geopy loaded successfully")
 except ImportError:
-    print("Geopy not available - geospatial validation disabled")
+    print("⚠ Geopy not available - geospatial validation disabled")
 
 try:
-    import yaml
+    import yaml as yaml_module
     from config_utils import load_config, load_plugins
+    print("✓ YAML/config_utils loaded successfully")
 except ImportError:
-    print("YAML/config_utils not available - config features disabled")
+    print("⚠ YAML/config_utils not available - config features disabled")
 
 try:
     from analytics_dashboard import get_dashboard
     dash = True
+    print("✓ Analytics dashboard loaded successfully")
 except ImportError:
-    print("Dash not available - analytics dashboard disabled")
-
-from datetime import datetime
-
-import subprocess
+    print("⚠ Dash not available - analytics dashboard disabled")
 
 try:
     import dateparser
+    print("✓ Dateparser loaded successfully")
 except ImportError:
-    dateparser = None
+    print("⚠ Dateparser not available - fuzzy date parsing disabled")
+
+from datetime import datetime
 
 USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -172,7 +217,7 @@ class EnhancedCrawlerUI(QWidget):
         self.config = None
         self.plugins = {}
         try:
-            if 'yaml' in globals() and 'load_config' in globals():
+            if yaml_module and 'load_config' in globals():
                 self.config = load_config()
                 self.plugins = load_plugins(self.config.get('plugins', []))
                 print("Config and plugins loaded.")
@@ -207,8 +252,7 @@ class EnhancedCrawlerUI(QWidget):
         self.max_retries = 3
         self.retry_delay = 2  # seconds
         # Now safe to call status indicators
-        # if hasattr(self, 'update_status_indicators'):
-        #     self.update_status_indicators()
+        self.update_status_indicators()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -378,6 +422,13 @@ class EnhancedCrawlerUI(QWidget):
 
     def update_status_indicators(self):
         """Update the status indicators for advanced features."""
+        print(f"DEBUG: Updating status indicators...")
+        print(f"DEBUG: self.nlp = {self.nlp}")
+        print(f"DEBUG: self.bert_classifier = {self.bert_classifier}")
+        print(f"DEBUG: self.geocoder = {self.geocoder}")
+        print(f"DEBUG: self.dashboard = {self.dashboard}")
+        print(f"DEBUG: self.config = {self.config}")
+        
         if self.nlp:
             self.spacy_status.setText("spaCy: ✅")
             self.spacy_status.setStyleSheet("padding: 5px; border: 1px solid #27ae60; border-radius: 3px; color: #27ae60;")
@@ -413,6 +464,8 @@ class EnhancedCrawlerUI(QWidget):
         else:
             self.config_status.setText("Config: ❌")
             self.config_status.setStyleSheet("padding: 5px; border: 1px solid #e74c3c; border-radius: 3px; color: #e74c3c;")
+        
+        print(f"DEBUG: Status indicators updated")
 
     def update_ui(self):
         """Update UI elements."""
@@ -498,6 +551,10 @@ class EnhancedCrawlerUI(QWidget):
         """Log errors to the error console."""
         self.error_console.append(f"[{time.strftime('%H:%M:%S')}] {message}")
 
+    def log_message(self, message):
+        """Log messages to the main console."""
+        self.log_queue.put(f"[{time.strftime('%H:%M:%S')}] {message}")
+
     def browse_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Select HTML File", "", "HTML Files (*.html *.htm);;All Files (*)"
@@ -524,7 +581,6 @@ class EnhancedCrawlerUI(QWidget):
         self.browse_btn.setEnabled(False)
         self.progress.setValue(0)
         self.status.setText("Crawling in progress...")
-        spacy and 
         # Clear consoles
         self.clear_all_consoles()
         
@@ -821,10 +877,16 @@ class EnhancedCrawlerUI(QWidget):
             try:
                 # TF-IDF analysis
                 tfidf_result = self.tfidf_vectorizer.fit_transform([result['title']])
-                result['ensemble_features'] = {
-                    'tfidf_features': tfidf_result.shape[1],
-                    'text_length': len(result['title'])
-                }
+                if hasattr(tfidf_result, 'shape') and len(tfidf_result.shape) > 1:
+                    result['ensemble_features'] = {
+                        'tfidf_features': tfidf_result.shape[1],
+                        'text_length': len(result['title'])
+                    }
+                else:
+                    result['ensemble_features'] = {
+                        'tfidf_features': 0,
+                        'text_length': len(result['title'])
+                    }
             except Exception as e:
                 self.log_error(f"Ensemble method error: {e}")
         
