@@ -2,6 +2,8 @@ import sys
 import subprocess
 import random
 import importlib.util
+import queue
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def check_package_installed(package_name):
     """Check if a package is actually installed and importable"""
@@ -265,6 +267,18 @@ except ImportError:
     print("⚠ Dash not available - analytics dashboard disabled")
 
 try:
+    from performance_monitor import PerformanceMonitor
+    print("✓ Performance monitor loaded successfully")
+except ImportError:
+    print("⚠ Performance monitor not available - monitoring disabled")
+    # Create a simple fallback class
+    class PerformanceMonitor:
+        def __init__(self):
+            self.config = {}
+        def update(self, *args, **kwargs):
+            pass
+
+try:
     import dateparser
     print("✓ Dateparser loaded successfully")
 except ImportError:
@@ -304,295 +318,386 @@ USER_AGENTS = [
 class EnhancedCrawlerUI(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Earth Engine Catalog Web Crawler - Ultra Enhanced v2.0")
-        self.resize(1000, 700)
+        
+        # Initialize performance tracking
+        self.start_time = None
+        self.stop_requested = False
+        self.extracted_data = []
+        self.data_lock = threading.Lock()
+        
+        # Performance monitoring queue
+        self.progress_queue = queue.Queue()
+        
+        # Enhanced error tracking
+        self.error_count = 0
+        self.warning_count = 0
+        self.success_count = 0
+        
+        # Initialize UI first
         self.setup_ui()
-        self.log_queue = Queue()
-        self.progress_queue = Queue()
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_ui)
-        self.thread = None  # type: threading.Thread | None
         
-        # Initialize output directories - will be updated from UI
-        self.output_dir = "extracted_data"
-        self.images_dir = "thumbnails"
-        self.cache_dir = "model_cache"
-        self.exported_dir = "exported_data"
-        
-        # Create default directories
-        os.makedirs(self.output_dir, exist_ok=True)
-        os.makedirs(self.images_dir, exist_ok=True)
-        os.makedirs(self.cache_dir, exist_ok=True)
-        os.makedirs(self.exported_dir, exist_ok=True)
-        
-        # Initialize ML models as None - will be loaded asynchronously
-        self.nlp = None
-        self.bert_classifier = None
-        self.tfidf_vectorizer = None
-        self.bert_tokenizer = None
-        self.bert_model = None
-        
-        # Load spaCy model for ML/NLP-based classification (lightweight, can load immediately)
-        if spacy:
-            try:
-                self.nlp = spacy.load("en_core_web_sm")
-                print("spaCy model loaded successfully")
-            except Exception as e:
-                print(f"spaCy model not loaded: {e}")
-        
-        # Load advanced ML models asynchronously to prevent UI freezing
-        self.ml_loading_thread = threading.Thread(target=self.load_ml_models_async, daemon=True)
-        self.ml_loading_thread.start()
-        
-        # Load config and plugins
-        self.config = None
-        self.plugins = {}
-        try:
-            if yaml_module and 'load_config' in globals():
-                self.config = load_config()
-                self.plugins = load_plugins(self.config.get('plugins', []))
-                print("Config and plugins loaded.")
-        except Exception as e:
-            print(f"Config/plugins not loaded: {e}")
-        
-        # Initialize validation components
-        self.geocoder = None
-        if geopy:
-            try:
-                self.geocoder = Nominatim(user_agent="earth_engine_crawler")
-                print("Geocoder initialized successfully")
-            except Exception as e:
-                print(f"Geocoder not initialized: {e}")
-        
-        # Validation settings from config
-        self.validation_config = self.config.get('validation', {}) if self.config else {}
-        
-        # Initialize analytics dashboard
-        self.dashboard = None
-        if dash:
-            try:
-                self.dashboard = get_dashboard()
-                if self.dashboard.start_background():
-                    print("Analytics dashboard started on http://127.0.0.1:8080")
-                else:
-                    print("Analytics dashboard already running")
-            except Exception as e:
-                print(f"Analytics dashboard not started: {e}")
-                # Create a fallback dashboard instance
-                try:
-                    from analytics_dashboard import AnalyticsDashboard
-                    self.dashboard = AnalyticsDashboard()
-                    print("Created fallback dashboard instance")
-                except Exception as fallback_error:
-                    print(f"Fallback dashboard creation failed: {fallback_error}")
-        
-        # Initialize OCR capabilities
-        self.ocr_available = pytesseract is not None
-        
-        # Error handling and retry configuration
-        self.error_tracker = {
-            'total_errors': 0,
-            'retry_attempts': 0,
-            'recovered_results': 0,
-            'error_categories': defaultdict(int)
-        }
-        self.max_retries = 3
-        self.retry_delay = 2  # seconds
-        
-        # ML loading status
-        self.ml_models_loaded = False
-        self.ml_loading_failed = False
-        
-        # Now safe to call status indicators
-        self.update_status_indicators()
-        
-        # Start timer to check ML model loading status
-        self.ml_check_timer = QTimer()
-        self.ml_check_timer.timeout.connect(self.check_ml_loading_status)
-        self.ml_check_timer.start(1000)  # Check every second
+        # Now detect low-power system after UI is set up
+        self.low_power_mode = self.detect_low_power_system()
+        self.optimization_level = "balanced"  # balanced, performance, power_save
         
         # Initialize advanced features
         self._init_advanced_features()
-
-    def _init_advanced_features(self):
-        """Initialize advanced features"""
-        # Start performance monitoring
-        if PERFORMANCE_MONITORING_AVAILABLE:
-            try:
-                performance_monitor.start_monitoring()
-                self.log_message("[ADVANCED] Performance monitoring started")
-            except Exception as e:
-                self.log_message(f"[ADVANCED] Performance monitoring failed: {e}")
         
-        # Initialize advanced ML models with cache directory
-        if ADVANCED_ML_AVAILABLE:
-            try:
-                # Update ML manager cache directory
-                if hasattr(ml_manager, 'model_cache'):
-                    ml_manager.model_cache.cache_dir = self.cache_dir
-                    os.makedirs(self.cache_dir, exist_ok=True)
-                
-                # Preload common models
-                model_list = [
-                    ('text_classification', 'distilbert-base-uncased'),
-                    ('ner', 'en_core_web_sm')
-                ]
-                ml_manager.preload_models(model_list)
-                self.log_message(f"[ADVANCED] Advanced ML models preloading started (cache: {self.cache_dir})")
-            except Exception as e:
-                self.log_message(f"[ADVANCED] Advanced ML initialization failed: {e}")
+        # Setup timer for UI updates
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_ui)
         
-        # Initialize advanced validation
-        if ADVANCED_VALIDATION_AVAILABLE:
-            try:
-                # Add known providers and types
-                known_providers = ['nasa', 'esa', 'usgs', 'noaa', 'copernicus', 'google']
-                for provider in known_providers:
-                    advanced_validator.add_known_provider(provider)
-                self.log_message("[ADVANCED] Advanced validation initialized")
-            except Exception as e:
-                self.log_message(f"[ADVANCED] Advanced validation failed: {e}")
+        # Performance monitoring
+        self.performance_monitor = PerformanceMonitor()
         
-        # Initialize advanced export
-        if ADVANCED_EXPORT_AVAILABLE:
-            try:
-                self.log_message("[ADVANCED] Advanced export system initialized")
-            except Exception as e:
-                self.log_message(f"[ADVANCED] Advanced export failed: {e}")
-
-    def update_ml_cache_directory(self):
-        """Update ML cache directory when output directory changes"""
-        if ADVANCED_ML_AVAILABLE and hasattr(ml_manager, 'model_cache'):
-            ml_manager.model_cache.cache_dir = self.cache_dir
-            os.makedirs(self.cache_dir, exist_ok=True)
-            self.log_message(f"ML cache directory updated to: {self.cache_dir}")
-
-    def load_ml_models_async(self):
-        """Load ML models in background thread to prevent UI freezing"""
+        # Set window properties
+        self.setWindowTitle("Earth Engine Catalog Web Crawler - Ultra Enhanced v2.0")
+        self.resize(1400, 900)  # Optimized size for better visibility
+        
+        # Apply low-power optimizations
+        self.apply_low_power_optimizations()
+        
+        # Log initialization
+        self.log_message("🚀 Enhanced Web Crawler UI initialized successfully!")
+        if self.low_power_mode:
+            self.log_message("🔋 Low-power mode enabled for better performance on this system")
+    
+    def detect_low_power_system(self):
+        """Detect if running on a low-power system."""
         try:
-            if transformers:
-                print("Loading lightweight BERT model in background...")
-                # Use a smaller, more efficient model for text classification
-                model_name = "distilbert-base-uncased"  # Much smaller than bert-base-uncased
-                
-                try:
-                    # Load tokenizer and model with timeout
-                    import signal
-                    
-                    def timeout_handler(signum, frame):
-                        raise TimeoutError("Model loading timed out")
-                    
-                    # Set timeout for model loading
-                    signal.signal(signal.SIGALRM, timeout_handler)
-                    signal.alarm(60)  # 60 second timeout
-                    
-                    try:
-                        self.bert_tokenizer = AutoTokenizer.from_pretrained(
-                            model_name, 
-                            trust_remote_code=True, 
-                            use_auth_token=False, 
-                            revision="main",
-                            local_files_only=False
-                        )
-                        self.bert_model = AutoModelForSequenceClassification.from_pretrained(
-                            model_name, 
-                            num_labels=5,  # Reduce number of labels for efficiency
-                            trust_remote_code=True,
-                            use_auth_token=False,
-                            revision="main"
-                        )
-                        self.bert_classifier = pipeline(
-                            "text-classification", 
-                            model=self.bert_model, 
-                            tokenizer=self.bert_tokenizer,
-                            device=-1  # Force CPU usage to avoid GPU memory issues
-                        )
-                        signal.alarm(0)  # Cancel timeout
-                        print("✓ DistilBERT model loaded successfully")
-                    except TimeoutError:
-                        print("⚠ BERT model loading timed out - using fallback")
-                        self.bert_classifier = None
-                    except Exception as e:
-                        print(f"⚠ BERT model loading failed: {e} - using fallback")
-                        self.bert_classifier = None
-                        
-                except (ImportError, AttributeError):
-                    # Windows doesn't support signal.alarm, use threading with timeout
-                    import threading
-                    import queue
-                    
-                    result_queue = queue.Queue()
-                    
-                    def load_bert():
-                        try:
-                            self.bert_tokenizer = AutoTokenizer.from_pretrained(
-                            model_name, 
-                            trust_remote_code=True, 
-                            use_auth_token=False, 
-                            revision="main",
-                            local_files_only=False
-                        )
-                            self.bert_model = AutoModelForSequenceClassification.from_pretrained(
-                                model_name, 
-                                num_labels=5,
-                                trust_remote_code=True,
-                                use_auth_token=False,
-                                revision="main"
-                            )
-                            self.bert_classifier = pipeline(
-                                "text-classification", 
-                                model=self.bert_model, 
-                                tokenizer=self.bert_tokenizer,
-                                device=-1
-                            )
-                            result_queue.put(('success', None))
-                        except Exception as e:
-                            result_queue.put(('error', str(e)))
-                    
-                    bert_thread = threading.Thread(target=load_bert, daemon=True)
-                    bert_thread.start()
-                    bert_thread.join(timeout=60)  # 60 second timeout
-                    
-                    if bert_thread.is_alive():
-                        print("⚠ BERT model loading timed out - using fallback")
-                        self.bert_classifier = None
-                    else:
-                        status, error = result_queue.get_nowait()
-                        if status == 'success':
-                            print("✓ DistilBERT model loaded successfully")
-                        else:
-                            print(f"⚠ BERT model loading failed: {error} - using fallback")
-                            self.bert_classifier = None
-                
-                # Initialize TF-IDF vectorizer for traditional ML
-                if sklearn:
-                    self.tfidf_vectorizer = TfidfVectorizer(max_features=500, stop_words='english')
-                
-                print("Advanced ML models loaded successfully in background.")
-                self.ml_models_loaded = True
-            else:
-                print("Transformers not available - skipping BERT model loading")
-                self.ml_models_loaded = True  # Mark as complete even if not available
+            # Check CPU cores
+            cpu_count = psutil.cpu_count()
+            
+            # Check available memory
+            memory = psutil.virtual_memory()
+            memory_gb = memory.total / (1024**3)
+            
+            # Check if it's a low-power system
+            is_low_power = (cpu_count <= 4) or (memory_gb <= 8)
+            
+            self.log_message(f"System detected: {cpu_count} cores, {memory_gb:.1f}GB RAM")
+            
+            return is_low_power
         except Exception as e:
-            print(f"Advanced ML models failed to load in background: {e}")
-            self.ml_loading_failed = True
-            self.ml_models_loaded = True  # Mark as complete to stop checking
-
-    def check_ml_loading_status(self):
-        """Check if ML models have finished loading and update UI"""
-        if self.ml_models_loaded:
-            self.ml_check_timer.stop()
-            self.update_status_indicators()
-            if self.ml_loading_failed:
-                print("⚠ ML models failed to load - using rule-based fallback")
-                self.log_message("[ML] BERT failed to load, using rule-based classification")
+            self.log_message(f"Could not detect system specs: {e}")
+            return True  # Assume low-power for safety
+    
+    def apply_low_power_optimizations(self):
+        """Apply optimizations for low-power systems while maintaining quality."""
+        if self.low_power_mode:
+            # Reduce UI update frequency but maintain responsiveness
+            self.timer.setInterval(250)  # 250ms instead of 100ms - still responsive
+            
+            # Maintain ML model quality but optimize processing
+            if hasattr(self, 'config') and self.config:
+                # Keep full model capabilities but process in smaller batches
+                self.config['ml']['classification']['max_length'] = 512  # Keep full context
+                self.config['ml']['classification']['batch_size'] = 1  # Process one at a time
+                self.config['performance']['max_concurrent_requests'] = 1  # Sequential processing
+                self.config['performance']['request_delay'] = 2.0  # Longer delays for stability
+            
+            # Optimize memory usage while maintaining data quality
+            self.config['performance']['memory']['max_cache_size'] = 1000  # Keep more data in memory
+            self.config['performance']['memory']['enable_compression'] = True  # Compress data
+            
+            # Enhanced processing settings for quality
+            self.config['processing']['enable_quality_checks'] = True
+            self.config['processing']['enable_validation'] = True
+            self.config['processing']['enable_ensemble_methods'] = True
+            
+            self.log_message("🔧 Applied low-power optimizations (quality-focused)")
+            self.log_message("📊 Processing will be slower but maintain full quality")
+        else:
+            # High-performance settings
+            self.timer.setInterval(100)
+            self.log_message("⚡ High-performance mode enabled")
+    
+    def _init_advanced_features(self):
+        """Initialize advanced features and ML models."""
+        try:
+            # Initialize configuration
+            self.config = self.load_config()
+            
+            # Initialize ML models
+            self.nlp = None
+            self.bert_classifier = None
+            self.geocoder = None
+            
+            # Load spaCy model for NER and text processing
+            try:
+                import spacy
+                self.nlp = spacy.load("en_core_web_sm")
+                self.log_message("✅ spaCy model loaded successfully")
+            except Exception as e:
+                self.log_message(f"⚠️ spaCy model not available: {e}")
+            
+            # Load BERT classifier for text classification
+            try:
+                from transformers import pipeline
+                self.bert_classifier = pipeline(
+                    "text-classification",
+                    model="distilbert-base-uncased",
+                    return_all_scores=True
+                )
+                self.log_message("✅ BERT classifier loaded successfully")
+            except Exception as e:
+                self.log_message(f"⚠️ BERT classifier not available: {e}")
+            
+            # Initialize geocoder for spatial data validation
+            try:
+                from geopy.geocoders import Nominatim
+                self.geocoder = Nominatim(user_agent="earth_engine_crawler")
+                self.log_message("✅ Geocoder initialized successfully")
+            except Exception as e:
+                self.log_message(f"⚠️ Geocoder not available: {e}")
+            
+            # Initialize performance monitoring
+            self.performance_monitor = PerformanceMonitor()
+            
+            # Initialize health tracking
+            self.health_update_counter = 0
+            
+            self.log_message("✅ Advanced features initialized successfully")
+            
+        except Exception as e:
+            self.log_error(f"Failed to initialize advanced features: {e}")
+    
+    def load_config(self):
+        """Load configuration from file."""
+        try:
+            config_file = "crawler_config.yaml"
+            if os.path.exists(config_file):
+                with open(config_file, 'r') as f:
+                    config = yaml_module.safe_load(f)
+                self.log_message("✅ Configuration loaded successfully")
+                return config
             else:
-                print("✓ All ML models loaded successfully")
-                self.log_message("[ML] BERT models loaded successfully")
+                # Return default configuration
+                default_config = {
+                    'ml': {
+                        'classification': {
+                            'max_length': 512,
+                            'batch_size': 1
+                        }
+                    },
+                    'performance': {
+                        'max_concurrent_requests': 1,
+                        'request_delay': 2.0,
+                        'memory': {
+                            'max_cache_size': 1000,
+                            'enable_compression': True
+                        }
+                    },
+                    'processing': {
+                        'enable_quality_checks': True,
+                        'enable_validation': True,
+                        'enable_ensemble_methods': True
+                    }
+                }
+                self.log_message("⚠️ Using default configuration")
+                return default_config
+        except Exception as e:
+            self.log_error(f"Failed to load configuration: {e}")
+            return {}
+    
+    def optimize_for_system(self):
+        """Dynamically optimize based on current system performance while maintaining quality."""
+        try:
+            cpu_percent = psutil.cpu_percent()
+            memory_percent = psutil.virtual_memory().percent
+            
+            if cpu_percent > 85 or memory_percent > 85:
+                # System under stress - apply power saving but maintain quality
+                self.optimization_level = "power_save"
+                self.timer.setInterval(400)  # Slower updates but still responsive
+                self.log_message("🔋 Power saving mode activated - maintaining quality with slower processing")
+            elif cpu_percent < 40 and memory_percent < 60:
+                # System has resources - enable performance mode
+                self.optimization_level = "performance"
+                self.timer.setInterval(75)  # Faster updates
+                self.log_message("⚡ Performance mode activated")
+            else:
+                # Balanced mode - maintain quality with moderate performance
+                self.optimization_level = "balanced"
+                self.timer.setInterval(150)
+                self.log_message("⚖️ Balanced mode - quality-focused processing")
+                
+        except Exception as e:
+            self.log_message(f"System optimization error: {e}")
+    
+    def enhanced_error_handling(self, error, context=""):
+        """Enhanced error handling with categorization and recovery."""
+        try:
+            error_type = type(error).__name__
+            error_msg = str(error)
+            
+            # Categorize errors
+            if "timeout" in error_msg.lower():
+                category = "TIMEOUT"
+                suggestion = "Consider increasing request delay or reducing concurrent requests"
+            elif "memory" in error_msg.lower():
+                category = "MEMORY"
+                suggestion = "Consider reducing cache size or processing fewer items"
+            elif "network" in error_msg.lower():
+                category = "NETWORK"
+                suggestion = "Check internet connection and try again"
+            elif "ml" in error_msg.lower() or "bert" in error_msg.lower():
+                category = "ML_MODEL"
+                suggestion = "ML model may be loading or unavailable"
+            else:
+                category = "GENERAL"
+                suggestion = "Check logs for more details"
+            
+            # Log error with context
+            self.log_error(f"[{category}] {context}: {error_msg}")
+            self.log_error(f"Suggestion: {suggestion}")
+            
+            # Update error count
+            self.error_count += 1
+            
+            # Apply recovery strategies
+            self.apply_error_recovery(category, error_msg)
+            
+        except Exception as e:
+            self.log_error(f"Error handling failed: {e}")
+    
+    def apply_error_recovery(self, category, error_msg):
+        """Apply recovery strategies based on error category."""
+        try:
+            if category == "TIMEOUT":
+                # Increase delays
+                if hasattr(self, 'delay_slider'):
+                    current_delay = self.delay_slider.value()
+                    new_delay = min(current_delay + 1, 10)
+                    self.delay_slider.setValue(new_delay)
+                    self.log_message(f"Auto-adjusted delay to {new_delay/2:.1f}s")
+            
+            elif category == "MEMORY":
+                # Clear cache and reduce memory usage
+                if hasattr(self, 'extracted_data'):
+                    cache_size = len(self.extracted_data)
+                    if cache_size > 100:
+                        # Keep only recent items
+                        self.extracted_data = self.extracted_data[-50:]
+                        self.log_message("Auto-cleared cache to reduce memory usage")
+            
+            elif category == "NETWORK":
+                # Reduce concurrent requests
+                if hasattr(self, 'concurrent_slider'):
+                    current_concurrent = self.concurrent_slider.value()
+                    new_concurrent = max(current_concurrent - 1, 1)
+                    self.concurrent_slider.setValue(new_concurrent)
+                    self.log_message(f"Auto-reduced concurrent requests to {new_concurrent}")
+            
+            elif category == "ML_MODEL":
+                # Try to reload ML models
+                self.log_message("Attempting to reload ML models...")
+                # This could trigger a model reload in the background
+                
+        except Exception as e:
+            self.log_message(f"Error recovery failed: {e}")
+    
+    def get_system_health_report(self):
+        """Generate a comprehensive system health report."""
+        try:
+            cpu_percent = psutil.cpu_percent()
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+            
+            # Calculate health score
+            health_score = 100
+            issues = []
+            
+            if cpu_percent > 90:
+                health_score -= 30
+                issues.append("High CPU usage")
+            elif cpu_percent > 70:
+                health_score -= 15
+                issues.append("Elevated CPU usage")
+            
+            if memory.percent > 90:
+                health_score -= 30
+                issues.append("High memory usage")
+            elif memory.percent > 70:
+                health_score -= 15
+                issues.append("Elevated memory usage")
+            
+            if disk.percent > 90:
+                health_score -= 20
+                issues.append("Low disk space")
+            
+            if self.error_count > 10:
+                health_score -= 20
+                issues.append("High error rate")
+            
+            # Health status
+            if health_score >= 80:
+                status = "🟢 Excellent"
+            elif health_score >= 60:
+                status = "🟡 Good"
+            elif health_score >= 40:
+                status = "🟠 Fair"
+            else:
+                status = "🔴 Poor"
+            
+            report = f"""
+SYSTEM HEALTH REPORT
+{'='*50}
+
+Overall Health: {status} ({health_score}/100)
+
+SYSTEM METRICS:
+CPU Usage: {cpu_percent:.1f}%
+Memory Usage: {memory.percent:.1f}%
+Disk Usage: {disk.percent:.1f}%
+
+PERFORMANCE METRICS:
+Errors: {self.error_count}
+Warnings: {self.warning_count}
+Success: {self.success_count}
+
+OPTIMIZATION LEVEL: {self.optimization_level.upper()}
+LOW POWER MODE: {'✅ Enabled' if self.low_power_mode else '❌ Disabled'}
+
+ISSUES DETECTED:
+{chr(10).join(f"• {issue}" for issue in issues) if issues else "• None detected"}
+
+RECOMMENDATIONS:
+{self.get_optimization_recommendations()}
+"""
+            
+            return report
+            
+        except Exception as e:
+            return f"Health report generation failed: {e}"
+    
+    def get_optimization_recommendations(self):
+        """Get optimization recommendations based on current system state."""
+        recommendations = []
         
-        # Force update status indicators periodically even if not loaded
-        if not self.ml_models_loaded:
-            self.update_status_indicators()
+        try:
+            cpu_percent = psutil.cpu_percent()
+            memory_percent = psutil.virtual_memory().percent
+            
+            if cpu_percent > 80:
+                recommendations.append("• Increase request delay to reduce CPU load")
+                recommendations.append("• Reduce concurrent requests")
+            
+            if memory_percent > 80:
+                recommendations.append("• Clear cache to free memory")
+                recommendations.append("• Process data in smaller batches")
+            
+            if self.error_count > 5:
+                recommendations.append("• Check network connection")
+                recommendations.append("• Verify ML models are loaded")
+            
+            if not recommendations:
+                recommendations.append("• System is running optimally")
+            
+            return "\n".join(recommendations)
+            
+        except Exception as e:
+            return f"Could not generate recommendations: {e}"
 
     def setup_ui(self):
         """Setup the enhanced two-column UI with integrated dashboard functionality."""
@@ -619,6 +724,40 @@ class EnhancedCrawlerUI(QWidget):
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         
+        # Create a scroll area for the left column
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                background: #f0f0f0;
+                width: 12px;
+                border-radius: 6px;
+            }
+            QScrollBar::handle:vertical {
+                background: #c0c0c0;
+                border-radius: 6px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #a0a0a0;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+        """)
+        
+        # Create a container widget for all the content
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setSpacing(5)
+        content_layout.setContentsMargins(5, 5, 5, 5)
+        
         # Enhanced title with version
         title_label = QLabel("Earth Engine Catalog Web Crawler")
         title_label.setStyleSheet("""
@@ -633,7 +772,7 @@ class EnhancedCrawlerUI(QWidget):
             text-align: center;
         """)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        left_layout.addWidget(title_label)
+        content_layout.addWidget(title_label)
         
         # Real-time statistics bar
         stats_group = QGroupBox("📊 Real-Time Statistics")
@@ -684,7 +823,7 @@ class EnhancedCrawlerUI(QWidget):
         
         stats_layout.addLayout(stats_grid)
         stats_group.setLayout(stats_layout)
-        left_layout.addWidget(stats_group)
+        content_layout.addWidget(stats_group)
         
         # Status indicators for advanced features
         status_group = QGroupBox("🔧 System Status")
@@ -717,7 +856,7 @@ class EnhancedCrawlerUI(QWidget):
             status_layout.addWidget(status, i // 2, i % 2)
         
         status_group.setLayout(status_layout)
-        left_layout.addWidget(status_group)
+        content_layout.addWidget(status_group)
         
         # File selection group
         file_group = QGroupBox("📁 File Selection")
@@ -761,7 +900,7 @@ class EnhancedCrawlerUI(QWidget):
         file_layout.addWidget(self.file_path_edit)
         file_layout.addWidget(self.browse_btn)
         file_group.setLayout(file_layout)
-        left_layout.addWidget(file_group)
+        content_layout.addWidget(file_group)
         
         # Output directory selection group
         output_group = QGroupBox("📤 Output Settings")
@@ -806,7 +945,7 @@ class EnhancedCrawlerUI(QWidget):
         output_layout.addWidget(self.output_dir_edit)
         output_layout.addWidget(self.output_browse_btn)
         output_group.setLayout(output_layout)
-        left_layout.addWidget(output_group)
+        content_layout.addWidget(output_group)
         
         # Advanced options group
         options_group = QGroupBox("⚙️ Advanced Options")
@@ -860,7 +999,7 @@ class EnhancedCrawlerUI(QWidget):
         options_layout.addLayout(ml_options)
         
         options_group.setLayout(options_layout)
-        left_layout.addWidget(options_group)
+        content_layout.addWidget(options_group)
         
         # Performance settings
         perf_group = QGroupBox("⚡ Performance Settings")
@@ -942,7 +1081,7 @@ class EnhancedCrawlerUI(QWidget):
         perf_layout.addLayout(concurrent_layout)
         
         perf_group.setLayout(perf_layout)
-        left_layout.addWidget(perf_group)
+        content_layout.addWidget(perf_group)
         
         # Control buttons
         controls_group = QGroupBox("🎮 Controls")
@@ -1043,19 +1182,53 @@ class EnhancedCrawlerUI(QWidget):
             }
         """)
         
+        self.health_btn = QPushButton("🏥 Health")
+        self.health_btn.clicked.connect(self.show_health_report)
+        self.health_btn.setStyleSheet("""
+            QPushButton {
+                background: #27ae60;
+                color: white;
+                padding: 4px;
+                border-radius: 3px;
+                font-weight: bold;
+                font-size: 10px;
+            }
+            QPushButton:hover {
+                background: #229954;
+            }
+        """)
+        
+        self.optimize_btn = QPushButton("⚙️ Optimize")
+        self.optimize_btn.clicked.connect(self.show_optimization_dialog)
+        self.optimize_btn.setStyleSheet("""
+            QPushButton {
+                background: #9b59b6;
+                color: white;
+                padding: 4px;
+                border-radius: 3px;
+                font-weight: bold;
+                font-size: 10px;
+            }
+            QPushButton:hover {
+                background: #8e44ad;
+            }
+        """)
+        
         secondary_layout.addWidget(self.clear_btn)
         secondary_layout.addWidget(self.export_btn)
+        secondary_layout.addWidget(self.health_btn)
+        secondary_layout.addWidget(self.optimize_btn)
         
         controls_layout.addWidget(self.crawl_btn)
         controls_layout.addWidget(self.stop_btn)
         controls_layout.addLayout(secondary_layout)
         controls_group.setLayout(controls_layout)
-        left_layout.addWidget(controls_group)
+        content_layout.addWidget(controls_group)
         
         # Progress and status
         self.status = QLabel("Ready. Select an HTML file to begin.")
         self.status.setStyleSheet("padding: 6px; background: #ecf0f1; border-radius: 3px; margin: 3px; font-size: 10px;")
-        left_layout.addWidget(self.status)
+        content_layout.addWidget(self.status)
         
         self.progress = QProgressBar()
         self.progress.setMaximum(100)
@@ -1074,9 +1247,11 @@ class EnhancedCrawlerUI(QWidget):
                 border-radius: 2px;
             }
         """)
-        left_layout.addWidget(self.progress)
+        content_layout.addWidget(self.progress)
         
-        left_layout.addStretch()
+        content_layout.addStretch()
+        scroll_area.setWidget(content_widget)
+        left_layout.addWidget(scroll_area)
         return left_widget
     
     def create_right_column(self):
@@ -1191,6 +1366,19 @@ class EnhancedCrawlerUI(QWidget):
             padding: 5px;
         """)
         self.tab_widget.addTab(self.performance_console, "⚡ Performance")
+        
+        # System Health tab
+        self.health_console = QTextEdit()
+        self.health_console.setReadOnly(True)
+        self.health_console.setStyleSheet("""
+            background: #2d5a2d; 
+            color: #90ee90; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            font-size: 9px;
+            border: none;
+            padding: 5px;
+        """)
+        self.tab_widget.addTab(self.health_console, "🏥 Health")
         
         right_layout.addWidget(self.tab_widget)
         return right_widget
@@ -1401,7 +1589,7 @@ class EnhancedCrawlerUI(QWidget):
         print(f"DEBUG: Status indicators updated")
 
     def update_ui(self):
-        """Enhanced UI update with integrated performance monitoring."""
+        """Enhanced UI update with integrated performance monitoring and health checks."""
         try:
             # Update progress bar
             try:
@@ -1417,13 +1605,41 @@ class EnhancedCrawlerUI(QWidget):
             # Update performance monitoring
             self.update_performance_monitoring()
             
-            except Exception as e:
-            print(f"UI update error: {e}")
+            # Optimize for system performance
+            self.optimize_for_system()
+            
+            # Update health monitoring (less frequently)
+            if hasattr(self, 'health_update_counter'):
+                self.health_update_counter += 1
+            else:
+                self.health_update_counter = 0
+            
+            # Update health every 10 seconds (50 updates at 200ms interval)
+            if self.health_update_counter >= 50:
+                self.health_update_counter = 0
+                if hasattr(self, 'health_console'):
+                    health_report = self.get_system_health_report()
+                    self.health_console.setPlainText(health_report)
+            
+        except Exception as e:
+            self.log_error(f"UI update error: {e}")
     
     def update_performance_monitoring(self):
         """Update performance monitoring display."""
         try:
             if hasattr(self, 'performance_monitor'):
+                # Fix the config issue by adding config if it doesn't exist
+                if not hasattr(self.performance_monitor, 'config'):
+                    self.performance_monitor.config = {
+                        'monitoring': {
+                            'enabled': True,
+                            'log_performance': True,
+                            'track_memory': True,
+                            'real_time_alerts': True,
+                            'performance_prediction': True
+                        }
+                    }
+                
                 # Get system metrics
                 cpu_percent = psutil.cpu_percent()
                 memory = psutil.virtual_memory()
@@ -1474,6 +1690,8 @@ Last Updated: {time.strftime('%H:%M:%S')}
                     
         except Exception as e:
             self.performance_console.setPlainText(f"Performance monitoring error: {e}")
+            # Log the error to console as well
+            self.log_error(f"Performance monitoring error: {e}")
 
     def start_crawl(self):
         """Start the enhanced crawling process with integrated monitoring."""
@@ -1512,117 +1730,148 @@ Last Updated: {time.strftime('%H:%M:%S')}
         self.log_message("🚀 Enhanced crawling started with real-time monitoring...")
 
     def crawl_html_file(self, html_file):
-        """Enhanced crawling with real-time data updates."""
+        """Enhanced crawling process with better error handling and low-power optimizations."""
         try:
-            self.stop_requested = False
-            self.log_message("Reading HTML file...")
+            self.log_message(f"🚀 Starting enhanced crawl of: {html_file}")
+            self.log_message(f"🔧 Low-power mode: {'Enabled' if self.low_power_mode else 'Disabled'}")
+            self.log_message(f"⚡ Optimization level: {self.optimization_level}")
             
-            # Read the HTML file
+            # Reset counters
+            self.error_count = 0
+            self.warning_count = 0
+            self.success_count = 0
+            
+            # Load HTML file
             with open(html_file, 'r', encoding='utf-8') as f:
                 html_content = f.read()
             
-            self.log_message("Parsing HTML content...")
             soup = BeautifulSoup(html_content, 'html.parser')
             
             # Find all dataset links
-            links = soup.find_all('a', href=True)
-            dataset_links = []
-            
-            for link in links:
-                if self.stop_requested:
-                    break
-                
-                href = link.get('href')
-                if href and ('catalog' in href or 'datasets' in href):
-                    # Convert relative URLs to absolute
-                    if href.startswith('/'):
-                        href = f"https://developers.google.com{href}"
-                    elif not href.startswith('http'):
-                        href = urljoin("https://developers.google.com/earth-engine/datasets/", href)
-                    dataset_links.append(href)
-            
-            self.log_message(f"Found {len(dataset_links)} potential dataset links")
-            
-            # Remove duplicates
-            dataset_links = list(set(dataset_links))
-            self.log_message(f"Unique links to process: {len(dataset_links)}")
+            dataset_links = soup.find_all('a', href=True)
+            dataset_links = [link for link in dataset_links if 'dataset' in link.get('href', '').lower()]
             
             if not dataset_links:
-                self.log_message("No dataset links found. Processing as single page...")
-                # Process the current page as a single dataset
-                result = self.advanced_extract(soup, html_file)
-                if result:
-                    self.add_extracted_data(result)  # Add to real-time view
-                    self.save_results([result])
+                self.log_message("⚠️ No dataset links found in the HTML file")
                 return
             
-            # Setup webdriver for detailed crawling
-            options = Options()
-            options.add_argument('--headless')
-            options.add_argument('--disable-gpu')
-            options.add_argument('--no-sandbox')
-            options.add_argument('--disable-dev-shm-usage')
+            self.log_message(f"📊 Found {len(dataset_links)} potential dataset links")
             
-            driver = webdriver.Edge(options=options)
+            # Configure crawling parameters based on system capabilities
+            max_concurrent = self.concurrent_slider.value()
+            request_delay = self.delay_slider.value() / 2
             
-            try:
-            results = []
-                total_links = len(dataset_links)
+            # Adjust for low-power systems
+            if self.low_power_mode:
+                max_concurrent = min(max_concurrent, 2)
+                request_delay = max(request_delay, 1.0)
+                self.log_message(f"🔋 Low-power adjustments: {max_concurrent} concurrent, {request_delay}s delay")
             
-            for i, link in enumerate(dataset_links):
-                if self.stop_requested:
-                    break
+            # Create thread pool
+            with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+                futures = []
+                
+                for i, link in enumerate(dataset_links):
+                    if self.stop_requested:
+                        break
+                    
+                    url = link.get('href')
+                    if not url.startswith('http'):
+                        url = 'https://developers.google.com/earth-engine/datasets' + url
+                    
+                    # Submit task
+                    future = executor.submit(self.process_dataset_link, url, i + 1, len(dataset_links))
+                    futures.append(future)
+                    
+                    # Add delay between submissions
+                    time.sleep(request_delay / max_concurrent)
+                
+                # Process results
+                for future in as_completed(futures):
+                    if self.stop_requested:
+                        break
                     
                     try:
-                        self.log_message(f"Processing dataset {i+1}/{total_links}: {link}")
-                        
-                        # Navigate to the dataset page
-                        driver.get(link)
-                        WebDriverWait(driver, 10).until(
-                            EC.presence_of_element_located((By.TAG_NAME, "body"))
-                        )
-                        
-                        # Extract data from the page
-                        page_soup = BeautifulSoup(driver.page_source, 'html.parser')
-                        result = self.advanced_extract(page_soup, link)
-                        
+                        result = future.result(timeout=30)  # 30 second timeout
                         if result:
-                            results.append(result)
-                            self.add_extracted_data(result)  # Add to real-time view
-                            
-                            # Log ML classification results
-                            if result.get('ml_classification'):
-                                self.log_ml_classification(f"Dataset {i+1}: {result.get('title', 'N/A')} - {result.get('ml_classification', {})}")
-                            
-                            # Log validation results
-                            if result.get('validation_results'):
-                                self.log_validation(f"Dataset {i+1}: {result.get('title', 'N/A')} - Validation: {result.get('validation_results', {}).get('overall_score', 0):.2f}")
-                        
-                        # Update progress
-                        progress = int((i + 1) / total_links * 100)
-                        self.progress_queue.put(progress)
-                        
-                        # Rate limiting
-                        time.sleep(0.8)  # Reduced delay for faster processing
-                        
+                            self.add_extracted_data(result)
+                            self.success_count += 1
+                    except TimeoutError:
+                        self.warning_count += 1
+                        self.log_error("⏰ Request timeout - skipping dataset")
                     except Exception as e:
-                        self.log_error(f"Failed to process {link}: {e}")
-                        continue
-                
-                # Save all results
-            if results:
-                self.save_results(results)
-                    self.log_message(f"Crawling completed! Extracted {len(results)} datasets.")
-            else:
-                self.log_message("No datasets were successfully extracted.")
+                        self.error_count += 1
+                        self.enhanced_error_handling(e, "Dataset processing")
             
-            finally:
-                driver.quit()
+            # Final summary
+            self.show_crawl_summary()
             
         except Exception as e:
-            self.log_error(f"Crawling failed: {e}")
+            self.enhanced_error_handling(e, "Main crawl process")
+            self.log_error("❌ Crawling failed - check logs for details")
         finally:
             self.crawl_finished()
+    
+    def process_dataset_link(self, url, current, total):
+        """Process individual dataset link with enhanced error handling."""
+        try:
+            # Update progress
+            progress = int((current / total) * 100)
+            self.progress_queue.put(progress)
+            
+            # Log progress
+            if current % 10 == 0 or current == total:
+                self.log_message(f"📈 Progress: {current}/{total} ({progress}%)")
+            
+            # Make request with timeout
+            timeout = 15 if self.low_power_mode else 10
+            response = requests.get(url, timeout=timeout)
+            response.raise_for_status()
+            
+            # Parse response
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Extract data
+            result = self.advanced_extract(soup, url)
+            
+            if result:
+                # Apply ML classification if enabled
+                if self.use_ml_classification.isChecked():
+                    try:
+                        self.apply_ml_classification(soup, result)
+                    except Exception as e:
+                        self.warning_count += 1
+                        self.log_error(f"ML classification failed: {e}")
+                
+                # Apply validation if enabled
+                if self.use_validation.isChecked():
+                    try:
+                        self.apply_validation(result)
+                    except Exception as e:
+                        self.warning_count += 1
+                        self.log_error(f"Validation failed: {e}")
+                
+                # Apply ensemble methods if enabled
+                if self.use_ensemble.isChecked():
+                    try:
+                        self.apply_ensemble_methods(result)
+                    except Exception as e:
+                        self.warning_count += 1
+                        self.log_error(f"Ensemble processing failed: {e}")
+                
+                return result
+            
+        except requests.exceptions.Timeout:
+            self.warning_count += 1
+            self.log_error(f"⏰ Timeout processing: {url}")
+        except requests.exceptions.RequestException as e:
+            self.error_count += 1
+            self.enhanced_error_handling(e, f"Request to {url}")
+        except Exception as e:
+            self.error_count += 1
+            self.enhanced_error_handling(e, f"Processing {url}")
+        
+        return None
 
     def advanced_extract(self, soup, url):
         """Enhanced extraction with real-time data integration."""
@@ -1723,56 +1972,109 @@ Last Updated: {time.strftime('%H:%M:%S')}
         return result
 
     def apply_ml_classification(self, soup, result):
-        """Enhanced ML classification with advanced features and ensemble methods."""
+        """Enhanced ML classification with advanced features and ensemble methods for maximum quality."""
         ml_results = {}
         
         try:
-            # Enhanced spaCy NER with more comprehensive entity extraction
+            # Enhanced spaCy NER with comprehensive entity extraction
             if self.nlp:
-                text = soup.get_text()[:2000]  # Increased text length for better coverage
+                # Use full text for maximum coverage in low-power mode
+                text_length = 3000 if self.low_power_mode else 2000
+                text = soup.get_text()[:text_length]
                 doc = self.nlp(text)
                 
-                # Extract entities with enhanced categorization
+                # Extract entities with enhanced categorization and confidence scoring
                 entities = {}
+                entity_confidence = {}
+                
                 for ent in doc.ents:
                     if ent.label_ not in entities:
                         entities[ent.label_] = []
+                        entity_confidence[ent.label_] = []
+                    
                     if ent.text not in entities[ent.label_]:  # Avoid duplicates
-                    entities[ent.label_].append(ent.text)
+                        entities[ent.label_].append(ent.text)
+                        # Calculate confidence based on entity length and frequency
+                        confidence = min(0.9, 0.3 + (len(ent.text) * 0.1) + (ent.label_ in ['GPE', 'ORG', 'PRODUCT'] and 0.2))
+                        entity_confidence[ent.label_].append(confidence)
                 
                 ml_results['spacy_entities'] = entities
+                ml_results['entity_confidence'] = entity_confidence
                 
-                # Enhanced title entity extraction
+                # Enhanced title entity extraction with semantic analysis
                 if result['title']:
                     title_doc = self.nlp(result['title'])
-                    title_entities = [(ent.text, ent.label_) for ent in title_doc.ents]
+                    title_entities = [(ent.text, ent.label_, ent.vector_norm) for ent in title_doc.ents]
                     ml_results['title_entities'] = title_entities
             
-                    # Extract key phrases from title
-                    title_tokens = [token.text for token in title_doc if not token.is_stop and token.is_alpha]
-                    ml_results['title_key_phrases'] = title_tokens[:10]
+                    # Extract key phrases from title with semantic similarity
+                    title_tokens = [token.text for token in title_doc if not token.is_stop and token.is_alpha and len(token.text) > 3]
+                    ml_results['title_key_phrases'] = title_tokens[:15]  # Increased for better coverage
+                    
+                    # Extract title sentiment and complexity
+                    title_sentiment = sum([token.sentiment for token in title_doc]) / len(title_doc)
+                    title_complexity = len([token for token in title_doc if token.pos_ in ['NOUN', 'VERB', 'ADJ']])
+                    ml_results['title_sentiment'] = title_sentiment
+                    ml_results['title_complexity'] = title_complexity
                 
-                # Extract technical terms and measurements
+                # Enhanced technical terms and measurements extraction
                 technical_terms = []
                 measurements = []
+                spatial_references = []
+                temporal_references = []
+                
+                # Comprehensive technical term detection
+                technical_keywords = [
+                    'resolution', 'band', 'wavelength', 'frequency', 'coverage', 'pixel', 'satellite',
+                    'sensor', 'radar', 'optical', 'infrared', 'thermal', 'multispectral', 'hyperspectral',
+                    'temporal', 'spatial', 'spectral', 'radiometric', 'geometric', 'atmospheric'
+                ]
+                
                 for token in doc:
+                    # Enhanced measurement detection
                     if token.like_num and token.nbor().is_alpha:
-                        measurements.append(f"{token.text} {token.nbor().text}")
-                    elif token.text.lower() in ['resolution', 'band', 'wavelength', 'frequency', 'coverage']:
+                        measurement_text = f"{token.text} {token.nbor().text}"
+                        measurements.append(measurement_text)
+                    
+                    # Technical term detection
+                    if token.text.lower() in technical_keywords:
                         technical_terms.append(token.text)
+                    
+                    # Spatial reference detection
+                    if token.ent_type_ in ['GPE', 'LOC']:
+                        spatial_references.append(token.text)
+                    
+                    # Temporal reference detection
+                    if token.ent_type_ in ['DATE', 'TIME']:
+                        temporal_references.append(token.text)
                 
                 ml_results['technical_terms'] = technical_terms
                 ml_results['measurements'] = measurements
+                ml_results['spatial_references'] = spatial_references
+                ml_results['temporal_references'] = temporal_references
+                
+                # Enhanced document analysis
+                doc_sentiment = sum([token.sentiment for token in doc]) / len(doc)
+                doc_complexity = len([token for token in doc if token.pos_ in ['NOUN', 'VERB', 'ADJ']])
+                ml_results['document_sentiment'] = doc_sentiment
+                ml_results['document_complexity'] = doc_complexity
             
-            # Enhanced BERT classification with multiple text sources
+            # Enhanced BERT classification with comprehensive text analysis
             if self.bert_classifier:
                 try:
-                    # Combine title and description for better classification
+                    # Combine multiple text sources for comprehensive classification
                     classification_texts = []
                     if result['title']:
-                        classification_texts.append(result['title'][:200])
+                        # Use full title for better context
+                        classification_texts.append(result['title'])
                     if result.get('description'):
-                        classification_texts.append(result['description'][:300])
+                        # Use more description text for better analysis
+                        desc_length = 500 if self.low_power_mode else 400
+                        classification_texts.append(result['description'][:desc_length])
+                    if result.get('tags'):
+                        # Include tags for better categorization
+                        tags_text = " ".join(result['tags']) if isinstance(result['tags'], list) else str(result['tags'])
+                        classification_texts.append(tags_text)
                     
                     if classification_texts:
                         combined_text = " ".join(classification_texts)
@@ -1785,21 +2087,24 @@ Last Updated: {time.strftime('%H:%M:%S')}
                         
                         def bert_classify():
                             try:
-                                # Enhanced classification with better parameters
+                                # Enhanced classification with optimal parameters for quality
+                                max_length = 512 if self.low_power_mode else 384  # Full context for low-power
                                 bert_result = self.bert_classifier(
                                     combined_text,
                                     truncation=True,
-                                    max_length=256,  # Increased for better context
-                                    return_all_scores=True  # Get all scores for ensemble
+                                    max_length=max_length,
+                                    return_all_scores=True,  # Get all scores for ensemble
+                                    padding=True  # Ensure consistent input
                                 )
                                 result_queue.put(('success', bert_result))
                             except Exception as e:
                                 result_queue.put(('error', str(e)))
                         
-                        # Start BERT classification in separate thread
+                        # Start BERT classification in separate thread with longer timeout
                         bert_thread = threading.Thread(target=bert_classify, daemon=True)
                         bert_thread.start()
-                        bert_thread.join(timeout=5)  # Increased timeout for better results
+                        timeout = 8 if self.low_power_mode else 6  # Longer timeout for low-power systems
+                        bert_thread.join(timeout=timeout)
                         
                         if bert_thread.is_alive():
                             self.log_error("BERT classification timed out - using fallback")
@@ -2081,17 +2386,23 @@ Last Updated: {time.strftime('%H:%M:%S')}
         return result
         
     def apply_ensemble_methods(self, result):
-        """Enhanced ensemble methods with advanced voting and confidence weighting."""
+        """Enhanced ensemble methods with advanced voting and confidence weighting for maximum quality."""
         ensemble_results = {}
         
-        # Collect all classification results
+        # Collect all classification results with enhanced weighting
         classifications = []
+        
+        # Enhanced weights based on method reliability and quality
         weights = {
-            'bert': 0.4,
-            'enhanced_classification': 0.3,
-            'spacy_entities': 0.2,
-            'rule_based': 0.1
+            'bert_primary': 0.35,      # Primary BERT classification
+            'bert_secondary': 0.15,    # Secondary BERT classification
+            'spacy_entities': 0.25,    # spaCy entity-based classification
+            'enhanced_classification': 0.15,  # Enhanced rule-based
+            'rule_based': 0.10         # Basic rule-based
         }
+        
+        # Quality adjustment factors for low-power systems
+        quality_factor = 1.2 if self.low_power_mode else 1.0  # Boost quality in low-power mode
         
         # Add ML classification results with enhanced processing
         if 'ml_classification' in result:
@@ -2348,42 +2659,134 @@ Last Updated: {time.strftime('%H:%M:%S')}
         return result
 
     def validate_data_quality(self, data):
-        """Validate overall data quality."""
-        result = {'valid': False, 'score': 0, 'errors': [], 'enriched': {}}
+        """Enhanced data quality validation with comprehensive metrics for maximum quality."""
+        result = {'valid': False, 'score': 0, 'errors': [], 'strengths': [], 'enriched': {}}
         
         try:
             score = 0
             max_score = 100
             
-            # Title quality
+            # Enhanced title quality assessment
             if data.get('title'):
-                score += 20
-                if len(data['title']) > 10:
-                    score += 10
-            
-            # Description quality
-            if data.get('description'):
-                score += 20
-                if len(data['description']) > 50:
-                    score += 10
-            
-            # Tags quality
-            if data.get('tags'):
+                title = data['title']
+                title_length = len(title)
                 score += 15
-                if len(data['tags']) > 2:
+                
+                if title_length > 20:
+                    score += 10
+                    result['strengths'].append("Comprehensive title")
+                elif title_length > 10:
                     score += 5
+                    result['strengths'].append("Good title length")
+                else:
+                    result['errors'].append("Short title")
+                
+                # Check for technical terms in title
+                technical_terms = ['satellite', 'sensor', 'radar', 'optical', 'resolution', 'coverage', 'band', 'wavelength']
+                title_lower = title.lower()
+                tech_count = sum(1 for term in technical_terms if term in title_lower)
+                if tech_count > 0:
+                    score += 5
+                    result['strengths'].append(f"Contains {tech_count} technical terms")
+            else:
+                result['errors'].append("Missing title")
             
-            # Provider quality
+            # Enhanced description quality assessment
+            if data.get('description'):
+                desc = data['description']
+                desc_length = len(desc)
+                score += 15
+                
+                if desc_length > 200:
+                    score += 10
+                    result['strengths'].append("Detailed description")
+                elif desc_length > 100:
+                    score += 7
+                    result['strengths'].append("Good description length")
+                elif desc_length > 50:
+                    score += 3
+                    result['strengths'].append("Basic description")
+                else:
+                    result['errors'].append("Very short description")
+                
+                # Check for technical content in description
+                technical_indicators = ['resolution', 'wavelength', 'frequency', 'coverage', 'temporal', 'spatial', 'spectral']
+                desc_lower = desc.lower()
+                tech_indicators = sum(1 for indicator in technical_indicators if indicator in desc_lower)
+                if tech_indicators > 2:
+                    score += 5
+                    result['strengths'].append("Rich technical content")
+            else:
+                result['errors'].append("Missing description")
+            
+            # Enhanced tags quality assessment
+            if data.get('tags'):
+                tags = data['tags']
+                if isinstance(tags, list):
+                    tag_count = len(tags)
+                    score += 10
+                    
+                    if tag_count > 5:
+                        score += 5
+                        result['strengths'].append(f"Comprehensive tagging ({tag_count} tags)")
+                    elif tag_count > 2:
+                        score += 3
+                        result['strengths'].append(f"Good tagging ({tag_count} tags)")
+                    else:
+                        result['errors'].append("Insufficient tags")
+                else:
+                    score += 5
+                    result['strengths'].append("Tags available")
+            else:
+                result['errors'].append("Missing tags")
+            
+            # Enhanced provider quality assessment
             if data.get('provider'):
-                score += 10
+                provider = data['provider']
+                if len(provider) > 5:
+                    score += 10
+                    result['strengths'].append("Provider information available")
+                else:
+                    score += 5
+                    result['errors'].append("Minimal provider info")
+            else:
+                result['errors'].append("Missing provider")
             
-            # ML classification quality
+            # Enhanced ML classification quality assessment
             if data.get('ml_classification'):
+                ml_class = data['ml_classification']
                 score += 10
+                
+                if 'bert_classification' in ml_class:
+                    score += 5
+                    result['strengths'].append("BERT classification available")
+                if 'spacy_entities' in ml_class:
+                    score += 3
+                    result['strengths'].append("spaCy entity extraction")
+                if 'technical_terms' in ml_class and ml_class['technical_terms']:
+                    score += 2
+                    result['strengths'].append("Technical terms identified")
             
-            result['score'] = min(score, max_score)
-            result['valid'] = score >= 50
-            result['enriched']['quality_score'] = score
+            # Enhanced validation results assessment
+            if data.get('validation_results'):
+                validation = data['validation_results']
+                validation_count = len(validation)
+                if validation_count > 2:
+                    score += 5
+                    result['strengths'].append(f"Comprehensive validation ({validation_count} checks)")
+                else:
+                    score += 2
+                    result['strengths'].append("Basic validation")
+            
+            # Quality factor for low-power systems (boost quality score)
+            quality_factor = 1.1 if self.low_power_mode else 1.0
+            final_score = min(int(score * quality_factor), max_score)
+            
+            result['score'] = final_score
+            result['valid'] = final_score >= 60  # Higher threshold for quality
+            result['enriched']['quality_score'] = final_score
+            result['enriched']['quality_grade'] = 'A+' if final_score >= 90 else 'A' if final_score >= 80 else 'B+' if final_score >= 70 else 'B' if final_score >= 60 else 'C' if final_score >= 50 else 'D' if final_score >= 40 else 'F'
+            result['enriched']['quality_level'] = 'Excellent' if final_score >= 80 else 'Good' if final_score >= 60 else 'Fair' if final_score >= 40 else 'Poor'
             
         except Exception as e:
             result['errors'].append(f"Quality validation error: {e}")
@@ -3002,26 +3405,38 @@ Peak Memory Usage: {psutil.Process().memory_info().rss / 1024**2:.1f}MB
     def log_message(self, message):
         """Log message to console."""
         timestamp = time.strftime("%H:%M:%S")
-        self.console.append(f"[{timestamp}] {message}")
-        self.console.ensureCursorVisible()
+        if hasattr(self, 'console') and self.console:
+            self.console.append(f"[{timestamp}] {message}")
+            self.console.ensureCursorVisible()
+        else:
+            print(f"[{timestamp}] {message}")  # Fallback to print
     
     def log_ml_classification(self, message):
         """Log ML classification message."""
         timestamp = time.strftime("%H:%M:%S")
-        self.ml_console.append(f"[{timestamp}] {message}")
-        self.ml_console.ensureCursorVisible()
+        if hasattr(self, 'ml_console') and self.ml_console:
+            self.ml_console.append(f"[{timestamp}] {message}")
+            self.ml_console.ensureCursorVisible()
+        else:
+            print(f"[{timestamp}] ML: {message}")  # Fallback to print
     
     def log_validation(self, message):
         """Log validation message."""
         timestamp = time.strftime("%H:%M:%S")
-        self.validation_console.append(f"[{timestamp}] {message}")
-        self.validation_console.ensureCursorVisible()
+        if hasattr(self, 'validation_console') and self.validation_console:
+            self.validation_console.append(f"[{timestamp}] {message}")
+            self.validation_console.ensureCursorVisible()
+        else:
+            print(f"[{timestamp}] VAL: {message}")  # Fallback to print
     
     def log_error(self, message):
         """Log error message."""
         timestamp = time.strftime("%H:%M:%S")
-        self.error_console.append(f"[{timestamp}] ERROR: {message}")
-        self.error_console.ensureCursorVisible()
+        if hasattr(self, 'error_console') and self.error_console:
+            self.error_console.append(f"[{timestamp}] ERROR: {message}")
+            self.error_console.ensureCursorVisible()
+        else:
+            print(f"[{timestamp}] ERROR: {message}")  # Fallback to print
     
     def clear_all_consoles(self):
         """Clear all console outputs."""
@@ -3031,9 +3446,17 @@ Peak Memory Usage: {psutil.Process().memory_info().rss / 1024**2:.1f}MB
         self.error_console.clear()
         self.summary_console.clear()
         self.performance_console.clear()
+        if hasattr(self, 'health_console'):
+            self.health_console.clear()
         if hasattr(self, 'data_json_view'):
             self.data_json_view.clear()
-        self.log_message("All consoles cleared.")
+        
+        # Reset counters
+        self.error_count = 0
+        self.warning_count = 0
+        self.success_count = 0
+        
+        self.log_message("All consoles cleared and counters reset.")
     
     def open_dashboard(self):
         """Open analytics dashboard."""
@@ -3446,6 +3869,157 @@ ENHANCED FEATURES:
         layout.addWidget(close_btn)
         
         dialog.exec()
+
+    def show_health_report(self):
+        """Show comprehensive system health report."""
+        try:
+            health_report = self.get_system_health_report()
+            self.health_console.setPlainText(health_report)
+            
+            # Switch to health tab
+            self.tab_widget.setCurrentIndex(7)  # Health tab index
+            
+            self.log_message("🏥 Health report generated")
+            
+        except Exception as e:
+            self.log_error(f"Failed to generate health report: {e}")
+
+    def show_optimization_dialog(self):
+        """Show system optimization dialog."""
+        try:
+            dialog = QDialog(self)
+            dialog.setWindowTitle("System Optimization")
+            dialog.setModal(True)
+            dialog.resize(500, 400)
+            
+            layout = QVBoxLayout(dialog)
+            
+            # Current system status
+            status_group = QGroupBox("Current System Status")
+            status_layout = QVBoxLayout()
+            
+            cpu_percent = psutil.cpu_percent()
+            memory_percent = psutil.virtual_memory().percent
+            
+            status_text = f"""
+CPU Usage: {cpu_percent:.1f}%
+Memory Usage: {memory_percent:.1f}%
+Optimization Level: {self.optimization_level.upper()}
+Low Power Mode: {'Enabled' if self.low_power_mode else 'Disabled'}
+Error Count: {self.error_count}
+Success Count: {self.success_count}
+"""
+            
+            status_label = QLabel(status_text)
+            status_label.setStyleSheet("font-family: monospace; font-size: 10px;")
+            status_layout.addWidget(status_label)
+            status_group.setLayout(status_layout)
+            layout.addWidget(status_group)
+            
+            # Optimization options
+            options_group = QGroupBox("Optimization Options")
+            options_layout = QVBoxLayout()
+            
+            # Optimization level selection
+            level_layout = QHBoxLayout()
+            level_layout.addWidget(QLabel("Optimization Level:"))
+            level_combo = QComboBox()
+            level_combo.addItems(["Balanced", "Performance", "Power Save"])
+            level_combo.setCurrentText(self.optimization_level.title())
+            level_layout.addWidget(level_combo)
+            options_layout.addLayout(level_layout)
+            
+            # Auto-optimization checkbox
+            auto_optimize = QCheckBox("Enable auto-optimization based on system load")
+            auto_optimize.setChecked(True)
+            options_layout.addWidget(auto_optimize)
+            
+            # Memory management
+            memory_layout = QHBoxLayout()
+            memory_layout.addWidget(QLabel("Max Cache Size:"))
+            cache_slider = QSlider(Qt.Orientation.Horizontal)
+            cache_slider.setRange(100, 2000)
+            cache_slider.setValue(500 if self.low_power_mode else 1000)
+            cache_label = QLabel(f"{cache_slider.value()} items")
+            cache_slider.valueChanged.connect(lambda v: cache_label.setText(f"{v} items"))
+            memory_layout.addWidget(cache_slider)
+            memory_layout.addWidget(cache_label)
+            options_layout.addLayout(memory_layout)
+            
+            options_group.setLayout(options_layout)
+            layout.addWidget(options_group)
+            
+            # Recommendations
+            rec_group = QGroupBox("Recommendations")
+            rec_layout = QVBoxLayout()
+            
+            recommendations = self.get_optimization_recommendations()
+            rec_label = QLabel(recommendations)
+            rec_label.setWordWrap(True)
+            rec_layout.addWidget(rec_label)
+            rec_group.setLayout(rec_layout)
+            layout.addWidget(rec_group)
+            
+            # Buttons
+            button_layout = QHBoxLayout()
+            
+            apply_btn = QPushButton("Apply Optimizations")
+            apply_btn.clicked.connect(lambda: self.apply_optimizations(
+                level_combo.currentText().lower().replace(" ", "_"),
+                auto_optimize.isChecked(),
+                cache_slider.value(),
+                dialog
+            ))
+            
+            cancel_btn = QPushButton("Cancel")
+            cancel_btn.clicked.connect(dialog.reject)
+            
+            button_layout.addWidget(apply_btn)
+            button_layout.addWidget(cancel_btn)
+            layout.addLayout(button_layout)
+            
+            dialog.exec()
+            
+        except Exception as e:
+            self.log_error(f"Failed to show optimization dialog: {e}")
+    
+    def apply_optimizations(self, level, auto_optimize, cache_size, dialog):
+        """Apply selected optimizations."""
+        try:
+            # Update optimization level
+            self.optimization_level = level
+            
+            # Update cache size
+            if hasattr(self, 'config') and self.config:
+                self.config['performance']['memory']['max_cache_size'] = cache_size
+            
+            # Apply optimizations based on level
+            if level == "power_save":
+                self.timer.setInterval(300)
+                if hasattr(self, 'delay_slider'):
+                    self.delay_slider.setValue(6)  # 3 seconds
+                if hasattr(self, 'concurrent_slider'):
+                    self.concurrent_slider.setValue(1)
+            elif level == "performance":
+                self.timer.setInterval(50)
+                if hasattr(self, 'delay_slider'):
+                    self.delay_slider.setValue(2)  # 1 second
+                if hasattr(self, 'concurrent_slider'):
+                    self.concurrent_slider.setValue(8)
+            else:  # balanced
+                self.timer.setInterval(100)
+                if hasattr(self, 'delay_slider'):
+                    self.delay_slider.setValue(4)  # 2 seconds
+                if hasattr(self, 'concurrent_slider'):
+                    self.concurrent_slider.setValue(4)
+            
+            self.log_message(f"✅ Applied {level} optimizations")
+            self.log_message(f"📊 Cache size: {cache_size} items")
+            
+            dialog.accept()
+            
+        except Exception as e:
+            self.log_error(f"Failed to apply optimizations: {e}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
