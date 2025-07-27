@@ -469,6 +469,33 @@ class EnhancedCrawlerUI(QWidget):
             if os.path.exists(config_file):
                 with open(config_file, 'r') as f:
                     config = yaml_module.safe_load(f)
+                
+                # Ensure required sections exist
+                if 'ml' not in config:
+                    config['ml'] = {
+                        'classification': {
+                            'max_length': 512,
+                            'batch_size': 1
+                        }
+                    }
+                
+                if 'performance' not in config:
+                    config['performance'] = {
+                        'max_concurrent_requests': 1,
+                        'request_delay': 2.0,
+                        'memory': {
+                            'max_cache_size': 1000,
+                            'enable_compression': True
+                        }
+                    }
+                
+                if 'processing' not in config:
+                    config['processing'] = {
+                        'enable_quality_checks': True,
+                        'enable_validation': True,
+                        'enable_ensemble_methods': True
+                    }
+                
                 self.log_message("✅ Configuration loaded successfully")
                 return config
             else:
