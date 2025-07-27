@@ -1,12 +1,111 @@
 # Python bytecode
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.so
 
-# Other common ignores can be added here
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
 
-node_modules/
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and temporary files
 logs/
-temp_flutter_earth/
 *.log
 *.tmp
 *.bak
+temp_flutter_earth/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Large data files and extracted content
+extracted_data/
+*.json
+*.csv
+*.xlsx
+*.xls
+
+# Large binary files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.pdf
+*.zip
+*.tar.gz
+*.rar
+
+# Model cache and ML files
+model_cache/
+*.pkl
+*.h5
+*.hdf5
+*.model
+*.bin
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Crawler specific
+crawler_data/
+thumbnails/
+exported_data/
+
+# Large HTML files and web content
+gee cat/
+*.html
+*.htm
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+*.lock
+
+# Backup files
+*.backup
+*.old
+*.orig
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Cache directories
+.cache/
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Large documentation files
+docs_md/
+*.md.bak
