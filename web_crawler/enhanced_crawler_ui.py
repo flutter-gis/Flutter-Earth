@@ -301,7 +301,7 @@ USER_AGENTS = [
 class EnhancedCrawlerUI(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Earth Engine Catalog Web Crawler - Enhanced")
+        self.setWindowTitle("Earth Engine Catalog Web Crawler - Ultra Enhanced v2.0")
         self.resize(1000, 700)
         self.setup_ui()
         self.log_queue = Queue()
@@ -1260,36 +1260,59 @@ class EnhancedCrawlerUI(QWidget):
         return result
 
     def apply_ml_classification(self, soup, result):
-        """Apply ML classification to extracted data."""
+        """Enhanced ML classification with advanced features and ensemble methods."""
         ml_results = {}
         
         try:
-            # spaCy NER
+            # Enhanced spaCy NER with more comprehensive entity extraction
             if self.nlp:
-                text = soup.get_text()[:1000]  # Limit text length
+                text = soup.get_text()[:2000]  # Increased text length for better coverage
                 doc = self.nlp(text)
                 
-                # Extract entities
+                # Extract entities with enhanced categorization
                 entities = {}
                 for ent in doc.ents:
                     if ent.label_ not in entities:
                         entities[ent.label_] = []
-                    entities[ent.label_].append(ent.text)
+                    if ent.text not in entities[ent.label_]:  # Avoid duplicates
+                        entities[ent.label_].append(ent.text)
                 
                 ml_results['spacy_entities'] = entities
                 
-                # Classify title if available
+                # Enhanced title entity extraction
                 if result['title']:
                     title_doc = self.nlp(result['title'])
                     title_entities = [(ent.text, ent.label_) for ent in title_doc.ents]
                     ml_results['title_entities'] = title_entities
+                    
+                    # Extract key phrases from title
+                    title_tokens = [token.text for token in title_doc if not token.is_stop and token.is_alpha]
+                    ml_results['title_key_phrases'] = title_tokens[:10]
+                
+                # Extract technical terms and measurements
+                technical_terms = []
+                measurements = []
+                for token in doc:
+                    if token.like_num and token.nbor().is_alpha:
+                        measurements.append(f"{token.text} {token.nbor().text}")
+                    elif token.text.lower() in ['resolution', 'band', 'wavelength', 'frequency', 'coverage']:
+                        technical_terms.append(token.text)
+                
+                ml_results['technical_terms'] = technical_terms
+                ml_results['measurements'] = measurements
             
-            # BERT classification with improved error handling
+            # Enhanced BERT classification with multiple text sources
             if self.bert_classifier:
                 try:
+                    # Combine title and description for better classification
+                    classification_texts = []
                     if result['title']:
-                        # Truncate title to prevent memory issues
-                        title_text = result['title'][:200]  # Limit to 200 characters
+                        classification_texts.append(result['title'][:200])
+                    if result.get('description'):
+                        classification_texts.append(result['description'][:300])
+                    
+                    if classification_texts:
+                        combined_text = " ".join(classification_texts)
                         
                         # Use threading with timeout to prevent hanging
                         import threading
@@ -1299,12 +1322,12 @@ class EnhancedCrawlerUI(QWidget):
                         
                         def bert_classify():
                             try:
-                                # Use a more specific classification approach
+                                # Enhanced classification with better parameters
                                 bert_result = self.bert_classifier(
-                                    title_text,
+                                    combined_text,
                                     truncation=True,
-                                    max_length=128,
-                                    return_all_scores=False
+                                    max_length=256,  # Increased for better context
+                                    return_all_scores=True  # Get all scores for ensemble
                                 )
                                 result_queue.put(('success', bert_result))
                             except Exception as e:
@@ -1313,19 +1336,23 @@ class EnhancedCrawlerUI(QWidget):
                         # Start BERT classification in separate thread
                         bert_thread = threading.Thread(target=bert_classify, daemon=True)
                         bert_thread.start()
-                        bert_thread.join(timeout=3)  # Reduced timeout to 3 seconds
+                        bert_thread.join(timeout=5)  # Increased timeout for better results
                         
                         if bert_thread.is_alive():
-                            self.log_error("BERT classification timed out - skipping")
+                            self.log_error("BERT classification timed out - using fallback")
                         else:
                             try:
                                 status, bert_result = result_queue.get_nowait()
                                 if status == 'success':
-                                    # Simplify the result structure
+                                    # Enhanced result processing
                                     if isinstance(bert_result, list) and len(bert_result) > 0:
+                                        # Get top 3 classifications
+                                        sorted_results = sorted(bert_result[0], key=lambda x: x['score'], reverse=True)
                                         ml_results['bert_classification'] = {
-                                            'label': bert_result[0].get('label', 'unknown'),
-                                            'confidence': bert_result[0].get('score', 0.0)
+                                            'primary': sorted_results[0],
+                                            'secondary': sorted_results[1] if len(sorted_results) > 1 else None,
+                                            'tertiary': sorted_results[2] if len(sorted_results) > 2 else None,
+                                            'all_scores': sorted_results[:5]  # Top 5 scores
                                         }
                                     else:
                                         ml_results['bert_classification'] = bert_result
@@ -1337,64 +1364,237 @@ class EnhancedCrawlerUI(QWidget):
                 except Exception as e:
                     self.log_error(f"BERT classification error: {e}")
             
-            # Fallback keyword extraction if spaCy/BERT unavailable
-            if not self.nlp and not self.bert_classifier:
-                text = soup.get_text()[:1000]
-                keywords = set(re.findall(r'\b[A-Za-z]{5,}\b', text))
-                ml_results['keywords'] = list(keywords)[:20]
+            # Enhanced keyword extraction with frequency analysis
+            text = soup.get_text()[:1500]
+            words = re.findall(r'\b[A-Za-z]{4,}\b', text.lower())
+            word_freq = {}
+            for word in words:
+                if word not in ['this', 'that', 'with', 'from', 'they', 'have', 'will', 'been', 'were', 'said', 'each', 'which', 'their', 'time', 'would', 'there', 'could', 'other', 'than', 'first', 'water', 'after', 'where', 'many', 'these', 'then', 'them', 'such', 'here', 'take', 'into', 'just', 'like', 'know', 'over', 'think', 'also', 'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way', 'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us']:
+                    word_freq[word] = word_freq.get(word, 0) + 1
             
-            # Add lightweight classification fallback
-            if not self.bert_classifier and result.get('title'):
-                # Simple rule-based classification
-                title_lower = result['title'].lower()
-                classification = self.simple_classify_text(title_lower)
-                ml_results['simple_classification'] = classification
+            # Get top keywords by frequency
+            sorted_keywords = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
+            ml_results['enhanced_keywords'] = [word for word, freq in sorted_keywords[:25]]
+            ml_results['keyword_frequencies'] = dict(sorted_keywords[:15])
+            
+            # Enhanced rule-based classification with multiple text sources
+            classification_texts = []
+            if result.get('title'):
+                classification_texts.append(result['title'])
+            if result.get('description'):
+                classification_texts.append(result['description'])
+            if result.get('tags'):
+                classification_texts.extend(result['tags'])
+            
+            if classification_texts:
+                combined_text = " ".join(classification_texts)
+                classification = self.simple_classify_text(combined_text)
+                ml_results['enhanced_classification'] = classification
+                
+                # Multi-category classification
+                if classification.get('all_scores'):
+                    # Get top 3 categories
+                    sorted_categories = sorted(classification['all_scores'].items(), key=lambda x: x[1], reverse=True)
+                    ml_results['multi_category_classification'] = {
+                        'primary': sorted_categories[0] if sorted_categories else None,
+                        'secondary': sorted_categories[1] if len(sorted_categories) > 1 else None,
+                        'tertiary': sorted_categories[2] if len(sorted_categories) > 2 else None
+                    }
+            
+            # Extract satellite and sensor information
+            satellite_info = self._extract_satellite_info(text)
+            if satellite_info:
+                ml_results['satellite_info'] = satellite_info
+            
+            # Extract resolution and technical specifications
+            technical_specs = self._extract_technical_specs(text)
+            if technical_specs:
+                ml_results['technical_specifications'] = technical_specs
 
         except Exception as e:
-            self.log_error(f"ML classification failed: {e}")
-            # Provide fallback
-            text = soup.get_text()[:500]
+            self.log_error(f"Enhanced ML classification failed: {e}")
+            # Enhanced fallback
+            text = soup.get_text()[:800]
             keywords = set(re.findall(r'\b[A-Za-z]{4,}\b', text))
-            ml_results['fallback_keywords'] = list(keywords)[:10]
+            ml_results['fallback_keywords'] = list(keywords)[:15]
+            
+            # Basic classification fallback
+            if result.get('title'):
+                ml_results['fallback_classification'] = self.simple_classify_text(result['title'])
 
         result['ml_classification'] = ml_results
         return result
-
-    def simple_classify_text(self, text):
-        """Simple rule-based text classification as fallback for BERT"""
-        text_lower = text.lower()
-        
-        # Define classification rules
-        categories = {
-            'satellite_data': ['satellite', 'landsat', 'sentinel', 'modis', 'aster', 'spot'],
-            'aerial_data': ['aerial', 'drone', 'uav', 'airborne', 'photogrammetry'],
-            'climate_data': ['climate', 'weather', 'temperature', 'precipitation', 'atmospheric'],
-            'terrain_data': ['dem', 'elevation', 'terrain', 'topography', 'slope'],
-            'vegetation_data': ['vegetation', 'forest', 'crop', 'agriculture', 'ndvi'],
-            'water_data': ['water', 'ocean', 'river', 'lake', 'coastal', 'marine'],
-            'urban_data': ['urban', 'city', 'building', 'infrastructure', 'population'],
-            'geological_data': ['geology', 'mineral', 'rock', 'soil', 'geological']
+    
+    def _extract_satellite_info(self, text):
+        """Extract satellite and sensor information from text"""
+        satellite_patterns = {
+            'landsat': r'\b(Landsat\s*\d+[A-Z]?)\b',
+            'sentinel': r'\b(Sentinel\s*[12AB])\b',
+            'modis': r'\b(MODIS|Terra|Aqua)\b',
+            'aster': r'\b(ASTER)\b',
+            'spot': r'\b(SPOT\s*\d+)\b',
+            'pleiades': r'\b(Pleiades)\b',
+            'quickbird': r'\b(QuickBird)\b',
+            'worldview': r'\b(WorldView\s*[1234])\b',
+            'planet': r'\b(Planet|PlanetScope|RapidEye)\b'
         }
         
+        satellites = {}
+        for sat_type, pattern in satellite_patterns.items():
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                satellites[sat_type] = list(set(matches))
+        
+        return satellites if satellites else None
+    
+    def _extract_technical_specs(self, text):
+        """Extract technical specifications from text"""
+        specs = {}
+        
+        # Resolution patterns
+        resolution_patterns = [
+            r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*resolution',
+            r'resolution\s*of\s*(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)',
+            r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*pixel'
+        ]
+        
+        for pattern in resolution_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                specs['resolution'] = [f"{value} {unit}" for value, unit in matches]
+                break
+        
+        # Band patterns
+        band_patterns = [
+            r'\b(B\d+|Band\s*\d+)\b',
+            r'\b([RGB]|Red|Green|Blue|NIR|SWIR|TIR)\b',
+            r'\b(\d+)\s*bands?\b'
+        ]
+        
+        bands = []
+        for pattern in band_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            bands.extend(matches)
+        
+        if bands:
+            specs['bands'] = list(set(bands))
+        
+        # Wavelength patterns
+        wavelength_patterns = [
+            r'(\d+(?:\.\d+)?)\s*(nm|nanometers?|microns?|μm)\b',
+            r'wavelength\s*(\d+(?:\.\d+)?)\s*(nm|nanometers?|microns?|μm)'
+        ]
+        
+        wavelengths = []
+        for pattern in wavelength_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            wavelengths.extend([f"{value} {unit}" for value, unit in matches])
+        
+        if wavelengths:
+            specs['wavelengths'] = list(set(wavelengths))
+        
+        return specs if specs else None
+
+    def simple_classify_text(self, text):
+        """Enhanced rule-based text classification with advanced patterns"""
+        text_lower = text.lower()
+        
+        # Enhanced classification rules with more comprehensive keywords
+        categories = {
+            'satellite_data': [
+                'satellite', 'landsat', 'sentinel', 'modis', 'aster', 'spot', 'pleiades', 
+                'quickbird', 'worldview', 'ikonos', 'geoeye', 'rapideye', 'planet', 'maxar',
+                'optical', 'multispectral', 'hyperspectral', 'radar', 'sar', 'lidar'
+            ],
+            'aerial_data': [
+                'aerial', 'drone', 'uav', 'airborne', 'photogrammetry', 'uav', 'uas',
+                'unmanned', 'aircraft', 'helicopter', 'plane', 'flight', 'survey'
+            ],
+            'climate_data': [
+                'climate', 'weather', 'temperature', 'precipitation', 'atmospheric', 'meteorological',
+                'rainfall', 'snowfall', 'humidity', 'pressure', 'wind', 'solar', 'radiation',
+                'greenhouse', 'carbon', 'emissions', 'air_quality', 'pollution'
+            ],
+            'terrain_data': [
+                'dem', 'elevation', 'terrain', 'topography', 'slope', 'aspect', 'hillshade',
+                'digital_elevation', 'srtm', 'aster_gdem', 'alos_palsar', 'height', 'altitude'
+            ],
+            'vegetation_data': [
+                'vegetation', 'forest', 'crop', 'agriculture', 'ndvi', 'evi', 'lai', 'fapar',
+                'biomass', 'canopy', 'leaf', 'plant', 'tree', 'grass', 'shrub', 'land_cover',
+                'land_use', 'deforestation', 'reforestation', 'burned_area'
+            ],
+            'water_data': [
+                'water', 'ocean', 'river', 'lake', 'coastal', 'marine', 'aquatic', 'hydrology',
+                'flood', 'drought', 'wetland', 'marsh', 'swamp', 'estuary', 'delta', 'watershed',
+                'catchment', 'basin', 'reservoir', 'dam', 'stream', 'creek'
+            ],
+            'urban_data': [
+                'urban', 'city', 'building', 'infrastructure', 'population', 'settlement',
+                'residential', 'commercial', 'industrial', 'transportation', 'road', 'highway',
+                'bridge', 'airport', 'port', 'railway', 'subway', 'metro'
+            ],
+            'geological_data': [
+                'geology', 'mineral', 'rock', 'soil', 'geological', 'lithology', 'stratigraphy',
+                'fault', 'earthquake', 'volcano', 'seismic', 'tectonic', 'plate', 'mountain',
+                'valley', 'canyon', 'cave', 'karst', 'erosion', 'deposition'
+            ],
+            'atmospheric_data': [
+                'atmosphere', 'air_quality', 'pollution', 'aerosol', 'particulate', 'pm2.5',
+                'pm10', 'ozone', 'nitrogen', 'sulfur', 'carbon_monoxide', 'methane', 'vapor',
+                'cloud', 'fog', 'haze', 'smog', 'visibility'
+            ],
+            'cryosphere_data': [
+                'ice', 'snow', 'glacier', 'polar', 'arctic', 'antarctic', 'permafrost',
+                'frozen', 'winter', 'frost', 'blizzard', 'avalanche', 'iceberg', 'sea_ice',
+                'ice_sheet', 'ice_cap', 'ice_field'
+            ],
+            'oceanographic_data': [
+                'ocean', 'marine', 'sea', 'current', 'salinity', 'temperature', 'depth',
+                'bathymetry', 'tide', 'wave', 'storm', 'hurricane', 'typhoon', 'cyclone',
+                'tsunami', 'upwelling', 'downwelling', 'gyre', 'eddy'
+            ],
+            'disaster_data': [
+                'disaster', 'emergency', 'flood', 'fire', 'earthquake', 'tsunami', 'hurricane',
+                'tornado', 'drought', 'landslide', 'avalanche', 'volcanic', 'epidemic',
+                'pandemic', 'outbreak', 'crisis', 'catastrophe'
+            ]
+        }
+        
+        # Enhanced scoring with weighted keywords
         scores = {}
         for category, keywords in categories.items():
-            score = sum(1 for keyword in keywords if keyword in text_lower)
+            score = 0
+            for keyword in keywords:
+                if keyword in text_lower:
+                    # Weight by keyword length and specificity
+                    weight = len(keyword) / 10.0
+                    score += weight
+            
             if score > 0:
                 scores[category] = score
         
         if scores:
             # Return the category with highest score
             best_category = max(scores, key=scores.get)
+            # Enhanced confidence calculation
+            max_possible_score = sum(len(kw) / 10.0 for kw in categories[best_category])
+            confidence = min(scores[best_category] / max_possible_score, 1.0)
+            
             return {
                 'label': best_category,
-                'confidence': min(scores[best_category] / 3.0, 1.0),  # Normalize confidence
-                'method': 'rule_based'
+                'confidence': confidence,
+                'method': 'enhanced_rule_based',
+                'score': scores[best_category],
+                'all_scores': scores
             }
         else:
             return {
                 'label': 'general_data',
-                'confidence': 0.5,
-                'method': 'rule_based'
+                'confidence': 0.3,
+                'method': 'enhanced_rule_based',
+                'score': 0,
+                'all_scores': {}
             }
 
     def apply_validation(self, result):
@@ -1418,23 +1618,182 @@ class EnhancedCrawlerUI(QWidget):
         return result
         
     def apply_ensemble_methods(self, result):
-        """Apply ensemble ML methods."""
-        if self.tfidf_vectorizer and result['title']:
-            try:
-                # TF-IDF analysis
-                tfidf_result = self.tfidf_vectorizer.fit_transform([result['title']])
-                if hasattr(tfidf_result, 'shape') and len(tfidf_result.shape) > 1:
-                    result['ensemble_features'] = {
-                        'tfidf_features': tfidf_result.shape[1],
-                        'text_length': len(result['title'])
-                    }
+        """Enhanced ensemble methods with advanced voting and confidence weighting."""
+        ensemble_results = {}
+        
+        # Collect all classification results
+        classifications = []
+        weights = {
+            'bert': 0.4,
+            'enhanced_classification': 0.3,
+            'spacy_entities': 0.2,
+            'rule_based': 0.1
+        }
+        
+        # Add ML classification results with enhanced processing
+        if 'ml_classification' in result:
+            ml_class = result['ml_classification']
+            
+            # Enhanced BERT classification
+            if 'bert_classification' in ml_class:
+                bert_result = ml_class['bert_classification']
+                if isinstance(bert_result, dict):
+                    if 'primary' in bert_result:
+                        # New enhanced BERT format
+                        primary = bert_result['primary']
+                        classifications.append({
+                            'method': 'bert_primary',
+                            'label': primary.get('label', 'unknown'),
+                            'confidence': primary.get('score', 0.0),
+                            'weight': weights['bert']
+                        })
+                        
+                        # Add secondary classification if available
+                        if 'secondary' in bert_result and bert_result['secondary']:
+                            secondary = bert_result['secondary']
+                            classifications.append({
+                                'method': 'bert_secondary',
+                                'label': secondary.get('label', 'unknown'),
+                                'confidence': secondary.get('score', 0.0) * 0.7,  # Reduced weight
+                                'weight': weights['bert'] * 0.5
+                            })
+                    elif 'label' in bert_result:
+                        # Legacy BERT format
+                        classifications.append({
+                            'method': 'bert',
+                            'label': bert_result['label'],
+                            'confidence': bert_result.get('confidence', 0.0),
+                            'weight': weights['bert']
+                        })
+            
+            # Enhanced classification
+            if 'enhanced_classification' in ml_class:
+                enhanced_result = ml_class['enhanced_classification']
+                classifications.append({
+                    'method': 'enhanced',
+                    'label': enhanced_result.get('label', 'general_data'),
+                    'confidence': enhanced_result.get('confidence', 0.5),
+                    'weight': weights['enhanced_classification'],
+                    'score': enhanced_result.get('score', 0.0)
+                })
+            
+            # Multi-category classification
+            if 'multi_category_classification' in ml_class:
+                multi_result = ml_class['multi_category_classification']
+                for category_type, category_data in multi_result.items():
+                    if category_data:
+                        label, score = category_data
+                        weight_multiplier = 1.0 if category_type == 'primary' else 0.7 if category_type == 'secondary' else 0.4
+                        classifications.append({
+                            'method': f'multi_{category_type}',
+                            'label': label,
+                            'confidence': score,
+                            'weight': weights['enhanced_classification'] * weight_multiplier
+                        })
+            
+            # spaCy entity-based classification
+            if 'spacy_entities' in ml_class:
+                entities = ml_class['spacy_entities']
+                entity_classifications = []
+                
+                # Classify based on entity types
+                if 'ORG' in entities:
+                    entity_classifications.append(('organization_data', 0.8))
+                if 'GPE' in entities:
+                    entity_classifications.append(('geographic_data', 0.7))
+                if 'DATE' in entities:
+                    entity_classifications.append(('temporal_data', 0.6))
+                if 'CARDINAL' in entities:
+                    entity_classifications.append(('numerical_data', 0.5))
+                
+                for label, confidence in entity_classifications:
+                    classifications.append({
+                        'method': 'spacy_entities',
+                        'label': label,
+                        'confidence': confidence,
+                        'weight': weights['spacy_entities']
+                    })
+            
+            # Rule-based classification fallback
+            if 'simple_classification' in ml_class:
+                simple_result = ml_class['simple_classification']
+                classifications.append({
+                    'method': 'rule_based',
+                    'label': simple_result.get('label', 'general_data'),
+                    'confidence': simple_result.get('confidence', 0.5),
+                    'weight': weights['rule_based']
+                })
+        
+        # Enhanced ensemble voting with weighted confidence
+        if classifications:
+            # Weighted voting system
+            label_scores = {}
+            label_weights = {}
+            method_agreement = {}
+            
+            for classification in classifications:
+                label = classification['label']
+                confidence = classification['confidence']
+                weight = classification.get('weight', 1.0)
+                
+                if label not in label_scores:
+                    label_scores[label] = 0.0
+                    label_weights[label] = 0.0
+                    method_agreement[label] = []
+                
+                # Weighted score calculation
+                weighted_score = confidence * weight
+                label_scores[label] += weighted_score
+                label_weights[label] += weight
+                method_agreement[label].append(classification['method'])
+            
+            # Calculate final weighted scores
+            final_scores = {}
+            for label in label_scores:
+                if label_weights[label] > 0:
+                    final_scores[label] = label_scores[label] / label_weights[label]
+            
+            # Find the best classification
+            if final_scores:
+                best_label = max(final_scores, key=final_scores.get)
+                best_score = final_scores[best_label]
+                
+                # Calculate agreement metrics
+                agreement_count = len(method_agreement[best_label])
+                total_methods = len(set(c['method'] for c in classifications))
+                agreement_ratio = agreement_count / total_methods if total_methods > 0 else 0
+                
+                ensemble_results['ensemble_classification'] = {
+                    'label': best_label,
+                    'confidence': best_score,
+                    'weighted_score': best_score,
+                    'agreement_count': agreement_count,
+                    'total_methods': total_methods,
+                    'agreement_ratio': agreement_ratio,
+                    'methods_used': method_agreement[best_label],
+                    'all_scores': final_scores,
+                    'classification_quality': 'high' if agreement_ratio > 0.5 else 'medium' if agreement_ratio > 0.3 else 'low'
+                }
+                
+                # Add confidence intervals
+                if best_score > 0.8:
+                    ensemble_results['ensemble_classification']['confidence_level'] = 'very_high'
+                elif best_score > 0.6:
+                    ensemble_results['ensemble_classification']['confidence_level'] = 'high'
+                elif best_score > 0.4:
+                    ensemble_results['ensemble_classification']['confidence_level'] = 'medium'
                 else:
-                    result['ensemble_features'] = {
-                        'tfidf_features': 0,
-                        'text_length': len(result['title'])
-                    }
-            except Exception as e:
-                self.log_error(f"Ensemble method error: {e}")
+                    ensemble_results['ensemble_classification']['confidence_level'] = 'low'
+        
+        # Add ensemble metadata
+        ensemble_results['ensemble_metadata'] = {
+            'total_classifications': len(classifications),
+            'methods_used': list(set(c['method'] for c in classifications)),
+            'timestamp': datetime.now().isoformat(),
+            'ensemble_version': '2.0'
+        }
+        
+        result['ensemble_results'] = ensemble_results
         return result
 
     def validate_spatial_data(self, data):

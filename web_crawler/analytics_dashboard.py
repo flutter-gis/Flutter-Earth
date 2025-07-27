@@ -25,97 +25,159 @@ class AnalyticsDashboard:
         self.setup_callbacks()
         
     def setup_layout(self):
-        """Setup the dashboard layout"""
+        """Setup the enhanced dashboard layout with advanced visualizations"""
         self.app.layout = html.Div([
-            html.H1("Earth Engine Crawler Analytics Dashboard", 
+            html.H1("Earth Engine Crawler Analytics Dashboard v2.0", 
                    style={'textAlign': 'center', 'color': '#2c3e50', 'marginBottom': 30}),
             
-            # Summary cards
+            # Enhanced summary cards with real-time metrics
             html.Div([
                 html.Div([
                     html.H3(id='total-datasets', children='0'),
-                    html.P('Total Datasets')
+                    html.P('Total Datasets'),
+                    html.Small(id='datasets-trend', children='+0 today')
                 ], className='summary-card'),
                 html.Div([
                     html.H3(id='total-providers', children='0'),
-                    html.P('Unique Providers')
+                    html.P('Unique Providers'),
+                    html.Small(id='providers-trend', children='+0 today')
                 ], className='summary-card'),
                 html.Div([
                     html.H3(id='avg-confidence', children='0%'),
-                    html.P('Avg Confidence')
+                    html.P('Avg Confidence'),
+                    html.Small(id='confidence-trend', children='+0% today')
                 ], className='summary-card'),
                 html.Div([
                     html.H3(id='ml-classified', children='0'),
-                    html.P('ML Classified')
+                    html.P('ML Classified'),
+                    html.Small(id='ml-trend', children='+0 today')
+                ], className='summary-card'),
+                html.Div([
+                    html.H3(id='quality-score', children='0%'),
+                    html.P('Quality Score'),
+                    html.Small(id='quality-trend', children='+0% today')
+                ], className='summary-card'),
+                html.Div([
+                    html.H3(id='processing-rate', children='0/min'),
+                    html.P('Processing Rate'),
+                    html.Small(id='rate-trend', children='+0/min today')
                 ], className='summary-card')
-            ], style={'display': 'flex', 'justifyContent': 'space-around', 'marginBottom': 30}),
+            ], style={'display': 'flex', 'justifyContent': 'space-around', 'marginBottom': 30, 'flexWrap': 'wrap'}),
             
-            # Charts
+            # Advanced charts section
             html.Div([
-                # Top row
+                # Top row - Main analytics
                 html.Div([
                     dcc.Graph(id='providers-chart', style={'height': 400}),
                     dcc.Graph(id='confidence-distribution', style={'height': 400})
-                ], style={'display': 'flex', 'gap': 20}),
+                ], style={'display': 'flex', 'gap': 20, 'marginBottom': 20}),
                 
-                # Bottom row
+                # Middle row - Enhanced analytics
                 html.Div([
                     dcc.Graph(id='tags-cloud', style={'height': 400}),
                     dcc.Graph(id='temporal-trend', style={'height': 400})
-                ], style={'display': 'flex', 'gap': 20, 'marginTop': 20})
+                ], style={'display': 'flex', 'gap': 20, 'marginBottom': 20}),
+                
+                # Bottom row - New advanced charts
+                html.Div([
+                    dcc.Graph(id='quality-metrics', style={'height': 400}),
+                    dcc.Graph(id='ml-performance', style={'height': 400})
+                ], style={'display': 'flex', 'gap': 20})
             ]),
             
-            # Data table
+            # Enhanced data table with filtering
             html.Div([
-                html.H3("Recent Datasets"),
-                html.Div(id='datasets-table')
+                html.H3("Recent Datasets with Advanced Filtering"),
+                html.Div([
+                    dcc.Input(
+                        id='search-input',
+                        type='text',
+                        placeholder='Search datasets...',
+                        style={'width': '100%', 'marginBottom': 10}
+                    ),
+                    html.Div(id='datasets-table')
+                ])
             ], style={'marginTop': 30}),
             
-            # Auto-refresh
+            # Performance metrics section
+            html.Div([
+                html.H3("Real-Time Performance Metrics"),
+                html.Div([
+                    html.Div([
+                        html.H4("System Performance"),
+                        html.Div(id='system-metrics')
+                    ], style={'flex': 1}),
+                    html.Div([
+                        html.H4("ML Model Performance"),
+                        html.Div(id='ml-metrics')
+                    ], style={'flex': 1})
+                ], style={'display': 'flex', 'gap': 20})
+            ], style={'marginTop': 30}),
+            
+            # Auto-refresh with shorter interval for real-time updates
             dcc.Interval(
                 id='interval-component',
-                interval=5*1000,  # 5 seconds
+                interval=3*1000,  # 3 seconds for more responsive updates
                 n_intervals=0
             )
         ], style={'padding': 20})
         
-        # Add CSS
+        # Enhanced CSS with modern styling
         self.app.index_string = '''
         <!DOCTYPE html>
         <html>
             <head>
-                <title>Earth Engine Crawler Analytics</title>
+                <title>Earth Engine Crawler Analytics v2.0</title>
                 <style>
                     .summary-card {
-                        background: white;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
                         padding: 20px;
-                        border-radius: 8px;
-                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        border-radius: 12px;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
                         text-align: center;
                         min-width: 150px;
+                        margin: 5px;
+                        transition: transform 0.3s ease;
+                    }
+                    .summary-card:hover {
+                        transform: translateY(-5px);
                     }
                     .summary-card h3 {
-                        color: #3498db;
                         margin: 0;
-                        font-size: 2em;
+                        font-size: 2.5em;
+                        font-weight: bold;
                     }
                     .summary-card p {
-                        color: #7f8c8d;
-                        margin: 5px 0 0 0;
+                        margin: 5px 0;
+                        font-size: 1.1em;
+                        opacity: 0.9;
+                    }
+                    .summary-card small {
+                        opacity: 0.8;
+                        font-size: 0.9em;
                     }
                     body {
-                        background-color: #f8f9fa;
-                        font-family: Arial, sans-serif;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                        margin: 0;
+                        padding: 0;
+                    }
+                    .dashboard-container {
+                        background: white;
+                        border-radius: 15px;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                        margin: 20px;
+                        overflow: hidden;
                     }
                 </style>
             </head>
             <body>
-                {%app_entry%}
-                <footer>
-                    {%config%}
-                    {%scripts%}
-                    {%renderer%}
-                </footer>
+                <div id="react-entry-point">
+                    <div class="dashboard-container">
+                        <div id="_dash-app-content"></div>
+                    </div>
+                </div>
             </body>
         </html>
         '''

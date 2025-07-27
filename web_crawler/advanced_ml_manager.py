@@ -349,48 +349,242 @@ class AdvancedMLManager:
             return None
             
     def get_classifier(self, model_name, model_type):
-        """Get a classifier for the specified model"""
+        """Get a classifier with enhanced caching and fallback"""
+        model_key = f"{model_type}_{model_name}"
+        
+        if model_key in self.classifiers:
+            return self.classifiers[model_key]
+        
+        # Try to load the model
         model = self.load_model(model_name, model_type)
-        if not model:
-            return None
-            
-        if model_type == 'text_classification':
-            return model['classifier']
-        elif model_type == 'ner':
-            return model['nlp']
-        elif model_type == 'traditional_ml':
+        if model:
+            self.classifiers[model_key] = model
             return model
-        else:
-            return None
-            
+        
+        return None
+    
     def classify_text(self, text, model_name='distilbert-base-uncased', model_type='text_classification'):
-        """Classify text using specified model"""
-        classifier = self.get_classifier(model_name, model_type)
-        if not classifier:
-            return None
-            
+        """Enhanced text classification with multiple models and ensemble methods"""
+        results = {
+            'primary_classification': None,
+            'ensemble_results': {},
+            'confidence_scores': {},
+            'model_metadata': {}
+        }
+        
         try:
-            if model_type == 'text_classification':
-                result = classifier(
-                    text,
-                    truncation=True,
-                    max_length=512,
-                    return_all_scores=False
-                )
-                return result
+            # Get the primary classifier
+            classifier = self.get_classifier(model_name, model_type)
+            if classifier:
+                if model_type == 'text_classification' and TRANSFORMERS_AVAILABLE:
+                    # Enhanced BERT classification
+                    bert_result = classifier(
+                        text[:512],  # Limit length for efficiency
+                        truncation=True,
+                        max_length=256,
+                        return_all_scores=True
+                    )
+                    
+                    if isinstance(bert_result, list) and len(bert_result) > 0:
+                        # Sort by confidence
+                        sorted_results = sorted(bert_result[0], key=lambda x: x['score'], reverse=True)
+                        results['primary_classification'] = {
+                            'label': sorted_results[0]['label'],
+                            'confidence': sorted_results[0]['score'],
+                            'top_3_predictions': sorted_results[:3],
+                            'all_scores': sorted_results
+                        }
+                        
+                        # Calculate confidence distribution
+                        results['confidence_scores'] = {
+                            'max_confidence': sorted_results[0]['score'],
+                            'avg_confidence': sum(r['score'] for r in sorted_results) / len(sorted_results),
+                            'confidence_variance': self._calculate_variance([r['score'] for r in sorted_results])
+                        }
                 
-            elif model_type == 'ner':
-                doc = classifier(text)
-                entities = [(ent.text, ent.label_) for ent in doc.ents]
-                return entities
+                elif model_type == 'ner' and SPACY_AVAILABLE:
+                    # Enhanced spaCy NER
+                    doc = classifier(text[:1000])
+                    entities = {}
+                    for ent in doc.ents:
+                        if ent.label_ not in entities:
+                            entities[ent.label_] = []
+                        if ent.text not in entities[ent.label_]:
+                            entities[ent.label_].append(ent.text)
+                    
+                    results['primary_classification'] = {
+                        'entities': entities,
+                        'entity_count': len(doc.ents),
+                        'entity_types': list(entities.keys())
+                    }
                 
-            elif model_type == 'traditional_ml':
-                # Note: Traditional ML models need to be trained first
-                return None
-                
+                # Add model metadata
+                results['model_metadata'] = {
+                    'model_name': model_name,
+                    'model_type': model_type,
+                    'text_length': len(text),
+                    'processing_timestamp': datetime.now().isoformat()
+                }
+            
+            # Apply ensemble methods if multiple models are available
+            results['ensemble_results'] = self._apply_ensemble_classification(text)
+            
         except Exception as e:
-            print(f"Classification error: {e}")
-            return None
+            print(f"Classification failed: {e}")
+            results['error'] = str(e)
+        
+        return results
+    
+    def _calculate_variance(self, scores):
+        """Calculate variance of confidence scores"""
+        if len(scores) < 2:
+            return 0.0
+        mean = sum(scores) / len(scores)
+        variance = sum((x - mean) ** 2 for x in scores) / len(scores)
+        return variance
+    
+    def _apply_ensemble_classification(self, text):
+        """Apply ensemble classification using multiple models"""
+        ensemble_results = {}
+        
+        try:
+            # Collect predictions from all available models
+            predictions = []
+            
+            # BERT predictions
+            if 'distilbert-base-uncased' in self.models:
+                bert_classifier = self.models.get('text_classification_distilbert-base-uncased')
+                if bert_classifier:
+                    try:
+                        bert_result = bert_classifier(text[:256], truncation=True, return_all_scores=True)
+                        if isinstance(bert_result, list) and len(bert_result) > 0:
+                            predictions.append({
+                                'model': 'bert',
+                                'predictions': bert_result[0],
+                                'weight': 0.4
+                            })
+                    except Exception as e:
+                        print(f"BERT ensemble prediction failed: {e}")
+            
+            # spaCy predictions
+            if 'en_core_web_sm' in self.models:
+                spacy_model = self.models.get('ner_en_core_web_sm')
+                if spacy_model:
+                    try:
+                        doc = spacy_model(text[:1000])
+                        entity_scores = {}
+                        for ent in doc.ents:
+                            entity_scores[ent.label_] = entity_scores.get(ent.label_, 0) + 1
+                        
+                        # Convert entity counts to scores
+                        total_entities = len(doc.ents)
+                        if total_entities > 0:
+                            entity_predictions = [
+                                {'label': label, 'score': count / total_entities}
+                                for label, count in entity_scores.items()
+                            ]
+                            predictions.append({
+                                'model': 'spacy',
+                                'predictions': entity_predictions,
+                                'weight': 0.3
+                            })
+                    except Exception as e:
+                        print(f"spaCy ensemble prediction failed: {e}")
+            
+            # Traditional ML predictions
+            if SKLEARN_AVAILABLE and self.vectorizers.get('tfidf'):
+                try:
+                    # Use TF-IDF for traditional ML classification
+                    X = self.vectorizers['tfidf'].transform([text])
+                    
+                    for name, classifier in self.classifiers.items():
+                        if hasattr(classifier, 'predict_proba'):
+                            try:
+                                proba = classifier.predict_proba(X)[0]
+                                labels = getattr(classifier, 'classes_', [f'class_{i}' for i in range(len(proba))])
+                                ml_predictions = [
+                                    {'label': label, 'score': score}
+                                    for label, score in zip(labels, proba)
+                                ]
+                                predictions.append({
+                                    'model': f'sklearn_{name}',
+                                    'predictions': ml_predictions,
+                                    'weight': 0.2
+                                })
+                            except Exception as e:
+                                print(f"Sklearn classifier {name} failed: {e}")
+                except Exception as e:
+                    print(f"Traditional ML ensemble prediction failed: {e}")
+            
+            # Combine predictions using weighted voting
+            if predictions:
+                ensemble_results = self._combine_predictions(predictions)
+            
+        except Exception as e:
+            print(f"Ensemble classification failed: {e}")
+            ensemble_results['error'] = str(e)
+        
+        return ensemble_results
+    
+    def _combine_predictions(self, predictions):
+        """Combine predictions from multiple models using weighted voting"""
+        combined_scores = {}
+        total_weight = 0
+        
+        for pred in predictions:
+            weight = pred.get('weight', 1.0)
+            total_weight += weight
+            
+            for p in pred['predictions']:
+                label = p['label']
+                score = p['score']
+                
+                if label not in combined_scores:
+                    combined_scores[label] = {'weighted_sum': 0, 'total_weight': 0}
+                
+                combined_scores[label]['weighted_sum'] += score * weight
+                combined_scores[label]['total_weight'] += weight
+        
+        # Calculate final weighted scores
+        final_predictions = []
+        for label, score_info in combined_scores.items():
+            if score_info['total_weight'] > 0:
+                final_score = score_info['weighted_sum'] / score_info['total_weight']
+                final_predictions.append({
+                    'label': label,
+                    'score': final_score,
+                    'contributing_models': len([p for p in predictions if any(pred['label'] == label for pred in p['predictions'])])
+                })
+        
+        # Sort by score
+        final_predictions.sort(key=lambda x: x['score'], reverse=True)
+        
+        return {
+            'ensemble_predictions': final_predictions,
+            'top_prediction': final_predictions[0] if final_predictions else None,
+            'total_models': len(predictions),
+            'total_weight': total_weight,
+            'prediction_confidence': self._calculate_ensemble_confidence(final_predictions)
+        }
+    
+    def _calculate_ensemble_confidence(self, predictions):
+        """Calculate confidence metrics for ensemble predictions"""
+        if not predictions:
+            return {'overall_confidence': 0.0, 'agreement_score': 0.0}
+        
+        # Overall confidence based on top prediction
+        top_score = predictions[0]['score']
+        
+        # Agreement score based on how many models contributed
+        total_contributions = sum(p['contributing_models'] for p in predictions)
+        max_possible_contributions = len(predictions) * 3  # Assume 3 models max
+        agreement_score = total_contributions / max_possible_contributions if max_possible_contributions > 0 else 0
+        
+        return {
+            'overall_confidence': top_score,
+            'agreement_score': agreement_score,
+            'prediction_strength': 'high' if top_score > 0.7 else 'medium' if top_score > 0.5 else 'low'
+        }
             
     def get_available_models(self):
         """Get list of available models"""
