@@ -309,10 +309,18 @@ class EnhancedCrawlerUI(QWidget):
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_ui)
         self.thread = None  # type: threading.Thread | None
+        
+        # Initialize output directories - will be updated from UI
         self.output_dir = "extracted_data"
         self.images_dir = "thumbnails"
+        self.cache_dir = "model_cache"
+        self.exported_dir = "exported_data"
+        
+        # Create default directories
         os.makedirs(self.output_dir, exist_ok=True)
         os.makedirs(self.images_dir, exist_ok=True)
+        os.makedirs(self.cache_dir, exist_ok=True)
+        os.makedirs(self.exported_dir, exist_ok=True)
         
         # Initialize ML models as None - will be loaded asynchronously
         self.nlp = None
@@ -413,16 +421,21 @@ class EnhancedCrawlerUI(QWidget):
             except Exception as e:
                 self.log_message(f"[ADVANCED] Performance monitoring failed: {e}")
         
-        # Initialize advanced ML models
+        # Initialize advanced ML models with cache directory
         if ADVANCED_ML_AVAILABLE:
             try:
+                # Update ML manager cache directory
+                if hasattr(ml_manager, 'model_cache'):
+                    ml_manager.model_cache.cache_dir = self.cache_dir
+                    os.makedirs(self.cache_dir, exist_ok=True)
+                
                 # Preload common models
                 model_list = [
                     ('text_classification', 'distilbert-base-uncased'),
                     ('ner', 'en_core_web_sm')
                 ]
                 ml_manager.preload_models(model_list)
-                self.log_message("[ADVANCED] Advanced ML models preloading started")
+                self.log_message(f"[ADVANCED] Advanced ML models preloading started (cache: {self.cache_dir})")
             except Exception as e:
                 self.log_message(f"[ADVANCED] Advanced ML initialization failed: {e}")
         
@@ -443,6 +456,13 @@ class EnhancedCrawlerUI(QWidget):
                 self.log_message("[ADVANCED] Advanced export system initialized")
             except Exception as e:
                 self.log_message(f"[ADVANCED] Advanced export failed: {e}")
+
+    def update_ml_cache_directory(self):
+        """Update ML cache directory when output directory changes"""
+        if ADVANCED_ML_AVAILABLE and hasattr(ml_manager, 'model_cache'):
+            ml_manager.model_cache.cache_dir = self.cache_dir
+            os.makedirs(self.cache_dir, exist_ok=True)
+            self.log_message(f"ML cache directory updated to: {self.cache_dir}")
 
     def load_ml_models_async(self):
         """Load ML models in background thread to prevent UI freezing"""
@@ -609,6 +629,31 @@ class EnhancedCrawlerUI(QWidget):
         file_layout.addWidget(self.browse_btn)
         file_group.setLayout(file_layout)
         layout.addWidget(file_group)
+        
+        # Output directory selection group
+        output_group = QGroupBox("Output Directory Settings")
+        output_layout = QVBoxLayout()
+        
+        # Output directory selection
+        output_dir_layout = QHBoxLayout()
+        self.output_dir_edit = QLineEdit()
+        self.output_dir_edit.setPlaceholderText("Select output directory for cache, extracted data, and processed results...")
+        self.output_dir_edit.setText(os.path.abspath("extracted_data"))  # Default path
+        self.output_browse_btn = QPushButton("Browse Output")
+        self.output_browse_btn.clicked.connect(self.browse_output_directory)
+        output_dir_layout.addWidget(self.output_dir_edit, 1)
+        output_dir_layout.addWidget(self.output_browse_btn)
+        output_layout.addLayout(output_dir_layout)
+        
+        # Output directory info
+        output_info_layout = QHBoxLayout()
+        self.output_info_label = QLabel("This directory will store: cache files, extracted data, processed results, thumbnails, and ML models")
+        self.output_info_label.setStyleSheet("color: #7f8c8d; font-size: 11px; font-style: italic;")
+        output_info_layout.addWidget(self.output_info_label)
+        output_layout.addLayout(output_info_layout)
+        
+        output_group.setLayout(output_layout)
+        layout.addWidget(output_group)
         
         # Advanced options group
         options_group = QGroupBox("Advanced Crawling Options")
@@ -911,55 +956,84 @@ class EnhancedCrawlerUI(QWidget):
         self.log_queue.put(f"[{time.strftime('%H:%M:%S')}] {message}")
 
     def browse_file(self):
+        """Open a dialog to select an HTML file."""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select HTML File", "", "HTML Files (*.html *.htm);;All Files (*)"
+            self, "Select HTML File", "", "HTML Files (*.html *.htm)"
         )
         if file_path:
             self.file_path_edit.setText(file_path)
             self.crawl_btn.setEnabled(True)
             self.log_message(f"Selected file: {file_path}")
 
+    def browse_output_directory(self):
+        """Open a dialog to select an output directory."""
+        output_dir = QFileDialog.getExistingDirectory(
+            self, "Select Output Directory", self.output_dir_edit.text()
+        )
+        if output_dir:
+            self.output_dir_edit.setText(output_dir)
+            self.log_message(f"Selected output directory: {output_dir}")
+            # Update the output directories to use the selected path
+            self.update_output_directories(output_dir)
+
+    def update_output_directories(self, base_dir):
+        """Update all output directories to use the selected base directory."""
+        self.output_dir = os.path.join(base_dir, "extracted_data")
+        self.images_dir = os.path.join(base_dir, "thumbnails")
+        self.cache_dir = os.path.join(base_dir, "model_cache")
+        self.exported_dir = os.path.join(base_dir, "exported_data")
+        
+        # Create all subdirectories
+        for dir_path in [self.output_dir, self.images_dir, self.cache_dir, self.exported_dir]:
+            os.makedirs(dir_path, exist_ok=True)
+        
+        # Update ML cache directory
+        self.update_ml_cache_directory()
+        
+        self.log_message(f"Output directories updated to: {base_dir}")
+
     def start_crawl(self):
         """Start the advanced crawling process with all features enabled."""
-        file_path = self.file_path_edit.text()
-        if not file_path:
-            self.log_message("No HTML file selected.")
+        if not self.file_path_edit.text():
+            self.log_error("Please select an HTML file first.")
             return
         
-        if not os.path.exists(file_path):
-            self.log_message(f"File not found: {file_path}")
-            return
+        # Update output directories from UI
+        selected_output_dir = self.output_dir_edit.text()
+        if selected_output_dir and selected_output_dir != os.path.abspath("extracted_data"):
+            self.update_output_directories(selected_output_dir)
         
-        # Update UI state
+        # Disable UI elements during crawling
         self.crawl_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         self.browse_btn.setEnabled(False)
+        self.output_browse_btn.setEnabled(False)
+        
+        # Reset progress and status
         self.progress.setValue(0)
-        self.status.setText("Crawling in progress...")
-        # Clear consoles
-        self.clear_all_consoles()
+        self.status.setText("Starting advanced crawling...")
+        
+        # Clear previous results
+        self.results = []
+        self.error_tracker = {
+            'total_errors': 0,
+            'retry_attempts': 0,
+            'recovered_results': 0,
+            'error_categories': defaultdict(int)
+        }
         
         # Start crawling in a separate thread
-        self.crawl_thread = threading.Thread(
-            target=self.crawl_html_file, 
-            args=(file_path,),
+        self.thread = threading.Thread(
+            target=self.crawl_html_file,
+            args=(self.file_path_edit.text(),),
             daemon=True
         )
-        self.crawl_thread.start()
+        self.thread.start()
         
-        # Start UI update timer
-        self.timer.start(100)  # Update every 100ms
+        # Start timer for UI updates
+        self.timer.start(100)
         
-        self.log_message(f"Starting advanced crawl for: {file_path}")
-        self.log_message("Advanced features enabled:")
-        if self.nlp:
-            self.log_message("  - spaCy NLP for text analysis")
-        if self.bert_classifier:
-            self.log_message("  - BERT for advanced text classification")
-        if self.geocoder:
-            self.log_message("  - Geospatial validation and enrichment")
-        if self.dashboard:
-            self.log_message("  - Analytics dashboard integration")
+        self.log_message("Advanced crawling started with all features enabled...")
 
     def stop_crawl(self):
         """Stop the crawling process."""
@@ -1528,6 +1602,15 @@ class EnhancedCrawlerUI(QWidget):
             except Exception as e:
                 self.log_error(f"Error saving CSV: {e}")
             
+            # Save to exported_data directory as well
+            try:
+                exported_json_file = os.path.join(self.exported_dir, f"enhanced_crawl_results_{timestamp}.json")
+                with open(exported_json_file, 'w', encoding='utf-8') as f:
+                    json.dump(results, f, indent=2, ensure_ascii=False)
+                self.log_message(f"Results also saved to exported data: {exported_json_file}")
+            except Exception as e:
+                self.log_error(f"Error saving to exported data: {e}")
+            
             self.log_message(f"Results saved to: {json_file}")
             
             # Update dashboard
@@ -1570,6 +1653,7 @@ class EnhancedCrawlerUI(QWidget):
         self.crawl_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.browse_btn.setEnabled(True)
+        self.output_browse_btn.setEnabled(True)
         self.timer.stop()
         
         # Update status indicators
@@ -1579,6 +1663,9 @@ class EnhancedCrawlerUI(QWidget):
         summary = f"Total datasets: {len(getattr(self, 'results', []))}\n"
         summary += f"Total errors: {self.error_tracker['total_errors']}\n"
         summary += f"Error categories: {dict(self.error_tracker['error_categories'])}\n"
+        summary += f"Output directory: {self.output_dir}\n"
+        summary += f"Cache directory: {self.cache_dir}\n"
+        summary += f"Exported data directory: {self.exported_dir}\n"
         self.summary_console.setPlainText(summary)
 
 if __name__ == "__main__":
