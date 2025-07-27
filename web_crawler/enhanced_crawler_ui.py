@@ -158,7 +158,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, 
-    QProgressBar, QLabel, QFileDialog, QLineEdit, QGroupBox, QCheckBox, QTabWidget
+    QProgressBar, QLabel, QFileDialog, QLineEdit, QGroupBox, QCheckBox, QTabWidget,
+    QTableWidget, QScrollArea, QComboBox, QGridLayout, QStackedWidget, QTableWidgetItem,
+    QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QSpinBox, QDoubleSpinBox, QMessageBox,
+    QSlider
 )
 from PySide6.QtCore import QTimer, Qt, QThread
 import csv
@@ -592,17 +595,115 @@ class EnhancedCrawlerUI(QWidget):
             self.update_status_indicators()
 
     def setup_ui(self):
-        layout = QVBoxLayout(self)
+        """Setup the enhanced two-column UI with integrated dashboard functionality."""
+        # Main layout
+        main_layout = QHBoxLayout(self)
+        
+        # Left Column - Input Options and Parameters
+        left_column = self.create_left_column()
+        main_layout.addWidget(left_column, 2)  # 2 parts width (increased from 1)
+        
+        # Right Column - Tabs and Console Logs
+        right_column = self.create_right_column()
+        main_layout.addWidget(right_column, 1)  # 1 part width (decreased from 2)
+        
+        # Initialize data storage for real-time viewing
+        self.extracted_data = []
+        self.data_lock = threading.Lock()
+        
+        # Update status indicators
+        # self.update_status_indicators()
+    
+    def create_left_column(self):
+        """Create the left column with input options and parameters."""
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
         
         # Enhanced title with version
-        title_label = QLabel("Earth Engine Catalog Web Crawler - Ultra Enhanced v2.0")
-        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #2c3e50; margin: 10px;")
+        title_label = QLabel("Earth Engine Catalog Web Crawler")
+        title_label.setStyleSheet("""
+            font-size: 16px; 
+            font-weight: bold; 
+            color: #2c3e50; 
+            margin: 8px; 
+            padding: 6px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 6px;
+            text-align: center;
+        """)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title_label)
+        left_layout.addWidget(title_label)
+        
+        # Real-time statistics bar
+        stats_group = QGroupBox("📊 Real-Time Statistics")
+        stats_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #3498db;
+                border-radius: 4px;
+                margin-top: 5px;
+                padding-top: 5px;
+                font-size: 11px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 8px;
+                padding: 0 3px 0 3px;
+            }
+        """)
+        stats_layout = QVBoxLayout()
+        
+        # Statistics grid
+        stats_grid = QGridLayout()
+        
+        self.datasets_processed_label = QLabel("Datasets: 0")
+        self.datasets_processed_label.setStyleSheet("padding: 4px; background: #3498db; color: white; border-radius: 3px; font-weight: bold; font-size: 10px;")
+        
+        self.processing_rate_label = QLabel("Rate: 0/min")
+        self.processing_rate_label.setStyleSheet("padding: 4px; background: #27ae60; color: white; border-radius: 3px; font-weight: bold; font-size: 10px;")
+        
+        self.avg_confidence_label = QLabel("Confidence: 0%")
+        self.avg_confidence_label.setStyleSheet("padding: 4px; background: #f39c12; color: white; border-radius: 3px; font-weight: bold; font-size: 10px;")
+        
+        self.ml_classified_label = QLabel("ML Classified: 0")
+        self.ml_classified_label.setStyleSheet("padding: 4px; background: #9b59b6; color: white; border-radius: 3px; font-weight: bold; font-size: 10px;")
+        
+        self.errors_label = QLabel("Errors: 0")
+        self.errors_label.setStyleSheet("padding: 4px; background: #e74c3c; color: white; border-radius: 3px; font-weight: bold; font-size: 10px;")
+        
+        self.quality_score_label = QLabel("Quality: 0%")
+        self.quality_score_label.setStyleSheet("padding: 4px; background: #1abc9c; color: white; border-radius: 3px; font-weight: bold; font-size: 10px;")
+        
+        stats_grid.addWidget(self.datasets_processed_label, 0, 0)
+        stats_grid.addWidget(self.processing_rate_label, 0, 1)
+        stats_grid.addWidget(self.avg_confidence_label, 1, 0)
+        stats_grid.addWidget(self.ml_classified_label, 1, 1)
+        stats_grid.addWidget(self.errors_label, 2, 0)
+        stats_grid.addWidget(self.quality_score_label, 2, 1)
+        
+        stats_layout.addLayout(stats_grid)
+        stats_group.setLayout(stats_layout)
+        left_layout.addWidget(stats_group)
         
         # Status indicators for advanced features
-        status_group = QGroupBox("Advanced Features Status")
-        status_layout = QHBoxLayout()
+        status_group = QGroupBox("🔧 System Status")
+        status_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #95a5a6;
+                border-radius: 4px;
+                margin-top: 5px;
+                padding-top: 5px;
+                font-size: 11px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 8px;
+                padding: 0 3px 0 3px;
+            }
+        """)
+        status_layout = QGridLayout()
         
         self.spacy_status = QLabel("spaCy: ❌")
         self.bert_status = QLabel("BERT: ❌")
@@ -611,62 +712,132 @@ class EnhancedCrawlerUI(QWidget):
         self.config_status = QLabel("Config: ❌")
         self.ocr_status = QLabel("OCR: ❌")
         
-        for status in [self.spacy_status, self.bert_status, self.geo_status, self.dashboard_status, self.config_status, self.ocr_status]:
-            status.setStyleSheet("padding: 5px; border: 1px solid #bdc3c7; border-radius: 3px;")
-            status_layout.addWidget(status)
+        for i, status in enumerate([self.spacy_status, self.bert_status, self.geo_status, self.dashboard_status, self.config_status, self.ocr_status]):
+            status.setStyleSheet("padding: 3px; border: 1px solid #bdc3c7; border-radius: 2px; margin: 1px; font-size: 10px;")
+            status_layout.addWidget(status, i // 2, i % 2)
         
         status_group.setLayout(status_layout)
-        layout.addWidget(status_group)
+        left_layout.addWidget(status_group)
         
         # File selection group
-        file_group = QGroupBox("HTML File Selection")
-        file_layout = QHBoxLayout()
+        file_group = QGroupBox("📁 File Selection")
+        file_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #e67e22;
+                border-radius: 4px;
+                margin-top: 5px;
+                padding-top: 5px;
+                font-size: 11px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 8px;
+                padding: 0 3px 0 3px;
+            }
+        """)
+        file_layout = QVBoxLayout()
+        
         self.file_path_edit = QLineEdit()
         self.file_path_edit.setPlaceholderText("Select local HTML file to crawl...")
-        self.browse_btn = QPushButton("Browse")
+        self.file_path_edit.setStyleSheet("padding: 4px; border: 1px solid #bdc3c7; border-radius: 3px; font-size: 10px;")
+        
+        self.browse_btn = QPushButton("📂 Browse Files")
         self.browse_btn.clicked.connect(self.browse_file)
-        file_layout.addWidget(self.file_path_edit, 1)
+        self.browse_btn.setStyleSheet("""
+            QPushButton {
+                background: #e67e22;
+                color: white;
+                padding: 4px;
+                border-radius: 3px;
+                font-weight: bold;
+                font-size: 10px;
+            }
+            QPushButton:hover {
+                background: #d35400;
+            }
+        """)
+        
+        file_layout.addWidget(self.file_path_edit)
         file_layout.addWidget(self.browse_btn)
         file_group.setLayout(file_layout)
-        layout.addWidget(file_group)
+        left_layout.addWidget(file_group)
         
         # Output directory selection group
-        output_group = QGroupBox("Output Directory Settings")
+        output_group = QGroupBox("📤 Output Settings")
+        output_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #27ae60;
+                border-radius: 4px;
+                margin-top: 5px;
+                padding-top: 5px;
+                font-size: 11px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 8px;
+                padding: 0 3px 0 3px;
+            }
+        """)
         output_layout = QVBoxLayout()
         
-        # Output directory selection
-        output_dir_layout = QHBoxLayout()
         self.output_dir_edit = QLineEdit()
-        self.output_dir_edit.setPlaceholderText("Select output directory for cache, extracted data, and processed results...")
-        self.output_dir_edit.setText(os.path.abspath("extracted_data"))  # Default path
-        self.output_browse_btn = QPushButton("Browse Output")
+        self.output_dir_edit.setPlaceholderText("Select output directory...")
+        self.output_dir_edit.setText(os.path.abspath("extracted_data"))
+        self.output_dir_edit.setStyleSheet("padding: 4px; border: 1px solid #bdc3c7; border-radius: 3px; font-size: 10px;")
+        
+        self.output_browse_btn = QPushButton("📁 Browse Output")
         self.output_browse_btn.clicked.connect(self.browse_output_directory)
-        output_dir_layout.addWidget(self.output_dir_edit, 1)
-        output_dir_layout.addWidget(self.output_browse_btn)
-        output_layout.addLayout(output_dir_layout)
+        self.output_browse_btn.setStyleSheet("""
+            QPushButton {
+                background: #27ae60;
+                color: white;
+                padding: 4px;
+                border-radius: 3px;
+                font-weight: bold;
+                font-size: 10px;
+            }
+            QPushButton:hover {
+                background: #229954;
+            }
+        """)
         
-        # Output directory info
-        output_info_layout = QHBoxLayout()
-        self.output_info_label = QLabel("This directory will store: cache files, extracted data, processed results, thumbnails, and ML models")
-        self.output_info_label.setStyleSheet("color: #7f8c8d; font-size: 11px; font-style: italic;")
-        output_info_layout.addWidget(self.output_info_label)
-        output_layout.addLayout(output_info_layout)
-        
+        output_layout.addWidget(self.output_dir_edit)
+        output_layout.addWidget(self.output_browse_btn)
         output_group.setLayout(output_layout)
-        layout.addWidget(output_group)
+        left_layout.addWidget(output_group)
         
         # Advanced options group
-        options_group = QGroupBox("Advanced Crawling Options")
+        options_group = QGroupBox("⚙️ Advanced Options")
+        options_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #8e44ad;
+                border-radius: 4px;
+                margin-top: 5px;
+                padding-top: 5px;
+                font-size: 11px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 8px;
+                padding: 0 3px 0 3px;
+            }
+        """)
         options_layout = QVBoxLayout()
         
         # Basic options
         basic_options = QHBoxLayout()
-        self.download_thumbs = QCheckBox("Download thumbnails")
+        self.download_thumbs = QCheckBox("📷 Download thumbnails")
         self.download_thumbs.setChecked(True)
-        self.extract_details = QCheckBox("Extract detailed information")
+        self.download_thumbs.setStyleSheet("font-size: 10px;")
+        self.extract_details = QCheckBox("🔍 Extract details")
         self.extract_details.setChecked(True)
-        self.save_individual = QCheckBox("Save as individual JSON files")
+        self.extract_details.setStyleSheet("font-size: 10px;")
+        self.save_individual = QCheckBox("💾 Save individual")
         self.save_individual.setChecked(True)
+        self.save_individual.setStyleSheet("font-size: 10px;")
         basic_options.addWidget(self.download_thumbs)
         basic_options.addWidget(self.extract_details)
         basic_options.addWidget(self.save_individual)
@@ -674,114 +845,492 @@ class EnhancedCrawlerUI(QWidget):
         
         # Advanced ML options
         ml_options = QHBoxLayout()
-        self.use_ml_classification = QCheckBox("Use ML/NLP Classification")
+        self.use_ml_classification = QCheckBox("🧠 ML Classification")
         self.use_ml_classification.setChecked(True)
-        self.use_ensemble = QCheckBox("Use Ensemble ML Models")
+        self.use_ml_classification.setStyleSheet("font-size: 10px;")
+        self.use_ensemble = QCheckBox("🎯 Ensemble ML")
         self.use_ensemble.setChecked(True)
-        self.use_validation = QCheckBox("Use Data Validation")
+        self.use_ensemble.setStyleSheet("font-size: 10px;")
+        self.use_validation = QCheckBox("✅ Data Validation")
         self.use_validation.setChecked(True)
+        self.use_validation.setStyleSheet("font-size: 10px;")
         ml_options.addWidget(self.use_ml_classification)
         ml_options.addWidget(self.use_ensemble)
         ml_options.addWidget(self.use_validation)
         options_layout.addLayout(ml_options)
         
         options_group.setLayout(options_layout)
-        layout.addWidget(options_group)
+        left_layout.addWidget(options_group)
         
-        # Dashboard and config controls
-        controls_group = QGroupBox("Advanced Controls")
-        controls_layout = QHBoxLayout()
+        # Performance settings
+        perf_group = QGroupBox("⚡ Performance Settings")
+        perf_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #f39c12;
+                border-radius: 4px;
+                margin-top: 5px;
+                padding-top: 5px;
+                font-size: 11px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 8px;
+                padding: 0 3px 0 3px;
+            }
+        """)
+        perf_layout = QVBoxLayout()
         
-        self.dashboard_btn = QPushButton("Open Analytics Dashboard")
-        self.dashboard_btn.clicked.connect(self.open_dashboard)
-        self.dashboard_btn.setEnabled(False)
+        # Request delay slider
+        delay_layout = QHBoxLayout()
+        delay_label = QLabel("Request Delay:")
+        delay_label.setStyleSheet("font-size: 10px;")
+        delay_layout.addWidget(delay_label)
+        self.delay_slider = QSlider(Qt.Orientation.Horizontal)
+        self.delay_slider.setRange(1, 10)
+        self.delay_slider.setValue(3)
+        self.delay_slider.setStyleSheet("""
+            QSlider::groove:horizontal {
+                border: 1px solid #bbb;
+                background: white;
+                height: 6px;
+                border-radius: 3px;
+            }
+            QSlider::handle:horizontal {
+                background: #f39c12;
+                border: 1px solid #f39c12;
+                width: 12px;
+                margin: -2px 0;
+                border-radius: 6px;
+            }
+        """)
+        self.delay_label = QLabel("3.0s")
+        self.delay_label.setStyleSheet("font-size: 10px;")
+        delay_layout.addWidget(self.delay_slider)
+        delay_layout.addWidget(self.delay_label)
+        self.delay_slider.valueChanged.connect(lambda v: self.delay_label.setText(f"{v/2:.1f}s"))
+        perf_layout.addLayout(delay_layout)
         
-        self.config_btn = QPushButton("Edit Configuration")
-        self.config_btn.clicked.connect(self.edit_config)
+        # Concurrent requests slider
+        concurrent_layout = QHBoxLayout()
+        concurrent_label = QLabel("Concurrent:")
+        concurrent_label.setStyleSheet("font-size: 10px;")
+        concurrent_layout.addWidget(concurrent_label)
+        self.concurrent_slider = QSlider(Qt.Orientation.Horizontal)
+        self.concurrent_slider.setRange(1, 16)
+        self.concurrent_slider.setValue(4)
+        self.concurrent_slider.setStyleSheet("""
+            QSlider::groove:horizontal {
+                border: 1px solid #bbb;
+                background: white;
+                height: 6px;
+                border-radius: 3px;
+            }
+            QSlider::handle:horizontal {
+                background: #3498db;
+                border: 1px solid #3498db;
+                width: 12px;
+                margin: -2px 0;
+                border-radius: 6px;
+            }
+        """)
+        self.concurrent_label = QLabel("4")
+        self.concurrent_label.setStyleSheet("font-size: 10px;")
+        concurrent_layout.addWidget(self.concurrent_slider)
+        concurrent_layout.addWidget(self.concurrent_label)
+        self.concurrent_slider.valueChanged.connect(lambda v: self.concurrent_label.setText(str(v)))
+        perf_layout.addLayout(concurrent_layout)
         
-        self.test_btn = QPushButton("Test Features")
-        self.test_btn.clicked.connect(self.test_features)
+        perf_group.setLayout(perf_layout)
+        left_layout.addWidget(perf_group)
         
-        controls_layout.addWidget(self.dashboard_btn)
-        controls_layout.addWidget(self.config_btn)
-        controls_layout.addWidget(self.test_btn)
+        # Control buttons
+        controls_group = QGroupBox("🎮 Controls")
+        controls_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                border: 1px solid #34495e;
+                border-radius: 4px;
+                margin-top: 5px;
+                padding-top: 5px;
+                font-size: 11px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 8px;
+                padding: 0 3px 0 3px;
+            }
+        """)
+        controls_layout = QVBoxLayout()
+        
+        # Main control buttons
+        self.crawl_btn = QPushButton("🚀 Start Crawling")
+        self.crawl_btn.clicked.connect(self.start_crawl)
+        self.crawl_btn.setEnabled(False)
+        self.crawl_btn.setStyleSheet("""
+            QPushButton {
+                background: #27ae60;
+                color: white;
+                padding: 8px;
+                font-weight: bold;
+                font-size: 11px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background: #229954;
+            }
+            QPushButton:disabled {
+                background: #95a5a6;
+            }
+        """)
+        
+        self.stop_btn = QPushButton("⏹️ Stop")
+        self.stop_btn.clicked.connect(self.stop_crawl)
+        self.stop_btn.setEnabled(False)
+        self.stop_btn.setStyleSheet("""
+            QPushButton {
+                background: #e74c3c;
+                color: white;
+                padding: 8px;
+                font-weight: bold;
+                font-size: 11px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background: #c0392b;
+            }
+            QPushButton:disabled {
+                background: #95a5a6;
+            }
+        """)
+        
+        # Secondary control buttons
+        secondary_layout = QHBoxLayout()
+        
+        self.clear_btn = QPushButton("🗑️ Clear")
+        self.clear_btn.clicked.connect(self.clear_all_consoles)
+        self.clear_btn.setStyleSheet("""
+            QPushButton {
+                background: #f39c12;
+                color: white;
+                padding: 4px;
+                border-radius: 3px;
+                font-weight: bold;
+                font-size: 10px;
+            }
+            QPushButton:hover {
+                background: #e67e22;
+            }
+        """)
+        
+        self.export_btn = QPushButton("📤 Export")
+        self.export_btn.clicked.connect(self.export_current_data)
+        self.export_btn.setEnabled(False)
+        self.export_btn.setStyleSheet("""
+            QPushButton {
+                background: #3498db;
+                color: white;
+                padding: 4px;
+                border-radius: 3px;
+                font-weight: bold;
+                font-size: 10px;
+            }
+            QPushButton:hover {
+                background: #2980b9;
+            }
+            QPushButton:disabled {
+                background: #95a5a6;
+            }
+        """)
+        
+        secondary_layout.addWidget(self.clear_btn)
+        secondary_layout.addWidget(self.export_btn)
+        
+        controls_layout.addWidget(self.crawl_btn)
+        controls_layout.addWidget(self.stop_btn)
+        controls_layout.addLayout(secondary_layout)
         controls_group.setLayout(controls_layout)
-        layout.addWidget(controls_group)
+        left_layout.addWidget(controls_group)
         
-        # Status and progress
+        # Progress and status
         self.status = QLabel("Ready. Select an HTML file to begin.")
-        layout.addWidget(self.status)
+        self.status.setStyleSheet("padding: 6px; background: #ecf0f1; border-radius: 3px; margin: 3px; font-size: 10px;")
+        left_layout.addWidget(self.status)
         
         self.progress = QProgressBar()
         self.progress.setMaximum(100)
         self.progress.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.progress.setStyleSheet("QProgressBar {height: 30px; font-size: 16px;} QProgressBar::chunk {background: #3a6ea5;}")
-        layout.addWidget(self.progress)
+        self.progress.setStyleSheet("""
+            QProgressBar {
+                height: 18px;
+                font-size: 10px;
+                font-weight: bold;
+                border: 1px solid #bdc3c7;
+                border-radius: 3px;
+                text-align: center;
+            }
+            QProgressBar::chunk {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 2px;
+            }
+        """)
+        left_layout.addWidget(self.progress)
         
-        # Enhanced console with tabs
-        console_group = QGroupBox("Real-Time Output")
-        console_layout = QVBoxLayout()
+        left_layout.addStretch()
+        return left_widget
+    
+    def create_right_column(self):
+        """Create the right column with tabs and console logs."""
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
         
         # Tab widget for different views
         self.tab_widget = QTabWidget()
+        self.tab_widget.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #bdc3c7;
+                border-radius: 4px;
+                background: white;
+            }
+            QTabBar::tab {
+                background: #ecf0f1;
+                padding: 6px 10px;
+                margin-right: 1px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                font-weight: bold;
+                font-size: 10px;
+            }
+            QTabBar::tab:selected {
+                background: #3498db;
+                color: white;
+            }
+            QTabBar::tab:hover {
+                background: #bdc3c7;
+            }
+        """)
+        
+        # Real-time data visualization tab
+        self.data_view_widget = self.create_data_view_widget()
+        self.tab_widget.addTab(self.data_view_widget, "📊 Data")
         
         # Main console tab
         self.console = QTextEdit()
         self.console.setReadOnly(True)
-        self.console.setStyleSheet("background: #181818; color: #e0e0e0; font-family: Consolas; font-size: 12px;")
-        self.tab_widget.addTab(self.console, "Console Log")
+        self.console.setStyleSheet("""
+            background: #2c3e50; 
+            color: #ecf0f1; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            font-size: 9px;
+            border: none;
+            padding: 5px;
+        """)
+        self.tab_widget.addTab(self.console, "📋 Console")
         
         # ML Classification tab
         self.ml_console = QTextEdit()
         self.ml_console.setReadOnly(True)
-        self.ml_console.setStyleSheet("background: #1a1a2e; color: #00d4ff; font-family: Consolas; font-size: 12px;")
-        self.tab_widget.addTab(self.ml_console, "ML Classification")
+        self.ml_console.setStyleSheet("""
+            background: #1a1a2e; 
+            color: #00d4ff; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            font-size: 9px;
+            border: none;
+            padding: 5px;
+        """)
+        self.tab_widget.addTab(self.ml_console, "🧠 ML")
         
         # Validation tab
         self.validation_console = QTextEdit()
         self.validation_console.setReadOnly(True)
-        self.validation_console.setStyleSheet("background: #1a2e1a; color: #00ff88; font-family: Consolas; font-size: 12px;")
-        self.tab_widget.addTab(self.validation_console, "Validation Results")
+        self.validation_console.setStyleSheet("""
+            background: #1a2e1a; 
+            color: #00ff88; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            font-size: 9px;
+            border: none;
+            padding: 5px;
+        """)
+        self.tab_widget.addTab(self.validation_console, "✅ Validation")
         
         # Error log tab
         self.error_console = QTextEdit()
         self.error_console.setReadOnly(True)
-        self.error_console.setStyleSheet("background: #2e1a1a; color: #ff6b6b; font-family: Consolas; font-size: 12px;")
-        self.tab_widget.addTab(self.error_console, "Error Log")
+        self.error_console.setStyleSheet("""
+            background: #2e1a1a; 
+            color: #ff6b6b; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            font-size: 9px;
+            border: none;
+            padding: 5px;
+        """)
+        self.tab_widget.addTab(self.error_console, "❌ Errors")
         
-        # Add summary tab
+        # Summary tab
         self.summary_console = QTextEdit()
         self.summary_console.setReadOnly(True)
-        self.summary_console.setStyleSheet("background: #222; color: #ffe066; font-family: Consolas; font-size: 12px;")
-        self.tab_widget.addTab(self.summary_console, "Summary")
+        self.summary_console.setStyleSheet("""
+            background: #2c2c2c; 
+            color: #ffe066; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            font-size: 9px;
+            border: none;
+            padding: 5px;
+        """)
+        self.tab_widget.addTab(self.summary_console, "📈 Summary")
         
-        console_layout.addWidget(self.tab_widget)
-        console_group.setLayout(console_layout)
-        layout.addWidget(console_group, 1)
+        # Performance monitoring tab
+        self.performance_console = QTextEdit()
+        self.performance_console.setReadOnly(True)
+        self.performance_console.setStyleSheet("""
+            background: #1e3a5f; 
+            color: #74b9ff; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            font-size: 9px;
+            border: none;
+            padding: 5px;
+        """)
+        self.tab_widget.addTab(self.performance_console, "⚡ Performance")
         
-        # Control buttons
-        button_layout = QHBoxLayout()
-        self.crawl_btn = QPushButton("Start Advanced Crawling")
-        self.crawl_btn.clicked.connect(self.start_crawl)
-        self.crawl_btn.setEnabled(False)
-        self.crawl_btn.setStyleSheet("QPushButton {background: #27ae60; color: white; padding: 10px; font-weight: bold;}")
+        right_layout.addWidget(self.tab_widget)
+        return right_widget
+    
+    def create_data_view_widget(self):
+        """Create the real-time data visualization widget"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(2)
+        layout.setContentsMargins(2, 2, 2, 2)
         
-        self.stop_btn = QPushButton("Stop")
-        self.stop_btn.clicked.connect(self.stop_crawl)
-        self.stop_btn.setEnabled(False)
-        self.stop_btn.setStyleSheet("QPushButton {background: #e74c3c; color: white; padding: 10px;}")
+        # Data view controls
+        controls_layout = QHBoxLayout()
+        controls_layout.setSpacing(2)
         
-        self.clear_btn = QPushButton("Clear All")
-        self.clear_btn.clicked.connect(self.clear_all_consoles)
-        self.clear_btn.setStyleSheet("QPushButton {background: #f39c12; color: white; padding: 10px;}")
+        self.refresh_data_btn = QPushButton("🔄")
+        self.refresh_data_btn.setToolTip("Refresh")
+        self.refresh_data_btn.clicked.connect(self.refresh_data_view)
+        self.refresh_data_btn.setStyleSheet("padding: 2px; font-size: 10px;")
         
-        button_layout.addWidget(self.crawl_btn)
-        button_layout.addWidget(self.stop_btn)
-        button_layout.addWidget(self.clear_btn)
-        layout.addLayout(button_layout)
+        self.filter_data_btn = QPushButton("🔍")
+        self.filter_data_btn.setToolTip("Filter")
+        self.filter_data_btn.clicked.connect(self.show_filter_dialog)
+        self.filter_data_btn.setStyleSheet("padding: 2px; font-size: 10px;")
         
-        # Update status indicators
-        # self.update_status_indicators()
+        self.sort_data_btn = QPushButton("📊")
+        self.sort_data_btn.setToolTip("Sort")
+        self.sort_data_btn.clicked.connect(self.show_sort_dialog)
+        self.sort_data_btn.setStyleSheet("padding: 2px; font-size: 10px;")
+        
+        self.data_view_mode = QComboBox()
+        self.data_view_mode.addItems(["Table", "Cards", "JSON", "Stats"])
+        self.data_view_mode.currentTextChanged.connect(self.change_data_view_mode)
+        self.data_view_mode.setStyleSheet("font-size: 9px; padding: 2px;")
+        
+        controls_layout.addWidget(self.refresh_data_btn)
+        controls_layout.addWidget(self.filter_data_btn)
+        controls_layout.addWidget(self.sort_data_btn)
+        controls_layout.addWidget(QLabel("View:"))
+        controls_layout.addWidget(self.data_view_mode)
+        controls_layout.addStretch()
+        
+        layout.addLayout(controls_layout)
+        
+        # Data display area
+        self.data_display_stack = QStackedWidget()
+        
+        # Table view
+        self.data_table = QTableWidget()
+        self.data_table.setColumnCount(6)
+        self.data_table.setHorizontalHeaderLabels([
+            "Title", "Provider", "Type", "Conf", "Quality", "Status"
+        ])
+        self.data_table.horizontalHeader().setStretchLastSection(True)
+        self.data_table.setStyleSheet("font-size: 8px;")
+        self.data_display_stack.addWidget(self.data_table)
+        
+        # Card view
+        self.data_card_scroll = QScrollArea()
+        self.data_card_widget = QWidget()
+        self.data_card_layout = QVBoxLayout(self.data_card_widget)
+        self.data_card_layout.setSpacing(2)
+        self.data_card_scroll.setWidget(self.data_card_widget)
+        self.data_card_scroll.setWidgetResizable(True)
+        self.data_display_stack.addWidget(self.data_card_scroll)
+        
+        # JSON view
+        self.data_json_view = QTextEdit()
+        self.data_json_view.setReadOnly(True)
+        self.data_json_view.setStyleSheet("background: #1e1e1e; color: #d4d4d4; font-family: Consolas; font-size: 8px;")
+        self.data_display_stack.addWidget(self.data_json_view)
+        
+        # Statistics view
+        self.data_stats_widget = self.create_statistics_widget()
+        self.data_display_stack.addWidget(self.data_stats_widget)
+        
+        layout.addWidget(self.data_display_stack)
+        
+        return widget
+    
+    def create_statistics_widget(self):
+        """Create statistics visualization widget"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(2)
+        layout.setContentsMargins(2, 2, 2, 2)
+        
+        # Statistics grid
+        stats_grid = QGridLayout()
+        stats_grid.setSpacing(2)
+        
+        # Dataset statistics
+        self.total_datasets_stat = QLabel("0")
+        self.total_datasets_stat.setStyleSheet("font-size: 16px; font-weight: bold; color: #3498db;")
+        stats_grid.addWidget(QLabel("Total:"), 0, 0)
+        stats_grid.addWidget(self.total_datasets_stat, 0, 1)
+        
+        self.avg_confidence_stat = QLabel("0%")
+        self.avg_confidence_stat.setStyleSheet("font-size: 16px; font-weight: bold; color: #27ae60;")
+        stats_grid.addWidget(QLabel("Confidence:"), 1, 0)
+        stats_grid.addWidget(self.avg_confidence_stat, 1, 1)
+        
+        self.quality_score_stat = QLabel("0%")
+        self.quality_score_stat.setStyleSheet("font-size: 16px; font-weight: bold; color: #f39c12;")
+        stats_grid.addWidget(QLabel("Quality:"), 2, 0)
+        stats_grid.addWidget(self.quality_score_stat, 2, 1)
+        
+        self.ml_classified_stat = QLabel("0")
+        self.ml_classified_stat.setStyleSheet("font-size: 16px; font-weight: bold; color: #9b59b6;")
+        stats_grid.addWidget(QLabel("ML Classified:"), 3, 0)
+        stats_grid.addWidget(self.ml_classified_stat, 3, 1)
+        
+        layout.addLayout(stats_grid)
+        
+        # Category distribution
+        category_group = QGroupBox("Categories")
+        category_group.setStyleSheet("font-size: 9px;")
+        category_layout = QVBoxLayout()
+        self.category_list = QTextEdit()
+        self.category_list.setReadOnly(True)
+        self.category_list.setMaximumHeight(80)
+        self.category_list.setStyleSheet("font-size: 8px;")
+        category_layout.addWidget(self.category_list)
+        category_group.setLayout(category_layout)
+        layout.addWidget(category_group)
+        
+        # Provider distribution
+        provider_group = QGroupBox("Providers")
+        provider_group.setStyleSheet("font-size: 9px;")
+        provider_layout = QVBoxLayout()
+        self.provider_list = QTextEdit()
+        self.provider_list.setReadOnly(True)
+        self.provider_list.setMaximumHeight(80)
+        self.provider_list.setStyleSheet("font-size: 8px;")
+        provider_layout.addWidget(self.provider_list)
+        provider_group.setLayout(provider_layout)
+        layout.addWidget(provider_group)
+        
+        layout.addStretch()
+        return widget
 
     def update_status_indicators(self):
         """Update the status indicators for advanced features."""
@@ -852,198 +1401,118 @@ class EnhancedCrawlerUI(QWidget):
         print(f"DEBUG: Status indicators updated")
 
     def update_ui(self):
-        """Update UI elements."""
-        # Process progress updates
-        while not self.progress_queue.empty():
-            progress = self.progress_queue.get()
-            self.progress.setValue(progress)
-        
-        # Process log messages
-        while not self.log_queue.empty():
-            message = self.log_queue.get()
-            self.console.append(message)
-            self.console.ensureCursorVisible()
-        
-        # Check if crawl thread is finished
-        if hasattr(self, 'crawl_thread') and not self.crawl_thread.is_alive():
-            self.crawl_finished()
-
-    def open_dashboard(self):
-        """Open the analytics dashboard in default browser."""
-        if self.dashboard:
-            import webbrowser
-            webbrowser.open("http://127.0.0.1:8080")
-            self.log_message("[DASHBOARD] Opening analytics dashboard in browser...")
-        else:
-            self.log_message("[ERROR] Analytics dashboard not available")
-
-    def edit_config(self):
-        """Open the configuration file for editing."""
-        config_path = os.path.join(os.path.dirname(__file__), 'crawler_config.yaml')
-        if os.path.exists(config_path):
-            import subprocess
+        """Enhanced UI update with integrated performance monitoring."""
+        try:
+            # Update progress bar
             try:
-                subprocess.Popen(['notepad', config_path])
-                self.log_message("[CONFIG] Opening configuration file for editing...")
+                progress = self.progress_queue.get_nowait()
+                self.progress.setValue(progress)
             except:
-                self.log_message("[CONFIG] Could not open config file. Edit manually: " + config_path)
-        else:
-            self.log_message("[ERROR] Configuration file not found")
-
-    def test_features(self):
-        """Test all advanced features."""
-        self.log_message("[TEST] Testing advanced features...")
-        
-        # Test ML classification
-        if self.nlp:
-            test_text = "NASA Landsat 8 satellite data from 2020"
-            doc = self.nlp(test_text)
-            entities = [(ent.text, ent.label_) for ent in doc.ents]
-            self.ml_console.append(f"[ML TEST] spaCy NER: {entities}")
-        
-        # Test BERT classification
-        if self.bert_classifier:
-            test_text = "Landsat satellite imagery"
-            try:
-                result = self.bert_classifier(test_text, truncation=True, max_length=128)
-                self.ml_console.append(f"[ML TEST] BERT Classification: {result}")
+                pass
+            
+            # Update real-time statistics
+            if hasattr(self, 'extracted_data') and self.extracted_data:
+                self.update_real_time_statistics(self.extracted_data)
+            
+            # Update performance monitoring
+            self.update_performance_monitoring()
+            
             except Exception as e:
-                self.ml_console.append(f"[ML TEST] BERT Error: {e}")
-        else:
-            # Test fallback classification
-            test_text = "Landsat satellite imagery"
-            classification = self.simple_classify_text(test_text)
-            self.ml_console.append(f"[ML TEST] Fallback Classification: {classification}")
-        
-        # Test geospatial validation
-        if self.geocoder:
-            self.validation_console.append("[VALIDATION TEST] Geocoder available")
-        
-        # Test config
-        if self.config:
-            self.console.append(f"[CONFIG TEST] Loaded {len(self.config.get('fields', []))} field definitions")
-        
-        # Test plugins
-        if self.plugins:
-            self.console.append(f"[PLUGIN TEST] Loaded {len(self.plugins)} plugins")
-        
-        # Force refresh status indicators
-        self.update_status_indicators()
-        self.log_message("[TEST] Feature testing completed!")
+            print(f"UI update error: {e}")
+    
+    def update_performance_monitoring(self):
+        """Update performance monitoring display."""
+        try:
+            if hasattr(self, 'performance_monitor'):
+                # Get system metrics
+                cpu_percent = psutil.cpu_percent()
+                memory = psutil.virtual_memory()
+                disk = psutil.disk_usage('/')
+                
+                # Get application metrics
+                app_metrics = self.performance_monitor.get_current_metrics()
+                
+                # Format performance display
+                perf_text = f"""
+PERFORMANCE MONITORING
+{'='*50}
 
-    def clear_all_consoles(self):
-        """Clear all console tabs."""
-        self.console.clear()
-        self.ml_console.clear()
-        self.validation_console.clear()
-        self.error_console.clear()
-        self.log_message("[CLEAR] All consoles cleared")
+SYSTEM METRICS:
+CPU Usage: {cpu_percent:.1f}%
+Memory Usage: {memory.percent:.1f}% ({memory.used / 1024**3:.1f}GB / {memory.total / 1024**3:.1f}GB)
+Disk Usage: {disk.percent:.1f}% ({disk.used / 1024**3:.1f}GB / {disk.total / 1024**3:.1f}GB)
 
-    def log_ml_classification(self, message):
-        """Log ML classification results to the ML console."""
-        self.ml_console.append(f"[{time.strftime('%H:%M:%S')}] {message}")
+APPLICATION METRICS:
+Processing Rate: {app_metrics.get('processing_rate', 0):.2f} datasets/min
+Average Response Time: {app_metrics.get('avg_response_time', 0):.2f}s
+Success Rate: {app_metrics.get('success_rate', 0):.1f}%
+Error Rate: {app_metrics.get('error_rate', 0):.1f}%
 
-    def log_validation(self, message):
-        """Log validation results to the validation console."""
-        self.validation_console.append(f"[{time.strftime('%H:%M:%S')}] {message}")
+ML MODEL PERFORMANCE:
+BERT Model: {'✅ Loaded' if hasattr(self, 'bert_classifier') and self.bert_classifier else '❌ Not Loaded'}
+spaCy Model: {'✅ Loaded' if hasattr(self, 'nlp') and self.nlp else '❌ Not Loaded'}
+Geocoder: {'✅ Available' if hasattr(self, 'geocoder') and self.geocoder else '❌ Not Available'}
 
-    def log_error(self, message):
-        """Log errors to the error console."""
-        self.error_console.append(f"[{time.strftime('%H:%M:%S')}] {message}")
+MEMORY USAGE:
+Python Process: {psutil.Process().memory_info().rss / 1024**2:.1f}MB
+Cache Size: {len(self.extracted_data) if hasattr(self, 'extracted_data') else 0} items
 
-    def log_message(self, message):
-        """Log messages to the main console."""
-        self.log_queue.put(f"[{time.strftime('%H:%M:%S')}] {message}")
-
-    def browse_file(self):
-        """Open a dialog to select an HTML file."""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select HTML File", "", "HTML Files (*.html *.htm)"
-        )
-        if file_path:
-            self.file_path_edit.setText(file_path)
-            self.crawl_btn.setEnabled(True)
-            self.log_message(f"Selected file: {file_path}")
-
-    def browse_output_directory(self):
-        """Open a dialog to select an output directory."""
-        output_dir = QFileDialog.getExistingDirectory(
-            self, "Select Output Directory", self.output_dir_edit.text()
-        )
-        if output_dir:
-            self.output_dir_edit.setText(output_dir)
-            self.log_message(f"Selected output directory: {output_dir}")
-            # Update the output directories to use the selected path
-            self.update_output_directories(output_dir)
-
-    def update_output_directories(self, base_dir):
-        """Update all output directories to use the selected base directory."""
-        self.output_dir = os.path.join(base_dir, "extracted_data")
-        self.images_dir = os.path.join(base_dir, "thumbnails")
-        self.cache_dir = os.path.join(base_dir, "model_cache")
-        self.exported_dir = os.path.join(base_dir, "exported_data")
-        
-        # Create all subdirectories
-        for dir_path in [self.output_dir, self.images_dir, self.cache_dir, self.exported_dir]:
-            os.makedirs(dir_path, exist_ok=True)
-        
-        # Update ML cache directory
-        self.update_ml_cache_directory()
-        
-        self.log_message(f"Output directories updated to: {base_dir}")
+Last Updated: {time.strftime('%H:%M:%S')}
+"""
+                
+                self.performance_console.setPlainText(perf_text)
+                
+                # Update status indicators based on performance
+                if cpu_percent > 90:
+                    self.status.setText(f"⚠️ High CPU usage: {cpu_percent:.1f}%")
+                elif memory.percent > 90:
+                    self.status.setText(f"⚠️ High memory usage: {memory.percent:.1f}%")
+                elif hasattr(self, 'extracted_data') and self.extracted_data:
+                    self.status.setText(f"✅ Processing: {len(self.extracted_data)} datasets extracted")
+                else:
+                    self.status.setText("Ready. Select an HTML file to begin.")
+                    
+        except Exception as e:
+            self.performance_console.setPlainText(f"Performance monitoring error: {e}")
 
     def start_crawl(self):
-        """Start the advanced crawling process with all features enabled."""
+        """Start the enhanced crawling process with integrated monitoring."""
         if not self.file_path_edit.text():
-            self.log_error("Please select an HTML file first.")
+            self.log_message("Please select an HTML file first.")
             return
         
-        # Update output directories from UI
-        selected_output_dir = self.output_dir_edit.text()
-        if selected_output_dir and selected_output_dir != os.path.abspath("extracted_data"):
-            self.update_output_directories(selected_output_dir)
+        html_file = self.file_path_edit.text()
+        if not os.path.exists(html_file):
+            self.log_message("Selected file does not exist.")
+            return
         
-        # Disable UI elements during crawling
+        # Clear previous data
+        self.extracted_data = []
+        self.clear_all_consoles()
+        
+        # Set start time for rate calculation
+        self.start_time = time.time()
+        
+        # Enable export button
+        self.export_btn.setEnabled(True)
+        
+        # Update UI state
         self.crawl_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
-        self.browse_btn.setEnabled(False)
-        self.output_browse_btn.setEnabled(False)
-        
-        # Reset progress and status
+        self.status.setText("🚀 Crawling in progress...")
         self.progress.setValue(0)
-        self.status.setText("Starting advanced crawling...")
-        
-        # Clear previous results
-        self.results = []
-        self.error_tracker = {
-            'total_errors': 0,
-            'retry_attempts': 0,
-            'recovered_results': 0,
-            'error_categories': defaultdict(int)
-        }
         
         # Start crawling in a separate thread
-        self.thread = threading.Thread(
-            target=self.crawl_html_file,
-            args=(self.file_path_edit.text(),),
-            daemon=True
-        )
+        self.thread = threading.Thread(target=self.crawl_html_file, args=(html_file,), daemon=True)
         self.thread.start()
         
-        # Start timer for UI updates
-        self.timer.start(100)
+        # Start UI updates
+        self.timer.start(100)  # Update every 100ms for real-time responsiveness
         
-        self.log_message("Advanced crawling started with all features enabled...")
-
-    def stop_crawl(self):
-        """Stop the crawling process."""
-        if hasattr(self, 'crawl_thread') and self.crawl_thread.is_alive():
-            self.stop_requested = True
-            self.log_message("Stopping crawler... Please wait for current operation to complete.")
-            self.status.setText("Stopping...")
+        self.log_message("🚀 Enhanced crawling started with real-time monitoring...")
 
     def crawl_html_file(self, html_file):
-        """Main crawling method with all advanced features."""
+        """Enhanced crawling with real-time data updates."""
         try:
             self.stop_requested = False
             self.log_message("Reading HTML file...")
@@ -1083,6 +1552,7 @@ class EnhancedCrawlerUI(QWidget):
                 # Process the current page as a single dataset
                 result = self.advanced_extract(soup, html_file)
                 if result:
+                    self.add_extracted_data(result)  # Add to real-time view
                     self.save_results([result])
                 return
             
@@ -1091,111 +1561,77 @@ class EnhancedCrawlerUI(QWidget):
             options.add_argument('--headless')
             options.add_argument('--disable-gpu')
             options.add_argument('--no-sandbox')
-            options.add_argument('--window-size=1920,1080')
-            # User-agent randomization
-            user_agent = random.choice(USER_AGENTS)
-            options.add_argument(f'user-agent={user_agent}')
+            options.add_argument('--disable-dev-shm-usage')
+            
             driver = webdriver.Edge(options=options)
             
-            processed_count = 0
-            total_links = len(dataset_links)
+            try:
             results = []
-            
-            # Memory management settings
-            max_memory_items = 50  # Save in smaller batches
-            batch_count = 0
+                total_links = len(dataset_links)
             
             for i, link in enumerate(dataset_links):
                 if self.stop_requested:
-                    self.log_message("Crawling stopped by user")
                     break
-                retry_count = 0
-                max_retries = 3
-                while retry_count <= max_retries:
+                    
                     try:
-                        # Update progress
-                        progress = int((i / total_links) * 100)
-                        self.progress_queue.put(progress)
-                        self.log_message(f"Processing link {i+1}/{total_links}: {link}")
+                        self.log_message(f"Processing dataset {i+1}/{total_links}: {link}")
+                        
+                        # Navigate to the dataset page
                         driver.get(link)
                         WebDriverWait(driver, 10).until(
                             EC.presence_of_element_located((By.TAG_NAME, "body"))
                         )
-                        page_source = driver.page_source
-                        page_soup = BeautifulSoup(page_source, 'html.parser')
-                        dataset_info = self.advanced_extract(page_soup, link)
-                        if dataset_info:
-                            results.append(dataset_info)
-                            processed_count += 1
-                            batch_count += 1
-                            self.log_message(f"Extracted: {dataset_info.get('title', 'Unknown')}")
-                            if dataset_info.get('ml_classification'):
-                                for field, ml_data in dataset_info['ml_classification'].items():
-                                    if isinstance(ml_data, dict):
-                                        self.log_ml_classification(f"{field}: {ml_data.get('label', 'Unknown')} (confidence: {ml_data.get('confidence', 0):.2f})")
-                            if dataset_info.get('validation_results'):
-                                for validation_type, result in dataset_info['validation_results'].items():
-                                    status = "✅" if result.get('valid') else "❌"
-                                    self.log_validation(f"{validation_type}: {status} {result.get('errors', [])}")
-                            # Memory management: save batch and clear memory
-                            if batch_count >= max_memory_items:
-                                self.log_message(f"Memory management: Saving batch of {batch_count} items...")
-                                self.save_results(results)
-                                # Clear memory
-                                import gc
-                                gc.collect()
-                                batch_count = 0
-                        time.sleep(1)
-                        break  # Success, break retry loop
+                        
+                        # Extract data from the page
+                        page_soup = BeautifulSoup(driver.page_source, 'html.parser')
+                        result = self.advanced_extract(page_soup, link)
+                        
+                        if result:
+                            results.append(result)
+                            self.add_extracted_data(result)  # Add to real-time view
+                            
+                            # Log ML classification results
+                            if result.get('ml_classification'):
+                                self.log_ml_classification(f"Dataset {i+1}: {result.get('title', 'N/A')} - {result.get('ml_classification', {})}")
+                            
+                            # Log validation results
+                            if result.get('validation_results'):
+                                self.log_validation(f"Dataset {i+1}: {result.get('title', 'N/A')} - Validation: {result.get('validation_results', {}).get('overall_score', 0):.2f}")
+                        
+                        # Update progress
+                        progress = int((i + 1) / total_links * 100)
+                        self.progress_queue.put(progress)
+                        
+                        # Rate limiting
+                        time.sleep(0.8)  # Reduced delay for faster processing
+                        
                     except Exception as e:
-                        retry_count += 1
-                        delay = 2 ** retry_count
-                        self.log_error(f"Error processing {link} (attempt {retry_count}): {str(e)}. Retrying in {delay}s...")
-                        time.sleep(delay)
-                        if retry_count > max_retries:
-                            self.error_tracker['total_errors'] += 1
-                            self.error_tracker['error_categories'][type(e).__name__] += 1
-                            break
-
-            driver.quit()
-            
-            # Save results
+                        self.log_error(f"Failed to process {link}: {e}")
+                        continue
+                
+                # Save all results
             if results:
                 self.save_results(results)
-                self.log_message(f"Crawling completed! Processed {processed_count} datasets successfully.")
-                self.status.setText(f"Crawl completed - {processed_count} datasets extracted")
+                    self.log_message(f"Crawling completed! Extracted {len(results)} datasets.")
             else:
                 self.log_message("No datasets were successfully extracted.")
-                self.status.setText("Crawl completed - No data extracted")
             
-            # Log error summary
-            if self.error_tracker['total_errors'] > 0:
-                self.log_error_summary()
+            finally:
+                driver.quit()
             
         except Exception as e:
-            error_msg = f"Crawling error: {str(e)}"
-            self.log_error(error_msg)
-            self.status.setText("Crawl failed")
-            
-            # Try to save any partial results
-            if results:
-                try:
-                    self.log_message("Attempting to save partial results...")
-                    self.save_results(results)
-                except Exception as save_error:
-                    self.log_error(f"Failed to save partial results: {save_error}")
+            self.log_error(f"Crawling failed: {e}")
         finally:
-            # Reset UI state
-            self.progress_queue.put(100)
             self.crawl_finished()
 
     def advanced_extract(self, soup, url):
-        """Advanced extraction with ML classification and validation."""
+        """Enhanced extraction with real-time data integration."""
         result = {
             'title': '', 'provider': '', 'tags': [], 'date_range': '', 'description': '',
             'bands': [], 'terms_of_use': '', 'snippet': '', 'spatial_coverage': '',
             'temporal_coverage': '', 'citation': '', 'type': '', 'region': '', 'source_url': url,
-            'extraction_report': {}, 'confidence': {}, 'ml_classification': {}, 'validation_results': {}
+            'extraction_report': {}, 'confidence': {}, 'ml_classification': {}, 'validation_results': {},
+            'enhanced_features': {}, 'quality_score': 0.0, 'confidence_score': 0.0, 'data_type': 'unknown'
         }
         
         # Extract basic information
@@ -1204,14 +1640,41 @@ class EnhancedCrawlerUI(QWidget):
         # Apply ML classification
         if hasattr(self, 'use_ml_classification') and self.use_ml_classification.isChecked():
             result = self.apply_ml_classification(soup, result)
+            
+            # Set data type from ML classification
+            if result.get('ml_classification', {}).get('enhanced_classification', {}).get('label'):
+                result['data_type'] = result['ml_classification']['enhanced_classification']['label']
+            elif result.get('ml_classification', {}).get('simple_classification', {}).get('label'):
+                result['data_type'] = result['ml_classification']['simple_classification']['label']
         
         # Apply validation
         if hasattr(self, 'use_validation') and self.use_validation.isChecked():
             result = self.apply_validation(result)
+            
+            # Set quality score from validation
+            if result.get('validation_results', {}).get('overall_score'):
+                result['quality_score'] = result['validation_results']['overall_score']
         
         # Apply ensemble methods
         if hasattr(self, 'use_ensemble') and self.use_ensemble.isChecked():
             result = self.apply_ensemble_methods(result)
+            
+            # Set confidence score from ensemble
+            if result.get('ensemble_results', {}).get('ensemble_classification', {}).get('confidence'):
+                result['confidence_score'] = result['ensemble_results']['ensemble_classification']['confidence']
+        
+        # Calculate overall confidence if not set
+        if result['confidence_score'] == 0.0:
+            confidence_scores = []
+            if result.get('ml_classification', {}).get('enhanced_classification', {}).get('confidence'):
+                confidence_scores.append(result['ml_classification']['enhanced_classification']['confidence'])
+            if result.get('ml_classification', {}).get('simple_classification', {}).get('confidence'):
+                confidence_scores.append(result['ml_classification']['simple_classification']['confidence'])
+            
+            if confidence_scores:
+                result['confidence_score'] = sum(confidence_scores) / len(confidence_scores)
+            else:
+                result['confidence_score'] = 0.5  # Default confidence
         
         return result
 
@@ -1275,7 +1738,7 @@ class EnhancedCrawlerUI(QWidget):
                     if ent.label_ not in entities:
                         entities[ent.label_] = []
                     if ent.text not in entities[ent.label_]:  # Avoid duplicates
-                        entities[ent.label_].append(ent.text)
+                    entities[ent.label_].append(ent.text)
                 
                 ml_results['spacy_entities'] = entities
                 
@@ -1284,7 +1747,7 @@ class EnhancedCrawlerUI(QWidget):
                     title_doc = self.nlp(result['title'])
                     title_entities = [(ent.text, ent.label_) for ent in title_doc.ents]
                     ml_results['title_entities'] = title_entities
-                    
+            
                     # Extract key phrases from title
                     title_tokens = [token.text for token in title_doc if not token.is_stop and token.is_alpha]
                     ml_results['title_key_phrases'] = title_tokens[:10]
@@ -2006,26 +2469,983 @@ class EnhancedCrawlerUI(QWidget):
         for category, count in self.error_tracker['error_categories'].items():
                 self.log_error(f"    - {category}: {count}")
 
+    def stop_crawl(self):
+        """Stop the crawling process."""
+        self.stop_requested = True
+        self.log_message("Stopping crawler... Please wait for current operation to complete.")
+        self.status.setText("Stopping...")
+    
+    def toggle_realtime_view(self):
+        """Toggle real-time data view"""
+        self.tab_widget.setCurrentIndex(1)  # Switch to data view tab
+        self.refresh_data_view()
+    
+    def refresh_data_view(self):
+        """Refresh the data view with current extracted data"""
+        with self.data_lock:
+            current_data = self.extracted_data.copy()
+        
+        if not current_data:
+            self.log_message("No data available for viewing yet.")
+            return
+        
+        # Update statistics
+        self.update_real_time_statistics(current_data)
+        
+        # Update view based on current mode
+        view_mode = self.data_view_mode.currentText()
+        if view_mode == "Table View":
+            self.update_table_view(current_data)
+        elif view_mode == "Card View":
+            self.update_card_view(current_data)
+        elif view_mode == "JSON View":
+            self.update_json_view(current_data)
+        elif view_mode == "Statistics View":
+            self.update_statistics_view(current_data)
+    
+    def update_real_time_statistics(self, data):
+        """Update real-time statistics labels with enhanced metrics."""
+        if not data:
+            return
+        
+        total_datasets = len(data)
+        avg_confidence = sum(d.get('confidence_score', 0) for d in data) / total_datasets * 100
+        ml_classified = sum(1 for d in data if d.get('ml_classification'))
+        quality_scores = [d.get('quality_score', 0) for d in data if d.get('quality_score')]
+        avg_quality = sum(quality_scores) / len(quality_scores) * 100 if quality_scores else 0
+        
+        # Calculate processing rate
+        if hasattr(self, 'start_time') and self.start_time:
+            elapsed_time = time.time() - self.start_time
+            if elapsed_time > 0:
+                rate = total_datasets / (elapsed_time / 60)  # datasets per minute
+                self.processing_rate_label.setText(f"Rate: {rate:.1f}/min")
+        
+        # Update labels with enhanced styling
+        self.datasets_processed_label.setText(f"Datasets: {total_datasets}")
+        self.avg_confidence_label.setText(f"Confidence: {avg_confidence:.1f}%")
+        self.ml_classified_label.setText(f"ML Classified: {ml_classified}")
+        self.quality_score_label.setText(f"Quality: {avg_quality:.1f}%")
+        
+        # Update error count from error console
+        error_count = len([line for line in self.error_console.toPlainText().split('\n') if line.strip()])
+        self.errors_label.setText(f"Errors: {error_count}")
+        
+        # Update statistics widget if it exists
+        if hasattr(self, 'total_datasets_stat'):
+            self.total_datasets_stat.setText(str(total_datasets))
+            self.avg_confidence_stat.setText(f"{avg_confidence:.1f}%")
+            self.quality_score_stat.setText(f"{avg_quality:.1f}%")
+            self.ml_classified_stat.setText(str(ml_classified))
+    
+    def update_table_view(self, data):
+        """Update table view with extracted data"""
+        self.data_table.setRowCount(len(data))
+        
+        for row, item in enumerate(data):
+            # Title
+            title = item.get('title', 'N/A')[:50] + "..." if len(item.get('title', '')) > 50 else item.get('title', 'N/A')
+            self.data_table.setItem(row, 0, QTableWidgetItem(title))
+            
+            # Provider
+            provider = item.get('provider', 'N/A')
+            self.data_table.setItem(row, 1, QTableWidgetItem(provider))
+            
+            # Type
+            data_type = item.get('data_type', 'N/A')
+            self.data_table.setItem(row, 2, QTableWidgetItem(data_type))
+            
+            # Confidence
+            confidence = f"{item.get('confidence_score', 0) * 100:.1f}%"
+            self.data_table.setItem(row, 3, QTableWidgetItem(confidence))
+            
+            # Quality
+            quality = f"{item.get('quality_score', 0) * 100:.1f}%"
+            self.data_table.setItem(row, 4, QTableWidgetItem(quality))
+            
+            # Tags
+            tags = ", ".join(item.get('tags', [])[:3])
+            self.data_table.setItem(row, 5, QTableWidgetItem(tags))
+            
+            # Status
+            status = "✅ Valid" if item.get('validation_results', {}).get('overall_score', 0) > 0.5 else "⚠️ Issues"
+            self.data_table.setItem(row, 6, QTableWidgetItem(status))
+            
+            # Actions
+            view_btn = QPushButton("View Details")
+            view_btn.clicked.connect(lambda checked, row=row: self.view_dataset_details(row))
+            self.data_table.setCellWidget(row, 7, view_btn)
+        
+        self.data_display_stack.setCurrentIndex(0)
+    
+    def update_card_view(self, data):
+        """Update card view with extracted data"""
+        # Clear existing cards
+        for i in reversed(range(self.data_card_layout.count())):
+            child = self.data_card_layout.itemAt(i).widget()
+            if child:
+                child.deleteLater()
+        
+        # Create new cards
+        for item in data:
+            card = self.create_data_card(item)
+            self.data_card_layout.addWidget(card)
+        
+        self.data_display_stack.setCurrentIndex(1)
+    
+    def create_data_card(self, item):
+        """Create a data card widget"""
+        card = QGroupBox()
+        card.setStyleSheet("""
+            QGroupBox {
+                border: 2px solid #3498db;
+                border-radius: 10px;
+                margin: 5px;
+                padding: 10px;
+                background: #f8f9fa;
+            }
+            QGroupBox:hover {
+                border-color: #2980b9;
+                background: #e8f4fd;
+            }
+        """)
+        
+        layout = QVBoxLayout(card)
+        
+        # Title
+        title_label = QLabel(item.get('title', 'N/A'))
+        title_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #2c3e50;")
+        title_label.setWordWrap(True)
+        layout.addWidget(title_label)
+        
+        # Provider and Type
+        info_layout = QHBoxLayout()
+        provider_label = QLabel(f"Provider: {item.get('provider', 'N/A')}")
+        provider_label.setStyleSheet("color: #7f8c8d;")
+        type_label = QLabel(f"Type: {item.get('data_type', 'N/A')}")
+        type_label.setStyleSheet("color: #7f8c8d;")
+        info_layout.addWidget(provider_label)
+        info_layout.addWidget(type_label)
+        layout.addLayout(info_layout)
+        
+        # Metrics
+        metrics_layout = QHBoxLayout()
+        confidence_label = QLabel(f"Confidence: {item.get('confidence_score', 0) * 100:.1f}%")
+        confidence_label.setStyleSheet("color: #27ae60; font-weight: bold;")
+        quality_label = QLabel(f"Quality: {item.get('quality_score', 0) * 100:.1f}%")
+        quality_label.setStyleSheet("color: #f39c12; font-weight: bold;")
+        metrics_layout.addWidget(confidence_label)
+        metrics_layout.addWidget(quality_label)
+        layout.addLayout(metrics_layout)
+        
+        # Tags
+        tags = item.get('tags', [])
+        if tags:
+            tags_text = "Tags: " + ", ".join(tags[:5])
+            tags_label = QLabel(tags_text)
+            tags_label.setStyleSheet("color: #9b59b6; font-size: 11px;")
+            tags_label.setWordWrap(True)
+            layout.addWidget(tags_label)
+        
+        # View details button
+        view_btn = QPushButton("View Details")
+        view_btn.clicked.connect(lambda: self.view_dataset_details(item))
+        view_btn.setStyleSheet("background: #3498db; color: white; border-radius: 5px; padding: 5px;")
+        layout.addWidget(view_btn)
+        
+        return card
+    
+    def update_json_view(self, data):
+        """Update JSON view with extracted data"""
+        import json
+        json_text = json.dumps(data, indent=2, default=str)
+        self.data_json_view.setText(json_text)
+        self.data_display_stack.setCurrentIndex(2)
+    
+    def update_statistics_view(self, data):
+        """Update statistics view with extracted data"""
+        if not data:
+            return
+        
+        # Category distribution
+        categories = {}
+        providers = {}
+        
+        for item in data:
+            # Count categories
+            category = item.get('data_type', 'Unknown')
+            categories[category] = categories.get(category, 0) + 1
+            
+            # Count providers
+            provider = item.get('provider', 'Unknown')
+            providers[provider] = providers.get(provider, 0) + 1
+        
+        # Update category list
+        category_text = "Category Distribution:\n"
+        for category, count in sorted(categories.items(), key=lambda x: x[1], reverse=True):
+            percentage = (count / len(data)) * 100
+            category_text += f"{category}: {count} ({percentage:.1f}%)\n"
+        self.category_list.setText(category_text)
+        
+        # Update provider list
+        provider_text = "Provider Distribution:\n"
+        for provider, count in sorted(providers.items(), key=lambda x: x[1], reverse=True):
+            percentage = (count / len(data)) * 100
+            provider_text += f"{provider}: {count} ({percentage:.1f}%)\n"
+        self.provider_list.setText(provider_text)
+        
+        self.data_display_stack.setCurrentIndex(3)
+    
+    def change_data_view_mode(self, mode):
+        """Change the data view mode"""
+        with self.data_lock:
+            current_data = self.extracted_data.copy()
+        
+        if current_data:
+            self.refresh_data_view()
+    
+    def show_filter_dialog(self):
+        """Show filter dialog for data"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Filter Data")
+        dialog.setModal(True)
+        layout = QVBoxLayout(dialog)
+        
+        form_layout = QFormLayout()
+        
+        # Filter by confidence
+        min_confidence = QDoubleSpinBox()
+        min_confidence.setRange(0, 1)
+        min_confidence.setSingleStep(0.1)
+        min_confidence.setValue(0.0)
+        form_layout.addRow("Min Confidence:", min_confidence)
+        
+        # Filter by quality
+        min_quality = QDoubleSpinBox()
+        min_quality.setRange(0, 1)
+        min_quality.setSingleStep(0.1)
+        min_quality.setValue(0.0)
+        form_layout.addRow("Min Quality:", min_quality)
+        
+        layout.addLayout(form_layout)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        apply_btn = QPushButton("Apply Filter")
+        cancel_btn = QPushButton("Cancel")
+        
+        apply_btn.clicked.connect(lambda: self.apply_filter(min_confidence.value(), min_quality.value(), dialog))
+        cancel_btn.clicked.connect(dialog.reject)
+        
+        button_layout.addWidget(apply_btn)
+        button_layout.addWidget(cancel_btn)
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
+    
+    def apply_filter(self, min_confidence, min_quality, dialog):
+        """Apply filter to data view"""
+        with self.data_lock:
+            all_data = self.extracted_data.copy()
+        
+        filtered_data = [
+            item for item in all_data
+            if item.get('confidence_score', 0) >= min_confidence and
+               item.get('quality_score', 0) >= min_quality
+        ]
+        
+        self.update_real_time_statistics(filtered_data)
+        self.refresh_data_view()
+        dialog.accept()
+    
+    def show_sort_dialog(self):
+        """Show sort dialog for data"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Sort Data")
+        dialog.setModal(True)
+        layout = QVBoxLayout(dialog)
+        
+        # Sort options
+        sort_combo = QComboBox()
+        sort_combo.addItems(["Title", "Provider", "Confidence", "Quality", "Data Type"])
+        layout.addWidget(QLabel("Sort by:"))
+        layout.addWidget(sort_combo)
+        
+        # Sort direction
+        direction_combo = QComboBox()
+        direction_combo.addItems(["Ascending", "Descending"])
+        layout.addWidget(QLabel("Direction:"))
+        layout.addWidget(direction_combo)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        apply_btn = QPushButton("Apply Sort")
+        cancel_btn = QPushButton("Cancel")
+        
+        apply_btn.clicked.connect(lambda: self.apply_sort(sort_combo.currentText(), direction_combo.currentText(), dialog))
+        cancel_btn.clicked.connect(dialog.reject)
+        
+        button_layout.addWidget(apply_btn)
+        button_layout.addWidget(cancel_btn)
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
+    
+    def apply_sort(self, sort_by, direction, dialog):
+        """Apply sorting to data view"""
+        with self.data_lock:
+            data = self.extracted_data.copy()
+        
+        reverse = direction == "Descending"
+        
+        if sort_by == "Title":
+            data.sort(key=lambda x: x.get('title', ''), reverse=reverse)
+        elif sort_by == "Provider":
+            data.sort(key=lambda x: x.get('provider', ''), reverse=reverse)
+        elif sort_by == "Confidence":
+            data.sort(key=lambda x: x.get('confidence_score', 0), reverse=reverse)
+        elif sort_by == "Quality":
+            data.sort(key=lambda x: x.get('quality_score', 0), reverse=reverse)
+        elif sort_by == "Data Type":
+            data.sort(key=lambda x: x.get('data_type', ''), reverse=reverse)
+        
+        self.extracted_data = data
+        self.refresh_data_view()
+        dialog.accept()
+    
+    def view_dataset_details(self, item_or_index):
+        """View detailed information about a dataset"""
+        if isinstance(item_or_index, int):
+            # Index from table
+            with self.data_lock:
+                if item_or_index < len(self.extracted_data):
+                    item = self.extracted_data[item_or_index]
+                else:
+                    return
+        else:
+            # Direct item
+            item = item_or_index
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Dataset Details")
+        dialog.setModal(True)
+        dialog.resize(600, 500)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # Create detailed view
+        details_text = QTextEdit()
+        details_text.setReadOnly(True)
+        details_text.setStyleSheet("background: #f8f9fa; font-family: Consolas; font-size: 11px;")
+        
+        # Format detailed information
+        details = f"""
+DATASET DETAILS
+{'='*50}
+
+Title: {item.get('title', 'N/A')}
+Provider: {item.get('provider', 'N/A')}
+Data Type: {item.get('data_type', 'N/A')}
+Confidence Score: {item.get('confidence_score', 0) * 100:.1f}%
+Quality Score: {item.get('quality_score', 0) * 100:.1f}%
+
+Description: {item.get('description', 'N/A')}
+
+Tags: {', '.join(item.get('tags', []))}
+
+SPATIAL COVERAGE:
+{item.get('spatial_coverage', 'N/A')}
+
+TEMPORAL COVERAGE:
+{item.get('temporal_coverage', 'N/A')}
+
+BANDS:
+{json.dumps(item.get('bands', []), indent=2)}
+
+ML CLASSIFICATION:
+{json.dumps(item.get('ml_classification', {}), indent=2)}
+
+VALIDATION RESULTS:
+{json.dumps(item.get('validation_results', {}), indent=2)}
+
+ENHANCED FEATURES:
+{json.dumps(item.get('enhanced_features', {}), indent=2)}
+"""
+        
+        details_text.setText(details)
+        layout.addWidget(details_text)
+        
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        layout.addWidget(close_btn)
+        
+        dialog.exec()
+    
+    def export_current_data(self):
+        """Export current extracted data"""
+        if not self.extracted_data:
+            QMessageBox.information(self, "No Data", "No data available to export.")
+            return
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Export Data", "extracted_data.json", "JSON Files (*.json)"
+        )
+        
+        if file_path:
+            try:
+                import json
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.extracted_data, f, indent=2, default=str)
+                QMessageBox.information(self, "Success", f"Data exported to {file_path}")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to export data: {str(e)}")
+    
+    def add_extracted_data(self, data_item):
+        """Add extracted data to the real-time view"""
+        with self.data_lock:
+            self.extracted_data.append(data_item)
+        
+        # Update real-time statistics
+        self.update_real_time_statistics(self.extracted_data)
+        
+        # Update current view if on data tab
+        if self.tab_widget.currentIndex() == 1:  # Data view tab
+            self.refresh_data_view()
+
+    def show_crawl_summary(self):
+        """Show a comprehensive crawl summary with enhanced analytics."""
+        if not self.extracted_data:
+            return
+        
+        # Calculate comprehensive statistics
+        total_datasets = len(self.extracted_data)
+        avg_confidence = sum(d.get('confidence_score', 0) for d in self.extracted_data) / total_datasets * 100
+        avg_quality = sum(d.get('quality_score', 0) for d in self.extracted_data) / total_datasets * 100
+        ml_classified = sum(1 for d in self.extracted_data if d.get('ml_classification'))
+        
+        # Data type distribution
+        data_types = {}
+        providers = {}
+        for item in self.extracted_data:
+            data_type = item.get('data_type', 'unknown')
+            data_types[data_type] = data_types.get(data_type, 0) + 1
+            provider = item.get('provider', 'unknown')
+            providers[provider] = providers.get(provider, 0) + 1
+        
+        # Processing time
+        elapsed_time = time.time() - self.start_time if hasattr(self, 'start_time') else 0
+        
+        summary = f"""
+CRAWL SUMMARY REPORT
+{'='*60}
+
+📊 OVERVIEW:
+Total Datasets Extracted: {total_datasets}
+Processing Time: {elapsed_time:.1f} seconds
+Average Processing Rate: {total_datasets / (elapsed_time / 60) if elapsed_time > 0 else 0:.1f} datasets/min
+
+🎯 QUALITY METRICS:
+Average Confidence Score: {avg_confidence:.1f}%
+Average Quality Score: {avg_quality:.1f}%
+ML Classified Datasets: {ml_classified} ({ml_classified/total_datasets*100:.1f}%)
+
+📈 DATA TYPE DISTRIBUTION:
+"""
+        
+        for data_type, count in sorted(data_types.items(), key=lambda x: x[1], reverse=True):
+            percentage = (count / total_datasets) * 100
+            summary += f"• {data_type}: {count} ({percentage:.1f}%)\n"
+        
+        summary += f"""
+🏢 PROVIDER DISTRIBUTION (Top 10):
+"""
+        
+        for provider, count in sorted(providers.items(), key=lambda x: x[1], reverse=True)[:10]:
+            percentage = (count / total_datasets) * 100
+            summary += f"• {provider}: {count} ({percentage:.1f}%)\n"
+        
+        # Performance metrics
+        if hasattr(self, 'performance_monitor'):
+            app_metrics = self.performance_monitor.get_current_metrics()
+            summary += f"""
+⚡ PERFORMANCE METRICS:
+Success Rate: {app_metrics.get('success_rate', 0):.1f}%
+Error Rate: {app_metrics.get('error_rate', 0):.1f}%
+Average Response Time: {app_metrics.get('avg_response_time', 0):.2f}s
+Peak Memory Usage: {psutil.Process().memory_info().rss / 1024**2:.1f}MB
+
+🕒 TIMESTAMP: {time.strftime('%Y-%m-%d %H:%M:%S')}
+"""
+        
+        self.summary_console.setPlainText(summary)
+
+    def browse_file(self):
+        """Browse for HTML file to crawl."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Select HTML File", "", "HTML Files (*.html *.htm);;All Files (*)"
+        )
+        if file_path:
+            self.file_path_edit.setText(file_path)
+            self.crawl_btn.setEnabled(True)
+            self.log_message(f"Selected file: {file_path}")
+    
+    def browse_output_directory(self):
+        """Browse for output directory."""
+        dir_path = QFileDialog.getExistingDirectory(
+            self, "Select Output Directory", self.output_dir_edit.text()
+        )
+        if dir_path:
+            self.output_dir_edit.setText(dir_path)
+            self.log_message(f"Output directory set to: {dir_path}")
+    
+    def log_message(self, message):
+        """Log message to console."""
+        timestamp = time.strftime("%H:%M:%S")
+        self.console.append(f"[{timestamp}] {message}")
+        self.console.ensureCursorVisible()
+    
+    def log_ml_classification(self, message):
+        """Log ML classification message."""
+        timestamp = time.strftime("%H:%M:%S")
+        self.ml_console.append(f"[{timestamp}] {message}")
+        self.ml_console.ensureCursorVisible()
+    
+    def log_validation(self, message):
+        """Log validation message."""
+        timestamp = time.strftime("%H:%M:%S")
+        self.validation_console.append(f"[{timestamp}] {message}")
+        self.validation_console.ensureCursorVisible()
+    
+    def log_error(self, message):
+        """Log error message."""
+        timestamp = time.strftime("%H:%M:%S")
+        self.error_console.append(f"[{timestamp}] ERROR: {message}")
+        self.error_console.ensureCursorVisible()
+    
+    def clear_all_consoles(self):
+        """Clear all console outputs."""
+        self.console.clear()
+        self.ml_console.clear()
+        self.validation_console.clear()
+        self.error_console.clear()
+        self.summary_console.clear()
+        self.performance_console.clear()
+        if hasattr(self, 'data_json_view'):
+            self.data_json_view.clear()
+        self.log_message("All consoles cleared.")
+    
+    def open_dashboard(self):
+        """Open analytics dashboard."""
+        try:
+            if hasattr(self, 'dashboard') and self.dashboard:
+                self.log_message("Opening analytics dashboard...")
+                # Dashboard functionality is now integrated into the main UI
+                self.tab_widget.setCurrentIndex(0)  # Switch to data view
+            else:
+                self.log_message("Dashboard not available. Using integrated view.")
+        except Exception as e:
+            self.log_error(f"Failed to open dashboard: {e}")
+    
+    def edit_config(self):
+        """Edit configuration."""
+        try:
+            config_file = "crawler_config.yaml"
+            if os.path.exists(config_file):
+                self.log_message(f"Opening configuration file: {config_file}")
+                # You can implement a config editor here
+                self.log_message("Configuration editing not yet implemented.")
+            else:
+                self.log_message("Configuration file not found.")
+        except Exception as e:
+            self.log_error(f"Failed to edit config: {e}")
+    
+    def test_features(self):
+        """Test advanced features."""
+        try:
+            self.log_message("Testing advanced features...")
+            
+            # Test ML models
+            if hasattr(self, 'nlp') and self.nlp:
+                self.log_message("✅ spaCy model is working")
+            else:
+                self.log_message("❌ spaCy model not available")
+            
+            if hasattr(self, 'bert_classifier') and self.bert_classifier:
+                self.log_message("✅ BERT model is working")
+            else:
+                self.log_message("❌ BERT model not available")
+            
+            # Test geocoding
+            if hasattr(self, 'geocoder') and self.geocoder:
+                self.log_message("✅ Geocoder is working")
+            else:
+                self.log_message("❌ Geocoder not available")
+            
+            # Test configuration
+            if hasattr(self, 'config') and self.config:
+                self.log_message("✅ Configuration loaded")
+            else:
+                self.log_message("❌ Configuration not available")
+            
+            self.log_message("Feature testing completed.")
+            
+        except Exception as e:
+            self.log_error(f"Feature testing failed: {e}")
+    
+    def update_output_directories(self, base_dir):
+        """Update output directories based on base directory."""
+        try:
+            # Create subdirectories
+            subdirs = ['cache', 'extracted_data', 'thumbnails', 'ml_models', 'logs']
+            for subdir in subdirs:
+                full_path = os.path.join(base_dir, subdir)
+                os.makedirs(full_path, exist_ok=True)
+            
+            self.log_message(f"Output directories updated: {base_dir}")
+        except Exception as e:
+            self.log_error(f"Failed to update output directories: {e}")
+    
+    def save_results(self, results):
+        """Save extracted results."""
+        try:
+            if not results:
+                return
+            
+            output_dir = self.output_dir_edit.text()
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # Save as JSON
+            json_file = os.path.join(output_dir, f"extracted_data_{int(time.time())}.json")
+            with open(json_file, 'w', encoding='utf-8') as f:
+                json.dump(results, f, indent=2, default=str)
+            
+            self.log_message(f"Results saved to: {json_file}")
+            
+        except Exception as e:
+            self.log_error(f"Failed to save results: {e}")
+
     def crawl_finished(self):
         """Handle crawl completion."""
-        # Reset UI state
         self.crawl_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
-        self.browse_btn.setEnabled(True)
-        self.output_browse_btn.setEnabled(True)
+        self.status.setText("✅ Crawling completed!")
+        self.progress.setValue(100)
+        
+        # Enable export button if data is available
+        if hasattr(self, 'extracted_data') and self.extracted_data:
+            self.export_btn.setEnabled(True)
+            self.log_message(f"Crawling completed! Extracted {len(self.extracted_data)} datasets.")
+            
+            # Show summary
+            self.show_crawl_summary()
+        else:
+            self.log_message("Crawling completed but no data was extracted.")
+        
+        # Stop UI updates
         self.timer.stop()
         
-        # Update status indicators
-        self.update_status_indicators()
+    def stop_crawl(self):
+        """Stop the crawling process."""
+        self.stop_requested = True
+        self.log_message("Stopping crawler... Please wait for current operation to complete.")
+        self.status.setText("⏹️ Stopping...")
+    
+    def export_current_data(self):
+        """Export current extracted data."""
+        if not self.extracted_data:
+            QMessageBox.information(self, "No Data", "No data available to export.")
+            return
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Export Data", "extracted_data.json", "JSON Files (*.json)"
+        )
+        
+        if file_path:
+            try:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.extracted_data, f, indent=2, default=str)
+                QMessageBox.information(self, "Success", f"Data exported to {file_path}")
+                self.log_message(f"Data exported to: {file_path}")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to export data: {str(e)}")
+                self.log_error(f"Failed to export data: {e}")
+    
+    def add_extracted_data(self, data_item):
+        """Add extracted data to the real-time view."""
+        with self.data_lock:
+            self.extracted_data.append(data_item)
+        
+        # Update real-time statistics
+        self.update_real_time_statistics(self.extracted_data)
+        
+        # Update current view if on data tab
+        if self.tab_widget.currentIndex() == 0:  # Data view tab
+            self.refresh_data_view()
+    
+    def refresh_data_view(self):
+        """Refresh the data view with current extracted data."""
+        with self.data_lock:
+            current_data = self.extracted_data.copy()
+        
+        if not current_data:
+            self.log_message("No data available for viewing yet.")
+            return
+        
+        # Update statistics
+        self.update_real_time_statistics(current_data)
+        
+        # Update view based on current mode
+        if hasattr(self, 'data_view_mode'):
+            view_mode = self.data_view_mode.currentText()
+            if view_mode == "Table View":
+                self.update_table_view(current_data)
+            elif view_mode == "Card View":
+                self.update_card_view(current_data)
+            elif view_mode == "JSON View":
+                self.update_json_view(current_data)
+            elif view_mode == "Statistics View":
+                self.update_statistics_view(current_data)
+    
+    def update_table_view(self, data):
+        """Update table view with extracted data."""
+        if not hasattr(self, 'data_table'):
+            return
+        
+        self.data_table.setRowCount(len(data))
+        
+        for row, item in enumerate(data):
+            # Title
+            title = item.get('title', 'N/A')[:50] + "..." if len(item.get('title', '')) > 50 else item.get('title', 'N/A')
+            self.data_table.setItem(row, 0, QTableWidgetItem(title))
+            
+            # Provider
+            provider = item.get('provider', 'N/A')
+            self.data_table.setItem(row, 1, QTableWidgetItem(provider))
+            
+            # Type
+            data_type = item.get('data_type', 'N/A')
+            self.data_table.setItem(row, 2, QTableWidgetItem(data_type))
+            
+            # Confidence
+            confidence = f"{item.get('confidence_score', 0) * 100:.1f}%"
+            self.data_table.setItem(row, 3, QTableWidgetItem(confidence))
+            
+            # Quality
+            quality = f"{item.get('quality_score', 0) * 100:.1f}%"
+            self.data_table.setItem(row, 4, QTableWidgetItem(quality))
+            
+            # Tags
+            tags = ", ".join(item.get('tags', [])[:3])
+            self.data_table.setItem(row, 5, QTableWidgetItem(tags))
+            
+            # Status
+            status = "✅ Valid" if item.get('validation_results', {}).get('overall_score', 0) > 0.5 else "⚠️ Issues"
+            self.data_table.setItem(row, 6, QTableWidgetItem(status))
+            
+            # Actions
+            view_btn = QPushButton("View Details")
+            view_btn.clicked.connect(lambda checked, row=row: self.view_dataset_details(row))
+            self.data_table.setCellWidget(row, 7, view_btn)
+        
+        if hasattr(self, 'data_display_stack'):
+            self.data_display_stack.setCurrentIndex(0)
+    
+    def update_card_view(self, data):
+        """Update card view with extracted data."""
+        if not hasattr(self, 'data_card_layout'):
+            return
+        
+        # Clear existing cards
+        for i in reversed(range(self.data_card_layout.count())):
+            child = self.data_card_layout.itemAt(i).widget()
+            if child:
+                child.deleteLater()
+        
+        # Create new cards
+        for item in data:
+            card = self.create_data_card(item)
+            self.data_card_layout.addWidget(card)
+        
+        if hasattr(self, 'data_display_stack'):
+            self.data_display_stack.setCurrentIndex(1)
+    
+    def create_data_card(self, item):
+        """Create a data card widget."""
+        card = QGroupBox()
+        card.setStyleSheet("""
+            QGroupBox {
+                border: 2px solid #3498db;
+                border-radius: 10px;
+                margin: 5px;
+                padding: 10px;
+                background: #f8f9fa;
+            }
+            QGroupBox:hover {
+                border-color: #2980b9;
+                background: #e8f4fd;
+            }
+        """)
+        
+        layout = QVBoxLayout(card)
+        
+        # Title
+        title_label = QLabel(item.get('title', 'N/A'))
+        title_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #2c3e50;")
+        title_label.setWordWrap(True)
+        layout.addWidget(title_label)
+        
+        # Provider and Type
+        info_layout = QHBoxLayout()
+        provider_label = QLabel(f"Provider: {item.get('provider', 'N/A')}")
+        provider_label.setStyleSheet("color: #7f8c8d;")
+        type_label = QLabel(f"Type: {item.get('data_type', 'N/A')}")
+        type_label.setStyleSheet("color: #7f8c8d;")
+        info_layout.addWidget(provider_label)
+        info_layout.addWidget(type_label)
+        layout.addLayout(info_layout)
+        
+        # Metrics
+        metrics_layout = QHBoxLayout()
+        confidence_label = QLabel(f"Confidence: {item.get('confidence_score', 0) * 100:.1f}%")
+        confidence_label.setStyleSheet("color: #27ae60; font-weight: bold;")
+        quality_label = QLabel(f"Quality: {item.get('quality_score', 0) * 100:.1f}%")
+        quality_label.setStyleSheet("color: #f39c12; font-weight: bold;")
+        metrics_layout.addWidget(confidence_label)
+        metrics_layout.addWidget(quality_label)
+        layout.addLayout(metrics_layout)
+        
+        # Tags
+        tags = item.get('tags', [])
+        if tags:
+            tags_text = "Tags: " + ", ".join(tags[:5])
+            tags_label = QLabel(tags_text)
+            tags_label.setStyleSheet("color: #9b59b6; font-size: 11px;")
+            tags_label.setWordWrap(True)
+            layout.addWidget(tags_label)
+        
+        # View details button
+        view_btn = QPushButton("View Details")
+        view_btn.clicked.connect(lambda: self.view_dataset_details(item))
+        view_btn.setStyleSheet("background: #3498db; color: white; border-radius: 5px; padding: 5px;")
+        layout.addWidget(view_btn)
+        
+        return card
+    
+    def update_json_view(self, data):
+        """Update JSON view with extracted data."""
+        if not hasattr(self, 'data_json_view'):
+            return
+        
+        json_text = json.dumps(data, indent=2, default=str)
+        self.data_json_view.setText(json_text)
+        
+        if hasattr(self, 'data_display_stack'):
+            self.data_display_stack.setCurrentIndex(2)
+    
+    def update_statistics_view(self, data):
+        """Update statistics view with extracted data."""
+        if not data or not hasattr(self, 'category_list'):
+            return
+        
+        # Category distribution
+        categories = {}
+        providers = {}
+        
+        for item in data:
+            # Count categories
+            category = item.get('data_type', 'Unknown')
+            categories[category] = categories.get(category, 0) + 1
+            
+            # Count providers
+            provider = item.get('provider', 'Unknown')
+            providers[provider] = providers.get(provider, 0) + 1
+        
+        # Update category list
+        category_text = "Category Distribution:\n"
+        for category, count in sorted(categories.items(), key=lambda x: x[1], reverse=True):
+            percentage = (count / len(data)) * 100
+            category_text += f"{category}: {count} ({percentage:.1f}%)\n"
+        self.category_list.setText(category_text)
+        
+        # Update provider list
+        provider_text = "Provider Distribution:\n"
+        for provider, count in sorted(providers.items(), key=lambda x: x[1], reverse=True):
+            percentage = (count / len(data)) * 100
+            provider_text += f"{provider}: {count} ({percentage:.1f}%)\n"
+        self.provider_list.setText(provider_text)
+        
+        if hasattr(self, 'data_display_stack'):
+            self.data_display_stack.setCurrentIndex(3)
+    
+    def view_dataset_details(self, item_or_index):
+        """View detailed information about a dataset."""
+        if isinstance(item_or_index, int):
+            # Index from table
+            with self.data_lock:
+                if item_or_index < len(self.extracted_data):
+                    item = self.extracted_data[item_or_index]
+                else:
+                    return
+        else:
+            # Direct item
+            item = item_or_index
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Dataset Details")
+        dialog.setModal(True)
+        dialog.resize(600, 500)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # Create detailed view
+        details_text = QTextEdit()
+        details_text.setReadOnly(True)
+        details_text.setStyleSheet("background: #f8f9fa; font-family: Consolas; font-size: 11px;")
+        
+        # Format detailed information
+        details = f"""
+DATASET DETAILS
+{'='*50}
 
-        # Update summary tab
-        summary = f"Total datasets: {len(getattr(self, 'results', []))}\n"
-        summary += f"Total errors: {self.error_tracker['total_errors']}\n"
-        summary += f"Error categories: {dict(self.error_tracker['error_categories'])}\n"
-        summary += f"Output directory: {self.output_dir}\n"
-        summary += f"Cache directory: {self.cache_dir}\n"
-        summary += f"Exported data directory: {self.exported_dir}\n"
-        self.summary_console.setPlainText(summary)
+Title: {item.get('title', 'N/A')}
+Provider: {item.get('provider', 'N/A')}
+Data Type: {item.get('data_type', 'N/A')}
+Confidence Score: {item.get('confidence_score', 0) * 100:.1f}%
+Quality Score: {item.get('quality_score', 0) * 100:.1f}%
+
+Description: {item.get('description', 'N/A')}
+
+Tags: {', '.join(item.get('tags', []))}
+
+SPATIAL COVERAGE:
+{item.get('spatial_coverage', 'N/A')}
+
+TEMPORAL COVERAGE:
+{item.get('temporal_coverage', 'N/A')}
+
+BANDS:
+{json.dumps(item.get('bands', []), indent=2)}
+
+ML CLASSIFICATION:
+{json.dumps(item.get('ml_classification', {}), indent=2)}
+
+VALIDATION RESULTS:
+{json.dumps(item.get('validation_results', {}), indent=2)}
+
+ENHANCED FEATURES:
+{json.dumps(item.get('enhanced_features', {}), indent=2)}
+"""
+        
+        details_text.setText(details)
+        layout.addWidget(details_text)
+        
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        layout.addWidget(close_btn)
+        
+        dialog.exec()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -361,8 +361,8 @@ class AdvancedMLManager:
             self.classifiers[model_key] = model
             return model
         
-        return None
-    
+            return None
+            
     def classify_text(self, text, model_name='distilbert-base-uncased', model_type='text_classification'):
         """Enhanced text classification with multiple models and ensemble methods"""
         results = {
@@ -380,7 +380,7 @@ class AdvancedMLManager:
                     # Enhanced BERT classification
                     bert_result = classifier(
                         text[:512],  # Limit length for efficiency
-                        truncation=True,
+                    truncation=True,
                         max_length=256,
                         return_all_scores=True
                     )
@@ -519,7 +519,7 @@ class AdvancedMLManager:
             # Combine predictions using weighted voting
             if predictions:
                 ensemble_results = self._combine_predictions(predictions)
-            
+                
         except Exception as e:
             print(f"Ensemble classification failed: {e}")
             ensemble_results['error'] = str(e)

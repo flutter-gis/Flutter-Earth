@@ -84,9 +84,9 @@ class PerformanceMonitor:
                 
                 # Enhanced CPU metrics
                 cpu_info = {
-                    'timestamp': timestamp,
-                    'cpu_percent': cpu_percent,
-                    'cpu_count': psutil.cpu_count(),
+                        'timestamp': timestamp,
+                        'cpu_percent': cpu_percent,
+                        'cpu_count': psutil.cpu_count(),
                     'cpu_freq': psutil.cpu_freq()._asdict() if psutil.cpu_freq() else None,
                     'cpu_load_avg': psutil.getloadavg() if hasattr(psutil, 'getloadavg') else None,
                     'cpu_temperature': self._get_cpu_temperature()
@@ -94,10 +94,10 @@ class PerformanceMonitor:
                 
                 # Enhanced memory metrics
                 memory_info = {
-                    'timestamp': timestamp,
-                    'memory_percent': memory.percent,
-                    'memory_used_gb': memory.used / (1024**3),
-                    'memory_available_gb': memory.available / (1024**3),
+                        'timestamp': timestamp,
+                        'memory_percent': memory.percent,
+                        'memory_used_gb': memory.used / (1024**3),
+                        'memory_available_gb': memory.available / (1024**3),
                     'memory_total_gb': memory.total / (1024**3),
                     'memory_swap_percent': psutil.swap_memory().percent if hasattr(psutil, 'swap_memory') else None,
                     'memory_swap_used_gb': psutil.swap_memory().used / (1024**3) if hasattr(psutil, 'swap_memory') else None
@@ -105,20 +105,20 @@ class PerformanceMonitor:
                 
                 # Enhanced disk metrics
                 disk_info = {
-                    'timestamp': timestamp,
+                        'timestamp': timestamp,
                     'disk_percent': disk.percent,
-                    'disk_used_gb': disk.used / (1024**3),
-                    'disk_free_gb': disk.free / (1024**3),
+                        'disk_used_gb': disk.used / (1024**3),
+                        'disk_free_gb': disk.free / (1024**3),
                     'disk_total_gb': disk.total / (1024**3),
                     'disk_io': self._get_disk_io_stats()
                 }
-                
+                    
                 # Enhanced network metrics
                 network_info = {
-                    'timestamp': timestamp,
-                    'bytes_sent': network.bytes_sent,
-                    'bytes_recv': network.bytes_recv,
-                    'packets_sent': network.packets_sent,
+                        'timestamp': timestamp,
+                        'bytes_sent': network.bytes_sent,
+                        'bytes_recv': network.bytes_recv,
+                        'packets_sent': network.packets_sent,
                     'packets_recv': network.packets_recv,
                     'network_connections': len(psutil.net_connections()) if hasattr(psutil, 'net_connections') else 0
                 }
@@ -197,7 +197,7 @@ class PerformanceMonitor:
                 'timestamp': datetime.now(),
                 'value': cpu_percent
             })
-        
+            
         # Memory alerts
         if memory_percent > self.alert_thresholds['memory_critical']:
             alerts.append({
@@ -215,7 +215,7 @@ class PerformanceMonitor:
                 'timestamp': datetime.now(),
                 'value': memory_percent
             })
-        
+            
         # Disk alerts
         if disk_percent > self.alert_thresholds['disk_warning']:
             alerts.append({
@@ -269,7 +269,7 @@ class PerformanceMonitor:
                     rate_score * 0.7 + 
                     error_score * 0.3
                 )
-            
+                    
             # ML performance score
             if hasattr(self, 'crawler_metrics'):
                 ml_classifications = self.crawler_metrics.get('ml_classifications', 0)
