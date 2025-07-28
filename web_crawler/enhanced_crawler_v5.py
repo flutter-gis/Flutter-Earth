@@ -98,6 +98,9 @@ try:
 except ImportError:
     YAML_AVAILABLE = False
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 @dataclass
 class DatasetMetadata:
     """Structured dataset metadata"""
@@ -1070,7 +1073,7 @@ class EnhancedCrawlerV5:
                 html_content = self.driver.page_source
             else:
                 # Fallback to requests
-                response = requests.get(url, timeout=self.config.get('timeout', 30))
+                response = requests.get(url, timeout=self.config.get('timeout', 30), verify=False)
                 response.raise_for_status()
                 html_content = response.text
             

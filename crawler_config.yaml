@@ -1,93 +1,43 @@
-# Ultra Enhanced Crawler Configuration
-# Define extraction rules, field mappings, validation, and plugins
-
-fields:
-  - name: title
-    selectors:
-      - h1
-      - title
-      - meta[property='og:title']
-    ml_types: [WORK_OF_ART, PRODUCT]
-    required: true
-  - name: provider
-    selectors:
-      - span.provider
-      - a.organization
-      - meta[name='provider']
-    ml_types: [ORG]
-    required: false
-  - name: tags
-    selectors:
-      - span.tag
-      - div.chip
-      - a.label
-    ml_types: [PRODUCT, EVENT]
-    required: false
-  - name: date_range
-    selectors:
-      - span.date
-      - div.daterange
-    ml_types: [DATE]
-    required: false
-  - name: description
-    selectors:
-      - div.description
-      - div.summary
-      - p
-    ml_types: [ABSTRACT, WORK_OF_ART]
-    required: true
-  - name: bands
-    selectors:
-      - table.band
-      - div.bands
-    ml_types: [PRODUCT]
-    required: false
-  - name: terms_of_use
-    selectors:
-      - div.terms
-      - span.license
-    ml_types: [LAW, NORP]
-    required: false
-  - name: spatial_coverage
-    selectors:
-      - div.spatial
-      - span.extent
-    ml_types: [GPE, LOC]
-    required: false
-  - name: temporal_coverage
-    selectors:
-      - div.temporal
-      - span.period
-    ml_types: [DATE]
-    required: false
-  - name: citation
-    selectors:
-      - div.citation
-      - span.cite
-    ml_types: [WORK_OF_ART]
-    required: false
-  - name: type
-    selectors:
-      - div.type
-      - span.data-type
-    ml_types: [PRODUCT]
-    required: false
-  - name: region
-    selectors:
-      - div.region
-      - span.country
-    ml_types: [GPE, LOC]
-    required: false
-
-validation:
-  geospatial: true
-  temporal: true
-  cross_reference_apis:
-    - NASA
-    - ESA
-
-plugins:
-  - name: custom_band_parser
-    path: plugins/custom_band_parser.py
-  - name: thumbnail_ocr
-    path: plugins/thumbnail_ocr.py 
+error_handling:
+  error_logging: true
+  graceful_degradation: true
+  max_errors: 100
+  retry_failed_items: true
+export:
+  compression:
+    enabled: true
+    format: gzip
+    level: 6
+  formats:
+  - json
+  - csv
+  - excel
+ml:
+  classification:
+    batch_size: 1
+    max_length: 512
+    timeout: 60
+    use_gpu: false
+performance:
+  connection_pooling: true
+  max_concurrent_requests: 4
+  max_retries: 3
+  memory:
+    cleanup_interval: 300
+    enable_compression: true
+    max_cache_size: 2000
+    memory_monitoring: true
+  monitoring:
+    enabled: true
+    log_performance: true
+    performance_prediction: true
+    real_time_alerts: true
+    track_memory: true
+  request_delay: 1.0
+  timeout: 30
+processing:
+  enable_ai_enhancement: true
+  enable_ensemble_methods: true
+  enable_quality_checks: true
+  enable_validation: true
+  enable_web_validation: true
