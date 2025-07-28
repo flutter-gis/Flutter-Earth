@@ -1,239 +1,43 @@
-# Earth Engine Catalog Web Crawler Configuration v2.0
-# Ultra-enhanced configuration for the advanced crawler
-
-# Field definitions for data extraction
-fields:
-  - name: title
-    selector: "h1, h2, h3, .title, .dataset-title"
-    required: true
-    type: text
-    ml_enhancement: true
-    
-  - name: description
-    selector: ".description, .summary, .abstract, p"
-    required: false
-    type: text
-    ml_enhancement: true
-    max_length: 2000
-    
-  - name: provider
-    selector: ".provider, .source, .organization"
-    required: false
-    type: text
-    entity_extraction: true
-    
-  - name: spatial_coverage
-    selector: ".spatial, .coverage, .region"
-    required: false
-    type: geospatial
-    coordinate_extraction: true
-    
-  - name: temporal_coverage
-    selector: ".temporal, .date, .time"
-    required: false
-    type: temporal
-    date_parsing: true
-    
-  - name: resolution
-    selector: ".resolution, .scale"
-    required: false
-    type: numeric
-    unit_conversion: true
-    
-  - name: bands
-    selector: ".bands, .channels"
-    required: false
-    type: list
-    structured_extraction: true
-    
-  - name: thumbnail
-    selector: "img[src*='sample'], img[src*='preview']"
-    required: false
-    type: image
-    ocr_processing: true
-
-# Enhanced validation settings
-validation:
-  spatial:
-    enabled: true
-    validate_coordinates: true
-    max_bbox_size: 360  # degrees
-    coordinate_precision: 6
-    geocoding_fallback: true
-    
-  temporal:
-    enabled: true
-    validate_dates: true
-    min_year: 1970
-    max_year: 2030
-    fuzzy_date_parsing: true
-    date_range_validation: true
-    
-  data_quality:
-    enabled: true
-    min_description_length: 10
-    max_title_length: 200
-    content_duplication_check: true
-    language_detection: true
-    
-  consistency:
-    enabled: true
-    check_provider_consistency: true
-    check_spatial_consistency: true
-    cross_reference_validation: true
-
-# Enhanced ML/NLP settings
-ml:
-  classification:
-    enabled: true
-    model: "distilbert-base-uncased"
-    confidence_threshold: 0.7
-    max_length: 512
-    ensemble_methods: true
-    multi_category_classification: true
-    
-  ner:
-    enabled: true
-    model: "en_core_web_sm"
-    extract_entities: ["ORG", "GPE", "DATE", "CARDINAL", "PRODUCT", "EVENT"]
-    entity_linking: true
-    
-  fallback:
-    enabled: true
-    rule_based_classification: true
-    keyword_extraction: true
-    
-  advanced_features:
-    satellite_detection: true
-    technical_spec_extraction: true
-    resolution_parsing: true
-    band_analysis: true
-
-# Enhanced geospatial settings
-geospatial:
-  enabled: true
-  geocoder: "nominatim"
-  user_agent: "earth_engine_crawler_v2"
-  timeout: 10
-  max_retries: 3
-  coordinate_systems: ["WGS84", "EPSG:4326"]
-  spatial_indexing: true
-
-# Enhanced OCR settings
-ocr:
-  enabled: true
-  extract_text_from_images: true
-  confidence_threshold: 0.6
-  languages: ["eng"]
-  image_preprocessing: true
-  text_cleaning: true
-
-# Enhanced dashboard settings
-dashboard:
-  enabled: true
-  port: 8080
-  auto_refresh: true
-  refresh_interval: 3
-  max_items: 1000
-  real_time_metrics: true
-  performance_monitoring: true
-
-# Enhanced export settings
+error_handling:
+  error_logging: true
+  graceful_degradation: true
+  max_errors: 100
+  retry_failed_items: true
 export:
-  formats:
-    - json
-    - csv
-    - excel
-    - database
-    - parquet
-    - geojson
-    
-  database:
-    enabled: true
-    type: "sqlite"
-    filename: "crawler_data_v2.db"
-    indexing: true
-    
   compression:
     enabled: true
-    format: "gzip"
+    format: gzip
     level: 6
-    
-  metadata:
-    include_ml_results: true
-    include_validation_results: true
-    include_performance_metrics: true
-    include_processing_timestamps: true
-
-# Enhanced performance settings
+  formats:
+  - json
+  - csv
+  - excel
+ml:
+  classification:
+    batch_size: 1
+    max_length: 512
+    timeout: 60
+    use_gpu: false
 performance:
-  max_concurrent_requests: 8
-  request_delay: 0.8
-  timeout: 30
-  max_retries: 3
   connection_pooling: true
-  
+  max_concurrent_requests: 4
+  max_retries: 3
   memory:
-    max_cache_size: 2000
     cleanup_interval: 300
+    enable_compression: true
+    max_cache_size: 2000
     memory_monitoring: true
-    
   monitoring:
     enabled: true
     log_performance: true
-    track_memory: true
-    real_time_alerts: true
     performance_prediction: true
-
-# Advanced features
-advanced:
-  plugins:
-    - "custom_band_parser"
-    - "thumbnail_ocr"
-    - "satellite_detector"
-    - "quality_assessor"
-    
-  ensemble_methods:
-    enabled: true
-    voting_threshold: 0.6
-    weighted_voting: true
-    confidence_weighting: true
-    
-  data_enhancement:
-    enabled: true
-    enrich_with_external_data: false
-    cross_reference_datasets: false
-    semantic_similarity: true
-    
-  ai_enhancement:
-    text_summarization: true
-    keyword_extraction: true
-    topic_modeling: true
-    sentiment_analysis: false
-
-# Enhanced error handling
-error_handling:
-  max_errors: 100
-  error_logging: true
-  retry_failed_items: true
-  graceful_degradation: true
-  error_categorization: true
-  error_recovery: true
-
-# Enhanced logging
-logging:
-  level: "INFO"
-  file: "crawler_v2.log"
-  max_file_size: "20MB"
-  backup_count: 10
-  format: "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-  structured_logging: true
-  
-# New features for v2.0
-v2_features:
-  real_time_processing: true
-  adaptive_throttling: true
-  intelligent_caching: true
-  predictive_loading: true
-  quality_scoring: true
-  automated_optimization: true 
+    real_time_alerts: true
+    track_memory: true
+  request_delay: 1.0
+  timeout: 30
+processing:
+  enable_ai_enhancement: true
+  enable_ensemble_methods: true
+  enable_quality_checks: true
+  enable_validation: true
+  enable_web_validation: true

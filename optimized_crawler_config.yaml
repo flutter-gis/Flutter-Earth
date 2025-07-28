@@ -1,0 +1,19 @@
+crash_prevention:
+  cpu_threshold: 90.0
+  enabled: true
+  max_consecutive_failures: 5
+  memory_threshold: 85.0
+monitoring:
+  enabled: true
+  log_performance: true
+  track_memory: true
+performance:
+  max_concurrent_requests: 2
+  max_retries: 3
+  request_delay: 2.0
+  timeout: 30
+processing:
+  batch_size: 1
+  enable_quality_checks: true
+  enable_validation: true
+  max_length: 512

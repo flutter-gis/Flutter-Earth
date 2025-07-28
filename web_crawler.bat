@@ -37,12 +37,24 @@ if errorlevel 1 (
 )
 
 echo.
-echo Launching Enhanced Web Crawler UI with Output Directory Feature...
-echo Look for the "Output Directory Settings" section in the UI
+echo Checking AI modules...
+python -c "import transformers; print('✓ Transformers available')" 2>nul
+if errorlevel 1 (
+    echo ⚠️ Transformers not available - AI features will be limited
+) else (
+    echo ✓ AI modules available
+)
+
+echo.
+echo Launching Enhanced Web Crawler UI with Full Automation...
+echo AI enhancement is now automatic during crawling - no manual button needed!
+echo Web validation runs automatically after crawling completes!
+echo Dynamic optimization automatically adjusts performance based on system resources!
+echo All manual controls removed - system runs autonomously!
 echo ========================================
 echo.
 
-REM Launch the enhanced crawler UI
+REM Launch the enhanced crawler UI with AI features
 python enhanced_crawler_ui.py
 
 echo.
