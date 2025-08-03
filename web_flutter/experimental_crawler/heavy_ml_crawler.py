@@ -9,14 +9,10 @@ import signal
 import ssl
 import threading
 import queue
-import warnings
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
 import traceback
-
-# Suppress SSL warnings
-warnings.filterwarnings('ignore', message='Unverified HTTPS request')
 
 # Import BERT fix and weight optimizer
 try:

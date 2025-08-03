@@ -4,11 +4,14 @@ echo Lightweight Web Crawler
 echo ========================================
 echo.
 echo Starting Lightweight Crawler...
+echo.
 echo The crawler window should appear shortly.
 echo If you don't see it, check your taskbar or press Alt+Tab.
 echo.
+echo Press Ctrl+C to stop the crawler.
+echo.
 
-cd /d "%~dp0web_crawler"
+cd /d "%~dp0"
 
 REM Check if Python is available
 python --version >nul 2>&1
@@ -25,7 +28,7 @@ if errorlevel 1 (
     pip install PySide6
 )
 
-echo Starting Lightweight Crawler...
+echo Starting crawler...
 python lightweight_crawler.py
 
 echo.
