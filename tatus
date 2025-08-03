@@ -1,0 +1,5 @@
+[33m4fe6563[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Major cleanup: Remove 1325+ log files, cache files, and unnecessary documentation
+[33m3b15525[m Update project structure and cleanup documentation
+[33mdae2b13[m Merge branch 'main' of https://github.com/flutter-gis/Flutter-Earth
+[33mdda21a3[m MASSIVE CRAWLER OPTIMIZATION: SSL Overload Fixes, Lightweight ML, Memory Management, and Comprehensive Error Handling
+[33mf99c736[m Add git authentication reset scripts

@@ -16,8 +16,22 @@ from collections import deque
 import requests
 import urllib3
 
-# Disable SSL warnings
+# Enhanced SSL bypass for crash prevention
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Setup enhanced SSL bypass
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
+# Set enhanced environment variables for SSL bypass
+import os
+os.environ['PYTHONHTTPSVERIFY'] = '0'
+os.environ['REQUESTS_VERIFY'] = 'false'
+os.environ['HF_HUB_DISABLE_SSL_VERIFICATION'] = '1'
+os.environ['TRANSFORMERS_OFFLINE'] = '0'
+os.environ['SSL_CERT_FILE'] = ''
+os.environ['CURL_CA_BUNDLE'] = ''
+os.environ['REQUESTS_CA_BUNDLE'] = ''
 
 class CrashPreventionSystem:
     """Comprehensive system to prevent crashes during crawling."""

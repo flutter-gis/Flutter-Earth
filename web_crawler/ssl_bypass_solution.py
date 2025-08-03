@@ -12,14 +12,14 @@ from transformers import pipeline, AutoTokenizer, AutoModel
 import logging
 
 def setup_ssl_bypass():
-    """Setup comprehensive SSL bypass for corporate networks"""
-    print("🔧 Setting up SSL bypass for corporate network...")
+    """Setup comprehensive SSL bypass for corporate networks - ENHANCED VERSION"""
+    print("🔧 Setting up ENHANCED SSL bypass for corporate network...")
     
     # Disable SSL verification completely
     ssl._create_default_https_context = ssl._create_unverified_context
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     
-    # Set environment variables for SSL bypass
+    # Enhanced environment variables for SSL bypass
     ssl_env_vars = [
         'CURL_CA_BUNDLE',
         'REQUESTS_CA_BUNDLE', 
@@ -32,19 +32,34 @@ def setup_ssl_bypass():
         'SSL_CERT_FILE',
         'CURL_CA_BUNDLE',
         'PYTHONHTTPSVERIFY',
+        'REQUESTS_VERIFY',
+        'SSL_CERT_DIR',
+        'CURL_CA_BUNDLE',
+        'REQUESTS_CA_BUNDLE',
+        'SSL_CERT_FILE',
+        'PYTHONHTTPSVERIFY',
         'REQUESTS_VERIFY'
     ]
     
     for var in ssl_env_vars:
         os.environ[var] = ''
     
-    # Additional SSL bypass settings
+    # Enhanced SSL bypass settings
+    os.environ['PYTHONHTTPSVERIFY'] = '0'
+    os.environ['REQUESTS_VERIFY'] = 'false'
+    os.environ['HF_HUB_DISABLE_SSL_VERIFICATION'] = '1'
+    os.environ['TRANSFORMERS_OFFLINE'] = '0'
+    os.environ['SSL_CERT_FILE'] = ''
+    os.environ['CURL_CA_BUNDLE'] = ''
+    os.environ['REQUESTS_CA_BUNDLE'] = ''
+    
+    # Additional SSL bypass for all libraries
     os.environ['PYTHONHTTPSVERIFY'] = '0'
     os.environ['REQUESTS_VERIFY'] = 'false'
     os.environ['HF_HUB_DISABLE_SSL_VERIFICATION'] = '1'
     os.environ['TRANSFORMERS_OFFLINE'] = '0'
     
-    print("✅ SSL bypass configured")
+    print("✅ ENHANCED SSL bypass configured")
 
 def create_offline_bert():
     """Create a simple offline BERT-like classifier"""
