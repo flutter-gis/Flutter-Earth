@@ -1,9 +1,9 @@
 @echo off
 echo ========================================
-echo Lightweight Web Crawler
+echo Enhanced Web Crawler (Heavy ML)
 echo ========================================
 echo.
-echo Starting Lightweight Crawler...
+echo Starting Enhanced Crawler...
 echo.
 echo The crawler window should appear shortly.
 echo If you don't see it, check your taskbar or press Alt+Tab.
@@ -28,8 +28,16 @@ if errorlevel 1 (
     pip install PySide6
 )
 
+REM Check if required packages are installed
+echo Checking required packages...
+python -c "import requests, bs4, torch, sklearn" >nul 2>&1
+if errorlevel 1 (
+    echo Installing required packages...
+    pip install requests beautifulsoup4 torch scikit-learn
+)
+
 echo Starting crawler...
-python lightweight_crawler.py
+python enhanced_crawler_ui.py
 
 echo.
 echo Crawler finished.
