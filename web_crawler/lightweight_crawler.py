@@ -12,15 +12,20 @@ import threading
 import requests
 import warnings
 import re
+import gc
+import psutil
+import urllib3
 from datetime import datetime
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from PySide6.QtWidgets import *
 from PySide6.QtCore import *
 from PySide6.QtGui import *
+from PySide6.QtCore import Qt
 
 # Suppress SSL warnings
 warnings.filterwarnings('ignore', message='Unverified HTTPS request')
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class EarthEngineDataExtractor:
     """Enhanced Earth Engine data extractor with comprehensive parameter extraction"""
@@ -440,7 +445,7 @@ class LightweightCrawlerUI(QWidget):
             },
             'processing': {
                 'min_confidence': 0.1,
-                'max_links_per_run': 999999  # No limit
+                'max_links_per_run': 999999  # Dynamic - process all links found
             }
         }
         self.log_message("✅ Configuration loaded")
@@ -600,7 +605,7 @@ class LightweightCrawlerUI(QWidget):
         self.results_table.setSortingEnabled(True)
         
         # Enable context menu
-        self.results_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.results_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.results_table.customContextMenuRequested.connect(self.show_context_menu)
         
         results_layout.addLayout(table_controls)
@@ -871,8 +876,8 @@ class LightweightCrawlerUI(QWidget):
         
         self.log_message(f"🔗 Found {len(links)} catalog links")
         
-        # Process all links (no limiting)
-        self.log_message(f"📊 Processing ALL {len(links)} links")
+        # Process ALL links found (dynamic amount)
+        self.log_message(f"📊 Processing ALL {len(links)} links (dynamic)")
         
         if not links:
             self.log_message("⚠️ No valid links found")
@@ -897,9 +902,41 @@ class LightweightCrawlerUI(QWidget):
                 time.sleep(self.config['performance']['request_delay'])
             else:
                 time.sleep(5)  # Longer delay on failure
+            
+            # Memory cleanup every 10 processed items
+            if (i + 1) % 10 == 0:
+                self.cleanup_memory()
         
         self.log_message("✅ Crawling completed!")
         self.show_summary()
+    
+    def cleanup_memory(self):
+        """Clean up memory to prevent infinite growth"""
+        try:
+            # Clear thumbnail cache if it gets too large
+            if len(self.thumbnail_cache) > 100:  # Increased cache limit for more links
+                self.thumbnail_cache.clear()
+                self.log_message("🧹 Cleared thumbnail cache")
+            
+            # Clear processed URLs if too many (prevent memory growth)
+            if len(self.processed_urls) > 1000:
+                # Keep only the most recent 500 URLs
+                recent_urls = list(self.processed_urls)[-500:]
+                self.processed_urls = set(recent_urls)
+                self.log_message("🧹 Trimmed processed URLs cache")
+            
+            # Force garbage collection
+            import gc
+            gc.collect()
+            
+            # Log memory usage
+            import psutil
+            process = psutil.Process()
+            memory_mb = process.memory_info().rss / 1024 / 1024
+            self.log_message(f"💾 Memory usage: {memory_mb:.1f} MB")
+            
+        except Exception as e:
+            self.log_message(f"⚠️ Memory cleanup failed: {e}")
     
     def process_link(self, url, current, total):
         """Process individual link with enhanced error handling"""
@@ -1022,20 +1059,12 @@ class LightweightCrawlerUI(QWidget):
             return False
     
     def extract_comprehensive_data(self, soup, url):
-        """Extract ALL information from the page for later parsing"""
+        """Extract essential information from the page without storing complete HTML"""
         result = {
             'url': url,
             'title': '',
             'description': '',
-            'raw_html': str(soup),  # Complete HTML
-            'raw_text': soup.get_text(),  # Complete text
-            'all_links': [],  # All links on page
-            'all_images': [],  # All images on page
-            'all_tables': [],  # All tables on page
-            'all_metadata': {},  # All meta tags
-            'all_scripts': [],  # All script content
-            'all_styles': [],  # All style content
-            'all_forms': [],  # All form data
+            # REMOVED: raw_html and raw_text to prevent memory leaks
             'satellite_info': {},
             'resolution': '',
             'bands': [],
@@ -1053,9 +1082,6 @@ class LightweightCrawlerUI(QWidget):
             'timestamp': datetime.now().isoformat()
         }
         
-        # Smart text extraction - prioritize meaningful content
-        content_parts = []
-        
         # Extract title and clean it up
         title_tag = soup.find('title')
         if title_tag:
@@ -1069,79 +1095,28 @@ class LightweightCrawlerUI(QWidget):
             title = title.strip(' -|')  # Remove leading/trailing spaces, dashes, pipes
             result['title'] = title
         
-        # Capture ALL raw data from the page
-        # All links
-        for link in soup.find_all('a', href=True):
-            result['all_links'].append({
-                'text': link.get_text().strip(),
-                'href': link.get('href'),
-                'title': link.get('title', ''),
-                'class': link.get('class', [])
-            })
-        
-        # All images
-        for img in soup.find_all('img'):
-            result['all_images'].append({
-                'src': img.get('src', ''),
-                'alt': img.get('alt', ''),
-                'title': img.get('title', ''),
-                'class': img.get('class', [])
-            })
-        
-        # All tables
-        for table in soup.find_all('table'):
-            table_data = []
-            for row in table.find_all('tr'):
-                row_data = []
-                for cell in row.find_all(['td', 'th']):
-                    row_data.append(cell.get_text().strip())
-                if row_data:
-                    table_data.append(row_data)
-            result['all_tables'].append(table_data)
-        
-        # All metadata
+        # Extract only essential metadata (not all links/images)
+        essential_metadata = {}
         for meta in soup.find_all('meta'):
             name = meta.get('name', meta.get('property', ''))
             content = meta.get('content', '')
-            if name and content:
-                result['all_metadata'][name] = content
+            if name and content and name.lower() in ['description', 'keywords', 'author']:
+                essential_metadata[name] = content
+        result['metadata'] = essential_metadata
         
-        # All scripts
-        for script in soup.find_all('script'):
-            result['all_scripts'].append({
-                'src': script.get('src', ''),
-                'type': script.get('type', ''),
-                'content': script.get_text()
-            })
-        
-        # All styles
-        for style in soup.find_all('style'):
-            result['all_styles'].append(style.get_text())
-        
-        # All forms
-        for form in soup.find_all('form'):
-            form_data = {
-                'action': form.get('action', ''),
-                'method': form.get('method', ''),
-                'inputs': []
-            }
-            for input_tag in form.find_all('input'):
-                form_data['inputs'].append({
-                    'name': input_tag.get('name', ''),
-                    'type': input_tag.get('type', ''),
-                    'value': input_tag.get('value', '')
-                })
-            result['all_forms'].append(form_data)
-        
-        # Get basic description (raw text from main content areas)
+        # Get basic description (limited content from main areas)
         main_content = []
         for tag in ['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
             for element in soup.find_all(tag):
                 text = element.get_text().strip()
-                if len(text) > 20:
+                if len(text) > 20 and len(text) < 500:  # Limit text length
                     main_content.append(text)
+                    if len(main_content) >= 5:  # Limit to 5 content blocks
+                        break
+            if len(main_content) >= 5:
+                break
         
-        result['description'] = ' '.join(main_content[:10])  # First 10 content blocks
+        result['description'] = ' '.join(main_content[:5])  # First 5 content blocks
         
         # Extract basic thumbnail info
         thumbnail_url = self.extract_thumbnail(soup, url)
@@ -1156,49 +1131,6 @@ class LightweightCrawlerUI(QWidget):
         
         # Set basic confidence score
         result['confidence_score'] = 1.0  # Default confidence for raw data
-        
-        return result
-        
-        for pattern in license_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            if matches:
-                result['license'] = ', '.join(set(matches))
-                break
-        
-        # Extract file format
-        format_patterns = [
-            r'\b(GeoTIFF|TIFF|JPEG|PNG|HDF|NetCDF|Shapefile|GeoJSON)\b',
-            r'\b(Geographic\s+Tagged\s+Image\s+File\s+Format)\b',
-            r'\b(Hierarchical\s+Data\s+Format)\b',
-            r'\b(Network\s+Common\s+Data\s+Form)\b',
-        ]
-        
-        for pattern in format_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            if matches:
-                result['file_format'] = ', '.join(set(matches))
-                break
-        
-        # Extract cloud cover information
-        cloud_patterns = [
-            r'\b(\d+(?:\.\d+)?)\s*%\s*cloud\s*cover\b',
-            r'\bcloud\s*cover[:\s]*(\d+(?:\.\d+)?)\s*%\b',
-            r'\b(\d+(?:\.\d+)?)\s*%\s*cloud\b',
-            r'\bcloud\s*free\b',
-            r'\bno\s*cloud\s*cover\b',
-        ]
-        
-        for pattern in cloud_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            if matches:
-                if 'cloud free' in content.lower() or 'no cloud cover' in content.lower():
-                    result['cloud_cover'] = '0%'
-                else:
-                    result['cloud_cover'] = ', '.join(set(matches)) + '%'
-                break
-        
-        # Calculate confidence score
-        result['confidence_score'] = self.calculate_confidence(result)
         
         return result
     
@@ -1547,269 +1479,226 @@ class LightweightCrawlerUI(QWidget):
         return description
     
     def extract_from_description(self, result, description):
-        """Extract ALL missing parameters from the complete description"""
+        """Extract and categorize ALL parameters from the complete description"""
         # Use full description for parameter extraction
         full_description = result.get('description_full', description)
         if not full_description:
             return
         
-        # Extract resolution from description (if not already found)
-        if not result.get('resolution'):
-            resolution_patterns = [
-                r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*resolution',
-                r'resolution\s*of\s*(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)',
-                r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*pixel',
-                r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*spatial',
-                r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)',
-                r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*ground\s*sample',
-                r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*nadir',
-                r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*at\s*nadir',
-            ]
-            
-            for pattern in resolution_patterns:
-                matches = re.findall(pattern, full_description, re.IGNORECASE)
-                if matches:
-                    result['resolution'] = ', '.join([f"{value} {unit}" for value, unit in matches])
-                    break
+        # Enhanced categorization of extracted information
+        categorized_info = {
+            'satellite_info': {},
+            'resolution': '',
+            'bands': [],
+            'temporal_coverage': '',
+            'spatial_coverage': '',
+            'processing_level': '',
+            'provider': '',
+            'data_type': '',
+            'license': '',
+            'file_format': '',
+            'cloud_cover': '',
+            'frequency': '',
+            'orbit_info': '',
+            'swath_info': '',
+            'radiometric_info': '',
+            'atmospheric_corrections': '',
+            'quality_info': '',
+            'applications': [],
+            'limitations': [],
+            'access_info': ''
+        }
         
-        # Extract temporal information from description (if not already found)
-        if not result.get('temporal_coverage'):
-            temporal_patterns = [
-                r'(\d{4})\s*[-–]\s*(present|\d{4})',
-                r'from\s*(\d{4})\s*to\s*(present|\d{4})',
-                r'coverage\s*(\d{4})\s*[-–]\s*(present|\d{4})',
-                r'(\d{4})\s*through\s*(present|\d{4})',
-                r'(\d{4})\s*until\s*(present|\d{4})',
-                r'(\d{4})\s*present\b',
-                r'(\d{4})\s*ongoing\b',
-                r'(\d{4})\s*to\s*present\b',
-                r'(\d{4})\s*-\s*present\b',
-                r'(\d{4})\s*to\s*(\d{4})',
-                r'(\d{4})\s*through\s*(\d{4})',
-                r'(\d{4})\s*until\s*(\d{4})',
-                r'(\d{4})\s*[-–]\s*(\d{4})',
-                r'(\d{4})\s*to\s*(\d{4})',
-                r'(\d{4})\s*through\s*(\d{4})',
-                r'(\d{4})\s*until\s*(\d{4})',
-            ]
-            
-            all_matches = []
-            for pattern in temporal_patterns:
-                matches = re.findall(pattern, full_description, re.IGNORECASE)
-                all_matches.extend(matches)
-            
-            if all_matches:
-                # Remove duplicates and format properly
-                unique_matches = []
-                for match in all_matches:
-                    if isinstance(match, tuple):
-                        start, end = match
-                        formatted = f"{start} to {end}"
-                    else:
-                        formatted = f"{match} to Present"
-                    
-                    if formatted not in unique_matches:
-                        unique_matches.append(formatted)
+        # Extract resolution with enhanced patterns
+        resolution_patterns = [
+            r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*resolution',
+            r'resolution\s*of\s*(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)',
+            r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*pixel',
+            r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*spatial',
+            r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*ground\s*sample',
+            r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*nadir',
+            r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*at\s*nadir',
+            r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*GSD',
+            r'(\d+(?:\.\d+)?)\s*(m|meters?|km|kilometers?)\s*ground\s*resolution',
+        ]
+        
+        for pattern in resolution_patterns:
+            matches = re.findall(pattern, full_description, re.IGNORECASE)
+            if matches:
+                categorized_info['resolution'] = ', '.join([f"{value} {unit}" for value, unit in matches])
+                break
+        
+        # Extract temporal coverage with enhanced patterns
+        temporal_patterns = [
+            r'(\d{4})\s*[-–]\s*(present|\d{4})',
+            r'from\s*(\d{4})\s*to\s*(present|\d{4})',
+            r'coverage\s*(\d{4})\s*[-–]\s*(present|\d{4})',
+            r'(\d{4})\s*through\s*(present|\d{4})',
+            r'(\d{4})\s*until\s*(present|\d{4})',
+            r'(\d{4})\s*present\b',
+            r'(\d{4})\s*ongoing\b',
+            r'(\d{4})\s*to\s*present\b',
+            r'(\d{4})\s*-\s*present\b',
+            r'(\d{4})\s*to\s*(\d{4})',
+            r'(\d{4})\s*through\s*(\d{4})',
+            r'(\d{4})\s*until\s*(\d{4})',
+            r'(\d{4})\s*[-–]\s*(\d{4})',
+            r'(\d{4})\s*to\s*(\d{4})',
+            r'(\d{4})\s*through\s*(\d{4})',
+            r'(\d{4})\s*until\s*(\d{4})',
+        ]
+        
+        all_matches = []
+        for pattern in temporal_patterns:
+            matches = re.findall(pattern, full_description, re.IGNORECASE)
+            all_matches.extend(matches)
+        
+        if all_matches:
+            unique_matches = []
+            for match in all_matches:
+                if isinstance(match, tuple):
+                    start, end = match
+                    formatted = f"{start} to {end}"
+                else:
+                    formatted = f"{match} to Present"
                 
-                result['temporal_coverage'] = ', '.join(unique_matches)
+                if formatted not in unique_matches:
+                    unique_matches.append(formatted)
+            
+            categorized_info['temporal_coverage'] = ', '.join(unique_matches)
         
-        # Extract satellite mentions from description (if not already found)
-        if not result.get('satellite_info'):
-            satellite_patterns = [
-                r'\b(ALOS|Advanced\s+Land\s+Observing\s+Satellite)\b',
-                r'\b(Landsat\s*\d+[A-Z]?)\b',
-                r'\b(Sentinel\s*[12AB])\b',
-                r'\b(MODIS|Terra|Aqua)\b',
-                r'\b(ASTER)\b',
-                r'\b(SPOT\s*\d+)\b',
-                r'\b(Pleiades)\b',
-                r'\b(QuickBird)\b',
-                r'\b(WorldView\s*[1234])\b',
-                r'\b(Planet|PlanetScope|RapidEye)\b',
-                r'\b(GFS|Global\s+Forecast\s+System)\b',
-                r'\b(ECMWF|European\s+Centre\s+for\s+Medium-Range\s+Weather\s+Forecasts)\b',
-                r'\b(ERS\s*[12])\b',
-                r'\b(Envisat)\b',
-                r'\b(Radarsat\s*[12])\b',
-                r'\b(IKONOS)\b',
-                r'\b(GeoEye\s*[12])\b',
-                r'\b(DigitalGlobe)\b',
-                r'\b(JAXA|Japan\s+Aerospace\s+Exploration\s+Agency)\b',
-            ]
-            
-            satellites_found = []
-            for pattern in satellite_patterns:
-                matches = re.findall(pattern, full_description, re.IGNORECASE)
-                satellites_found.extend(matches)
-            
-            if satellites_found:
-                result['satellite_info'] = {'detected': list(set(satellites_found))}
+        # Extract satellite information with enhanced patterns
+        satellite_patterns = [
+            r'\b(ALOS|Advanced\s+Land\s+Observing\s+Satellite)\b',
+            r'\b(Landsat\s*\d+[A-Z]?)\b',
+            r'\b(Sentinel\s*[12AB])\b',
+            r'\b(MODIS|Terra|Aqua)\b',
+            r'\b(ASTER)\b',
+            r'\b(SPOT\s*\d+)\b',
+            r'\b(Pleiades)\b',
+            r'\b(QuickBird)\b',
+            r'\b(WorldView\s*[1234])\b',
+            r'\b(Planet|PlanetScope|RapidEye)\b',
+            r'\b(GFS|Global\s+Forecast\s+System)\b',
+            r'\b(ECMWF|European\s+Centre\s+for\s+Medium-Range\s+Weather\s+Forecasts)\b',
+            r'\b(ERS\s*[12])\b',
+            r'\b(Envisat)\b',
+            r'\b(Radarsat\s*[12])\b',
+            r'\b(IKONOS)\b',
+            r'\b(GeoEye\s*[12])\b',
+            r'\b(DigitalGlobe)\b',
+            r'\b(JAXA|Japan\s+Aerospace\s+Exploration\s+Agency)\b',
+        ]
         
-        # Extract bands from description (if not already found)
-        if not result.get('bands'):
-            band_patterns = [
-                r'\b(B\d+|Band\s*\d+)\b',
-                r'\b([RGB]|Red|Green|Blue|NIR|SWIR|TIR)\b',
-                r'\b(\d+)\s*bands?\b',
-                r'\b(visible|infrared|thermal|microwave)\s*bands?\b',
-                r'\b(panchromatic|multispectral|hyperspectral)\b',
-            ]
-            
-            bands_found = []
-            for pattern in band_patterns:
-                matches = re.findall(pattern, full_description, re.IGNORECASE)
-                bands_found.extend(matches)
-            
-            if bands_found:
-                result['bands'] = list(set(bands_found))
+        satellites_found = []
+        for pattern in satellite_patterns:
+            matches = re.findall(pattern, full_description, re.IGNORECASE)
+            satellites_found.extend(matches)
         
-        # Extract processing level from description (if not already found)
-        if not result.get('processing_level'):
-            processing_patterns = [
-                r'level\s*(\d+[A-Z]?)',
-                r'processing\s*level\s*(\d+[A-Z]?)',
-                r'tier\s*(\d+)',
-                r'(\d+[A-Z]?)\s*processing',
-                r'processing\s*(\d+[A-Z]?)',
-            ]
-            
-            for pattern in processing_patterns:
-                matches = re.findall(pattern, full_description, re.IGNORECASE)
-                if matches:
-                    result['processing_level'] = ', '.join(matches)
-                    break
+        if satellites_found:
+            categorized_info['satellite_info'] = {'detected': list(set(satellites_found))}
         
-        # Extract provider from description (if not already found)
-        if not result.get('provider'):
-            provider_patterns = [
-                r'\b(USGS|NASA|ESA|NOAA|USDA|EPA|NCEP|NWS)\b',
-                r'\b(United\s+States\s+Geological\s+Survey)\b',
-                r'\b(National\s+Aeronautics\s+and\s+Space\s+Administration)\b',
-                r'\b(European\s+Space\s+Agency)\b',
-                r'\b(National\s+Oceanic\s+and\s+Atmospheric\s+Administration)\b',
-                r'\b(United\s+States\s+Department\s+of\s+Agriculture)\b',
-                r'\b(Environmental\s+Protection\s+Agency)\b',
-                r'\b(National\s+Centers?\s+for\s+Environmental\s+Prediction)\b',
-                r'\b(National\s+Weather\s+Service)\b',
-                r'\b(European\s+Centre\s+for\s+Medium-Range\s+Weather\s+Forecasts)\b',
-                r'\b(European\s+Organization\s+for\s+the\s+Exploitation\s+of\s+Meteorological\s+Satellites)\b',
-            ]
-            
-            for pattern in provider_patterns:
-                matches = re.findall(pattern, full_description, re.IGNORECASE)
-                if matches:
-                    result['provider'] = ', '.join(set(matches))
-                    break
+        # Extract bands with enhanced patterns
+        band_patterns = [
+            r'\b(B\d+|Band\s*\d+)\b',
+            r'\b([RGB]|Red|Green|Blue|NIR|SWIR|TIR)\b',
+            r'\b(\d+)\s*bands?\b',
+            r'\b(visible|infrared|thermal|microwave)\s*bands?\b',
+            r'\b(panchromatic|multispectral|hyperspectral)\b',
+            r'\b(red|green|blue|near\s*infrared|shortwave\s*infrared|thermal\s*infrared)\b',
+        ]
         
-        # Extract data type from description (if not already found)
-        if not result.get('data_type'):
-            data_type_patterns = [
-                r'\b(optical|radar|thermal|multispectral|hyperspectral)\b',
-                r'\b(satellite|aerial|drone|UAV)\s+imagery\b',
-                r'\b(DEM|DSM|DTM|elevation|terrain)\b',
-                r'\b(land\s+cover|land\s+use|vegetation)\b',
-                r'\b(atmospheric|climate|weather|forecast|meteorological)\b',
-                r'\b(ocean|marine|sea)\s+(surface|temperature|current)\b',
-                r'\b(soil|moisture|precipitation|rainfall)\b',
-                r'\b(air\s+quality|pollution|aerosol)\b',
-                r'\b(urban|built-up|infrastructure)\b',
-                r'\b(forest|vegetation|biomass)\b',
-                r'\b(water|hydrology|flood)\b',
-                r'\b(ice|snow|glacier)\b',
-                r'\b(fire|burn|wildfire)\b',
-            ]
-            
-            for pattern in data_type_patterns:
-                matches = re.findall(pattern, full_description, re.IGNORECASE)
-                if matches:
-                    result['data_type'] = ', '.join(set(matches))
-                    break
+        bands_found = []
+        for pattern in band_patterns:
+            matches = re.findall(pattern, full_description, re.IGNORECASE)
+            bands_found.extend(matches)
         
-        # Extract license from description (if not already found)
-        if not result.get('license'):
-            license_patterns = [
-                r'\b(public\s+domain|open\s+access|free)\b',
-                r'\b(CC\s*[A-Z-]+|Creative\s+Commons)\b',
-                r'\b(commercial\s+use|non-commercial)\b',
-                r'\b(restricted|proprietary|licensed)\b',
-                r'\b(open\s+source|open\s+data)\b',
-                r'\b(government\s+data|public\s+data)\b',
-            ]
-            
-            for pattern in license_patterns:
-                matches = re.findall(pattern, full_description, re.IGNORECASE)
-                if matches:
-                    result['license'] = ', '.join(set(matches))
-                    break
+        if bands_found:
+            categorized_info['bands'] = list(set(bands_found))
         
-        # Extract file format from description (if not already found)
-        if not result.get('file_format'):
-            format_patterns = [
-                r'\b(GeoTIFF|TIFF|JPEG|PNG|HDF|NetCDF|Shapefile|GeoJSON)\b',
-                r'\b(Geographic\s+Tagged\s+Image\s+File\s+Format)\b',
-                r'\b(Hierarchical\s+Data\s+Format)\b',
-                r'\b(Network\s+Common\s+Data\s+Form)\b',
-                r'\b(ESRI\s+Shapefile)\b',
-                r'\b(GeoPackage|GPKG)\b',
-                r'\b(KML|KMZ)\b',
-            ]
-            
-            for pattern in format_patterns:
-                matches = re.findall(pattern, full_description, re.IGNORECASE)
-                if matches:
-                    result['file_format'] = ', '.join(set(matches))
-                    break
+        # Extract applications and use cases
+        application_patterns = [
+            r'\b(agriculture|farming|crop\s*monitoring)\b',
+            r'\b(forestry|forest\s*monitoring|deforestation)\b',
+            r'\b(urban\s*planning|city\s*monitoring)\b',
+            r'\b(climate\s*change|environmental\s*monitoring)\b',
+            r'\b(disaster\s*response|emergency\s*management)\b',
+            r'\b(water\s*resources|hydrology)\b',
+            r'\b(geology|mineral\s*exploration)\b',
+            r'\b(oceanography|marine\s*monitoring)\b',
+            r'\b(weather|meteorology)\b',
+            r'\b(mapping|cartography)\b',
+        ]
         
-        # Extract cloud cover from description (if not already found)
-        if not result.get('cloud_cover'):
-            cloud_patterns = [
-                r'\b(\d+(?:\.\d+)?)\s*%\s*cloud\s*cover\b',
-                r'\bcloud\s*cover[:\s]*(\d+(?:\.\d+)?)\s*%\b',
-                r'\b(\d+(?:\.\d+)?)\s*%\s*cloud\b',
-                r'\bcloud\s*free\b',
-                r'\bno\s*cloud\s*cover\b',
-                r'\bcloud\s*cover\s*<=\s*(\d+(?:\.\d+)?)\s*%\b',
-                r'\bcloud\s*cover\s*less\s*than\s*(\d+(?:\.\d+)?)\s*%\b',
-            ]
-            
-            for pattern in cloud_patterns:
-                matches = re.findall(pattern, full_description, re.IGNORECASE)
-                if matches:
-                    if 'cloud free' in full_description.lower() or 'no cloud cover' in full_description.lower():
-                        result['cloud_cover'] = '0%'
-                    else:
-                        result['cloud_cover'] = ', '.join(set(matches)) + '%'
-                    break
+        applications_found = []
+        for pattern in application_patterns:
+            matches = re.findall(pattern, full_description, re.IGNORECASE)
+            applications_found.extend(matches)
         
-        # Extract spatial coverage from description (if not already found)
-        if not result.get('spatial_coverage'):
-            spatial_patterns = [
-                r'\bglobal\s*coverage\b',
-                r'\bworldwide\b',
-                r'\b(\d+(?:\.\d+)?)\s*(km|miles?)\s*coverage\b',
-                r'\b(coverage|extent)\s*of\s*(\d+(?:\.\d+)?)\s*(km|miles?)\b',
-                r'\b(continental|national|regional|local)\s*coverage\b',
-                r'\b(coverage|extent)\s*:\s*([^.]*?)\b',
-            ]
-            
-            for pattern in spatial_patterns:
-                matches = re.findall(pattern, full_description, re.IGNORECASE)
-                if matches:
-                    result['spatial_coverage'] = ', '.join(set(matches))
-                    break
+        if applications_found:
+            categorized_info['applications'] = list(set(applications_found))
+        
+        # Extract limitations and constraints
+        limitation_patterns = [
+            r'\b(cloud\s*cover|cloudy|cloud\s*contamination)\b',
+            r'\b(atmospheric\s*effects|atmospheric\s*correction)\b',
+            r'\b(temporal\s*resolution|revisit\s*time)\b',
+            r'\b(spatial\s*resolution|pixel\s*size)\b',
+            r'\b(data\s*quality|accuracy)\b',
+            r'\b(availability|coverage\s*gaps)\b',
+            r'\b(processing\s*requirements|computational\s*needs)\b',
+        ]
+        
+        limitations_found = []
+        for pattern in limitation_patterns:
+            matches = re.findall(pattern, full_description, re.IGNORECASE)
+            limitations_found.extend(matches)
+        
+        if limitations_found:
+            categorized_info['limitations'] = list(set(limitations_found))
+        
+        # Extract access and licensing information
+        access_patterns = [
+            r'\b(public|open\s*access|free)\b',
+            r'\b(restricted|licensed|commercial)\b',
+            r'\b(registration\s*required|authentication)\b',
+            r'\b(API|programmatic\s*access)\b',
+            r'\b(download|downloadable)\b',
+            r'\b(streaming|online\s*viewing)\b',
+        ]
+        
+        access_found = []
+        for pattern in access_patterns:
+            matches = re.findall(pattern, full_description, re.IGNORECASE)
+            access_found.extend(matches)
+        
+        if access_found:
+            categorized_info['access_info'] = ', '.join(list(set(access_found)))
+        
+        # Update result with categorized information
+        for key, value in categorized_info.items():
+            if value and (isinstance(value, str) and value.strip()) or (isinstance(value, list) and value):
+                result[key] = value
     
     def extract_thumbnail(self, soup, base_url):
-        """Extract thumbnail URL"""
-        # Look for images in various locations
+        """Extract thumbnail URL with improved detection"""
+        # Enhanced image selectors for Earth Engine datasets
         img_selectors = [
             'img[src*="thumb"]',
             'img[src*="preview"]',
             'img[src*="image"]',
+            'img[src*="dataset"]',
+            'img[src*="catalog"]',
             '.thumbnail img',
             '.preview img',
+            '.dataset-image img',
+            '.catalog-image img',
             'img[width="200"]',
             'img[width="300"]',
-            'img[height="200"]'
+            'img[height="200"]',
+            'img[alt*="dataset"]',
+            'img[alt*="preview"]',
+            'img[alt*="thumbnail"]'
         ]
         
         for selector in img_selectors:
@@ -1822,21 +1711,31 @@ class LightweightCrawlerUI(QWidget):
                     # Make relative URL absolute
                     parsed = urlparse(base_url)
                     return f"{parsed.scheme}://{parsed.netloc}{src}"
+                elif src.startswith('./'):
+                    # Handle relative paths
+                    parsed = urlparse(base_url)
+                    return f"{parsed.scheme}://{parsed.netloc}{src[1:]}"
         
         # Fallback to first reasonable image
         for img in soup.find_all('img'):
             src = img.get('src')
-            if src and (src.startswith('http') or src.startswith('/')):
+            if src and (src.startswith('http') or src.startswith('/') or src.startswith('./')):
                 if src.startswith('/'):
                     parsed = urlparse(base_url)
                     return f"{parsed.scheme}://{parsed.netloc}{src}"
+                elif src.startswith('./'):
+                    parsed = urlparse(base_url)
+                    return f"{parsed.scheme}://{parsed.netloc}{src[1:]}"
                 return src
         
         return None
     
     def download_thumbnail(self, thumbnail_url):
-        """Download and cache thumbnail with retry mechanism"""
-        if not thumbnail_url or thumbnail_url in self.thumbnail_cache:
+        """Download and cache thumbnail with improved error handling"""
+        if not thumbnail_url:
+            return None
+            
+        if thumbnail_url in self.thumbnail_cache:
             return self.thumbnail_cache.get(thumbnail_url)
         
         # Retry mechanism for failed downloads
@@ -1845,7 +1744,7 @@ class LightweightCrawlerUI(QWidget):
         
         for attempt in range(max_retries):
             try:
-                # Add headers to mimic browser request
+                # Enhanced headers for better compatibility
                 headers = {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                     'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
@@ -1853,11 +1752,14 @@ class LightweightCrawlerUI(QWidget):
                     'Accept-Encoding': 'gzip, deflate, br',
                     'Connection': 'keep-alive',
                     'Upgrade-Insecure-Requests': '1',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
                 }
                 
+                # Use a longer timeout for image downloads
                 response = self.session.get(
                     thumbnail_url, 
-                    timeout=15, 
+                    timeout=30, 
                     verify=False,
                     headers=headers,
                     allow_redirects=True
@@ -1867,18 +1769,24 @@ class LightweightCrawlerUI(QWidget):
                 # Check if response is actually an image
                 content_type = response.headers.get('content-type', '').lower()
                 if not content_type.startswith('image/'):
-                    self.log_error(f"❌ URL does not return an image: {content_type}")
+                    self.log_error(f"❌ URL does not return an image: {content_type} - {thumbnail_url}")
                     return None
                 
-                # Convert to QPixmap
+                # Convert to QPixmap with better error handling
                 pixmap = QPixmap()
                 if not pixmap.loadFromData(response.content):
                     self.log_error(f"❌ Failed to load image data from {thumbnail_url}")
                     return None
                 
-                # Scale to larger size for better visibility
-                scaled_pixmap = pixmap.scaled(100, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                # Check if pixmap is valid
+                if pixmap.isNull():
+                    self.log_error(f"❌ Invalid pixmap from {thumbnail_url}")
+                    return None
                 
+                # Scale to larger size for better visibility
+                scaled_pixmap = pixmap.scaled(100, 80, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                
+                # Cache the thumbnail
                 self.thumbnail_cache[thumbnail_url] = scaled_pixmap
                 self.log_message(f"✅ Thumbnail downloaded successfully: {thumbnail_url}")
                 return scaled_pixmap
@@ -1887,7 +1795,7 @@ class LightweightCrawlerUI(QWidget):
                 self.log_error(f"⏰ Timeout downloading thumbnail (attempt {attempt + 1}/{max_retries}): {thumbnail_url}")
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
-                    retry_delay *= 2  # Exponential backoff
+                    retry_delay *= 2
                     
             except requests.exceptions.ConnectionError:
                 self.log_error(f"🌐 Connection error downloading thumbnail (attempt {attempt + 1}/{max_retries}): {thumbnail_url}")
@@ -2234,7 +2142,7 @@ Export.table.toDrive({{
             if data.get('thumbnail_data'):
                 label = QLabel()
                 label.setPixmap(data['thumbnail_data'])
-                label.setAlignment(Qt.AlignCenter)
+                label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 self.results_table.setCellWidget(row, 0, label)
             else:
                 self.results_table.setItem(row, 0, QTableWidgetItem("❌"))
@@ -2704,7 +2612,7 @@ Export.table.toDrive({{
     
     def sort_by_confidence(self):
         """Sort results by confidence score (highest first)"""
-        self.results_table.sortItems(14, Qt.DescendingOrder)  # Confidence column
+        self.results_table.sortItems(14, Qt.SortOrder.DescendingOrder)  # Confidence column
     
     def show_statistics(self):
         """Show statistics about the extracted data"""
@@ -2785,7 +2693,7 @@ Export.table.toDrive({{
         dialog.resize(1000, 700)
         
         # Enable keyboard navigation
-        dialog.setFocusPolicy(Qt.StrongFocus)
+        dialog.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         
         layout = QVBoxLayout()
         
@@ -2799,7 +2707,7 @@ Export.table.toDrive({{
         self.next_btn.clicked.connect(lambda: self.navigate_detail(dialog, 1))
         
         self.current_index_label = QLabel(f"Item {current_row + 1} of {len(self.extracted_data)}")
-        self.current_index_label.setAlignment(Qt.AlignCenter)
+        self.current_index_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         nav_layout.addWidget(self.prev_btn)
         nav_layout.addWidget(self.current_index_label)
@@ -2822,7 +2730,7 @@ Export.table.toDrive({{
         filter_layout.addWidget(self.detail_filter_combo)
         
         # Main content area with splitter
-        splitter = QSplitter(Qt.Horizontal)
+        splitter = QSplitter(Qt.Orientation.Horizontal)
         
         # Left panel - Thumbnail and basic info
         left_panel = QVBoxLayout()
@@ -2832,7 +2740,7 @@ Export.table.toDrive({{
         thumbnail_layout = QVBoxLayout()
         
         self.thumbnail_label = QLabel()
-        self.thumbnail_label.setAlignment(Qt.AlignCenter)
+        self.thumbnail_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.thumbnail_label.setMinimumSize(250, 180)
         self.thumbnail_label.setMaximumSize(350, 250)
         self.thumbnail_label.setStyleSheet("border: 2px solid #ccc; background-color: #f5f5f5; cursor: pointer; border-radius: 5px;")
@@ -2955,7 +2863,7 @@ Export.table.toDrive({{
         # Create larger thumbnail display
         thumb_label = QLabel()
         thumb_label.setPixmap(current_data['thumbnail_data'])
-        thumb_label.setAlignment(Qt.AlignCenter)
+        thumb_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         thumb_label.setMinimumSize(500, 400)
         thumb_label.setStyleSheet("border: 2px solid #ccc; background-color: #f5f5f5; border-radius: 5px;")
         

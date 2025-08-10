@@ -280,8 +280,8 @@ class LightweightChartWidget(QWidget):
         self.chart.addSeries(self.standard_error_series)
         
         # Attach axes
-        self.chart.addAxis(self.axis_x, Qt.AlignBottom)
-        self.chart.addAxis(self.axis_y, Qt.AlignLeft)
+        self.chart.addAxis(self.axis_x, Qt.AlignmentFlag.AlignBottom)
+        self.chart.addAxis(self.axis_y, Qt.AlignmentFlag.AlignLeft)
         self.rms_series.attachAxis(self.axis_x)
         self.rms_series.attachAxis(self.axis_y)
         self.standard_error_series.attachAxis(self.axis_x)
@@ -366,8 +366,8 @@ class SingleMetricLightweightChartWidget(QWidget):
         self.axis_y.setTitleText("Value")
         self.axis_y.setRange(0, 1)
         
-        self.chart.addAxis(self.axis_x, Qt.AlignBottom)
-        self.chart.addAxis(self.axis_y, Qt.AlignLeft)
+        self.chart.addAxis(self.axis_x, Qt.AlignmentFlag.AlignBottom)
+        self.chart.addAxis(self.axis_y, Qt.AlignmentFlag.AlignLeft)
         self.series.attachAxis(self.axis_x)
         self.series.attachAxis(self.axis_y)
         
@@ -429,7 +429,7 @@ class ConsoleMetricsWidget(QWidget):
         # Title
         title = QLabel("Live ML Metrics Console")
         title.setFont(QFont("Consolas", 14, QFont.Bold))
-        title.setAlignment(Qt.AlignCenter)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
         
         # Console text area
@@ -671,11 +671,11 @@ class PySide6LightweightVisualization(QMainWindow):
             frame_layout = QVBoxLayout(frame)
             
             title_label = QLabel(label)
-            title_label.setAlignment(Qt.AlignCenter)
+            title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             frame_layout.addWidget(title_label)
             
             value_label = QLabel(initial_value)
-            value_label.setAlignment(Qt.AlignCenter)
+            value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             value_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #2196F3;")
             frame_layout.addWidget(value_label)
             
