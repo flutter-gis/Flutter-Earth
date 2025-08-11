@@ -72,6 +72,15 @@ model_cache/
 crawler_data/
 thumbnails/
 exported_data/
+simple_crawled_data/
+web_crawler/simple_crawled_data/
+web_crawler/crawled_data/
+web_crawler/html_crawled_data/
+web_crawler/simple_crawled_data/
+web_crawler/exported_data/
+web_crawler/extracted_data/
+web_crawler/test_crawl_output/
+web_crawler/test_html_crawl_output/
 
 # Large HTML files and web content
 gee cat/
