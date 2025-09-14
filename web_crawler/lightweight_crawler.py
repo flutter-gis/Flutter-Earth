@@ -84,11 +84,18 @@ class LocalHTMLDataExtractor:
         self.output_dir = "collected_data"
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
-        
+
         # Create thumbnails directory
         self.thumbnails_dir = os.path.join(self.output_dir, "thumbnails")
         if not os.path.exists(self.thumbnails_dir):
             os.makedirs(self.thumbnails_dir)
+
+        # Smart crawling controls
+        self.processed_urls = set()
+        self.crawl_depth_limit = 3
+        self.max_datasets_per_run = 1000
+        self.crawl_delay = 1.0  # seconds between requests
+        self.dataset_counter = 0
         
         # Network session and defaults for link-following
         self.session = requests.Session()
@@ -115,7 +122,7 @@ class LocalHTMLDataExtractor:
     
     def extract_all_data(self, soup, file_path, progress_callback=None, log_callback=None):
         """Extract satellite catalog data from HTML file"""
-        print(f"🔍 Starting satellite catalog extraction from: {os.path.basename(file_path)}")
+        print(f"Starting satellite catalog extraction from: {os.path.basename(file_path)}")
         _logger.info(f"extract_all_data:start file={file_path}")
         
         try:
@@ -129,17 +136,17 @@ class LocalHTMLDataExtractor:
                 'extraction_metadata': {}
             }
             
-            print("📋 Extracting satellite catalog data...")
+            print(" Extracting satellite catalog data...")
             
             # Extract title
             title_tag = soup.find('title')
             if title_tag:
                 data['title'] = title_tag.get_text().strip()
-                print(f"   📝 Title: {data['title'][:50]}...")
+                print(f"    Title: {data['title'][:50]}...")
                 _logger.info(f"title: {data['title']}")
             
             # Extract catalog links (thumbnails with satellite data)
-            print("🛰️ Extracting satellite catalog links with smart classification...")
+            print(" Extracting satellite catalog links with smart classification...")
             catalog_links = []
             
             try:
@@ -147,38 +154,38 @@ class LocalHTMLDataExtractor:
                 catalog_containers = soup.find_all(['div', 'section', 'article'], class_=re.compile(r'catalog|grid|item|dataset|collection'))
                 
                 if catalog_containers:
-                    print(f"     🎯 Found {len(catalog_containers)} catalog containers")
+                    print(f"      Found {len(catalog_containers)} catalog containers")
                     for container in catalog_containers:
                         self.extract_links_from_container(container, catalog_links)
                 else:
                     # Fallback to general link extraction
-                    print("     🔍 No catalog containers found, using general link extraction")
+                    print("     No catalog containers found, using general link extraction")
                     self.extract_links_generally(soup, catalog_links)
             except re.error as e:
-                print(f"     ⚠️ Regex error in catalog container search: {e}")
+                print(f"      Regex error in catalog container search: {e}")
                 # Fallback to general link extraction
-                print("     🔍 Using fallback link extraction due to regex error")
+                print("     Using fallback link extraction due to regex error")
                 self.extract_links_generally(soup, catalog_links)
             
             data['catalog_links'] = catalog_links
-            print(f"   📊 Found {len(catalog_links)} catalog links")
+            print(f"    Found {len(catalog_links)} catalog links")
             _log_json('catalog_links', file=file_path, count=len(catalog_links))
             
             # Classify catalog links by type
             try:
                 self.classify_catalog_links(catalog_links)
             except Exception as e:
-                print(f"     ⚠️ Error in link classification: {e}")
+                print(f"      Error in link classification: {e}")
                 _logger.exception("link_classification_error")
             
             # Extract satellite catalog data using smart extraction
-            print("🌍 Starting smart satellite catalog data extraction...")
+            print(" Starting smart satellite catalog data extraction...")
             try:
                 data['satellite_catalog'] = self.extract_satellite_data(soup, data)
-                print("✅ Smart satellite catalog data extraction completed")
+                print(" Smart satellite catalog data extraction completed")
                 _log_json('satellite_data_extracted', completeness=len(data['satellite_catalog']))
             except Exception as e:
-                print(f"     ⚠️ Error in satellite data extraction: {e}")
+                print(f"      Error in satellite data extraction: {e}")
                 data['satellite_catalog'] = {}
                 _logger.exception("satellite_data_extraction_error")
             
@@ -187,7 +194,7 @@ class LocalHTMLDataExtractor:
                 try:
                     # Keep only dataset detail links
                     detail_links = [l for l in catalog_links if l.get('link_type') == 'dataset_detail']
-                    print(f"🔗 Following {len(detail_links)} dataset detail links to extract detailed information...")
+                    print(f" Following {len(detail_links)} dataset detail links to extract detailed information...")
                     _log_json('detail_links', file=file_path, count=len(detail_links))
                     detailed_extractions = 0
                     
@@ -200,7 +207,7 @@ class LocalHTMLDataExtractor:
                         if log_callback:
                             log_callback(f"Processing dataset {i+1}/{len(detail_links)}: {link['text'][:80]}")
                         
-                        print(f"     🔍 Processing dataset {i+1}/{len(detail_links)}: {link['text'][:50]}...")
+                        print(f"     Processing dataset {i+1}/{len(detail_links)}: {link['text'][:50]}...")
                         
                         try:
                             # Extract detailed data from this dataset link
@@ -216,19 +223,19 @@ class LocalHTMLDataExtractor:
                                         data['satellite_catalog'][key] = value
                                 
                                 detailed_extractions += 1
-                                print(f"       ✅ Extracted detailed data for: {link['text'][:30]}...")
+                                print(f"        Extracted detailed data for: {link['text'][:30]}...")
                                 _log_json('detail_extracted', href=link.get('href', ''), text=link.get('text', '')[:120])
                             else:
-                                print(f"       ⚠️ No detailed data found for: {link['text'][:30]}...")
+                                print(f"        No detailed data found for: {link['text'][:30]}...")
                         except Exception as e:
-                            print(f"       ⚠️ Error processing dataset link: {e}")
+                            print(f"        Error processing dataset link: {e}")
                             continue
                     
-                    print(f"🎯 Completed detailed extraction of {detailed_extractions} datasets")
+                    print(f" Completed detailed extraction of {detailed_extractions} datasets")
                     if progress_callback:
                         progress_callback(100)
                 except Exception as e:
-                    print(f"     ⚠️ Error in dataset link processing: {e}")
+                    print(f"      Error in dataset link processing: {e}")
                     _logger.exception("dataset_link_processing_error")
             
             # Generate extraction summary
@@ -236,7 +243,7 @@ class LocalHTMLDataExtractor:
                 try:
                     summary = self.generate_extraction_summary(catalog_links, data['satellite_catalog'])
                     data['extraction_summary'] = summary
-                    print(f"   📋 Smart Extraction Summary:")
+                    print(f"    Smart Extraction Summary:")
                     print(f"      • Total links discovered: {summary['total_links_discovered']}")
                     print(f"      • Junk links filtered: {summary['junk_links_filtered']}")
                     print(f"      • Clean catalog links: {summary['total_links']}")
@@ -250,14 +257,14 @@ class LocalHTMLDataExtractor:
                         print(f"      • Recommendations: {', '.join(summary['recommendations'][:2])}")
                     _log_json('extraction_summary', **summary)
                 except Exception as e:
-                    print(f"     ⚠️ Error generating extraction summary: {e}")
+                    print(f"      Error generating extraction summary: {e}")
                     data['extraction_summary'] = {}
                     _logger.exception("summary_error")
             
             return data
             
         except Exception as e:
-            print(f"❌ Critical error in extract_all_data: {e}")
+            print(f" Critical error in extract_all_data: {e}")
             _logger.exception("extract_all_data_critical_error")
             # Return minimal data structure
             return {
@@ -526,7 +533,7 @@ class LocalHTMLDataExtractor:
             return
         
         # Filter out junk links before classification
-        print("     🧹 Filtering out junk links...")
+        print("      Filtering out junk links...")
         junk_links = []
         clean_links = []
         
@@ -540,11 +547,11 @@ class LocalHTMLDataExtractor:
                 clean_links.append(link)
         
         # Report junk filtering results
-        print(f"     🗑️ Filtered out {len(junk_links)} junk links")
+        print(f"      Filtered out {len(junk_links)} junk links")
         print(f"     ✨ Kept {len(clean_links)} clean catalog links")
         
         if junk_links:
-            print("     📋 Junk link examples:")
+            print("      Junk link examples:")
             for junk in junk_links[:5]:  # Show first 5 junk examples
                 print(f"        • {junk['text'][:50]}... ({junk['href'][:50]}...)")
         
@@ -560,14 +567,14 @@ class LocalHTMLDataExtractor:
             link_types[link_type].append(link)
         
         # Print classification summary
-        print("     🏷️ Clean catalog link classification:")
+        print("      Clean catalog link classification:")
         for link_type, links in link_types.items():
             print(f"       • {link_type.title()}: {len(links)} links")
         
         # Print high-priority links
         high_priority = [link for link in clean_links if link.get('extraction_priority', 0) >= 8]
         if high_priority:
-            print(f"     ⭐ High-priority clean links ({len(high_priority)}):")
+            print(f"      High-priority clean links ({len(high_priority)}):")
             for link in high_priority[:5]:  # Show first 5
                 print(f"       • {link['text'][:50]}... (Priority: {link['extraction_priority']})")
         
@@ -745,7 +752,7 @@ class LocalHTMLDataExtractor:
             with open(catalog_file, 'w', encoding='utf-8') as f:
                 json.dump(existing_catalog, f, indent=2, ensure_ascii=False)
             
-            print(f"💾 Saved satellite data for {satellite_name} to catalog")
+            print(f" Saved satellite data for {satellite_name} to catalog")
             return catalog_file
             
         except Exception as e:
@@ -754,7 +761,7 @@ class LocalHTMLDataExtractor:
 
     def categorize_content(self, soup, data):
         """Categorize content into meaningful groups"""
-        print("   🏷️ Categorizing content into groups...")
+        print("    Categorizing content into groups...")
         
         categories = {
             'navigation': [],
@@ -770,7 +777,7 @@ class LocalHTMLDataExtractor:
         }
         
         # Categorize links by purpose
-        print("     🔗 Categorizing links...")
+        print("      Categorizing links...")
         for link in data['links']:
             link_text = link.get('text', '').lower()
             href = link.get('href', '').lower()
@@ -786,13 +793,13 @@ class LocalHTMLDataExtractor:
             else:
                 categories['main_content'].append(link)
         
-        print(f"       📊 Navigation: {len(categories['navigation'])} links")
-        print(f"       📊 Main content: {len(categories['main_content'])} links")
-        print(f"       📊 Footer: {len(categories['footer'])} links")
-        print(f"       📊 Interactive: {len(categories['interactive_elements'])} links")
+        print(f"        Navigation: {len(categories['navigation'])} links")
+        print(f"        Main content: {len(categories['main_content'])} links")
+        print(f"        Footer: {len(categories['footer'])} links")
+        print(f"        Interactive: {len(categories['interactive_elements'])} links")
         
         # Categorize images by type
-        print("     🖼️ Categorizing images...")
+        print("      Categorizing images...")
         for img in data['images']:
             img_src = img.get('src', '').lower()
             alt_text = img.get('alt', '').lower()
@@ -806,21 +813,21 @@ class LocalHTMLDataExtractor:
             else:
                 categories['media_content'].append(img)
         
-        print(f"       📊 Header images: {len(categories['header'])}")
-        print(f"       📊 Navigation images: {len(categories['navigation'])}")
-        print(f"       📊 Data images: {len(categories['data_tables'])}")
-        print(f"       📊 Media images: {len(categories['media_content'])}")
+        print(f"        Header images: {len(categories['header'])}")
+        print(f"        Navigation images: {len(categories['navigation'])}")
+        print(f"        Data images: {len(categories['data_tables'])}")
+        print(f"        Media images: {len(categories['media_content'])}")
         
         # Categorize forms
         categories['forms_and_inputs'] = data['forms']
-        print(f"     📝 Forms: {len(categories['forms_and_inputs'])}")
+        print(f"      Forms: {len(categories['forms_and_inputs'])}")
         
         # Categorize tables
         categories['data_tables'] = data['tables']
-        print(f"     📊 Tables: {len(categories['data_tables'])}")
+        print(f"      Tables: {len(categories['data_tables'])}")
         
         # Categorize headings by hierarchy
-        print("     🎯 Categorizing headings...")
+        print("      Categorizing headings...")
         for heading in data['headings']:
             if heading.get('level') in ['h1', 'h2']:
                 categories['header'].append(heading)
@@ -829,11 +836,11 @@ class LocalHTMLDataExtractor:
             else:
                 categories['sidebar'].append(heading)
         
-        print(f"       📊 Header headings: {len([h for h in categories['header'] if isinstance(h, dict) and h.get('level') in ['h1', 'h2']])}")
-        print(f"       📊 Main headings: {len([h for h in categories['main_content'] if isinstance(h, dict) and h.get('level') in ['h3', 'h4']])}")
-        print(f"       📊 Sidebar headings: {len([h for h in categories['sidebar'] if isinstance(h, dict) and h.get('level') not in ['h1', 'h2', 'h3', 'h4']])}")
+        print(f"        Header headings: {len([h for h in categories['header'] if isinstance(h, dict) and h.get('level') in ['h1', 'h2']])}")
+        print(f"        Main headings: {len([h for h in categories['main_content'] if isinstance(h, dict) and h.get('level') in ['h3', 'h4']])}")
+        print(f"        Sidebar headings: {len([h for h in categories['sidebar'] if isinstance(h, dict) and h.get('level') not in ['h1', 'h2', 'h3', 'h4']])}")
         
-        print("   ✅ Content categorization completed")
+        print("    Content categorization completed")
         return categories
     
     def analyze_semantics(self, soup, data):
@@ -955,7 +962,7 @@ class LocalHTMLDataExtractor:
 
     def extract_satellite_data(self, soup, data):
         """Extract satellite catalog data with smart classification based on Earth Engine catalog structure"""
-        print("   🛰️ Starting smart satellite catalog data extraction...")
+        print("    Starting smart satellite catalog data extraction...")
         
         satellite_data = {
             'layer_name': '',
@@ -979,7 +986,7 @@ class LocalHTMLDataExtractor:
         # Smart page type detection
         page_type = self.detect_page_type(soup)
         satellite_data['detected_page_type'] = page_type
-        print(f"     🎯 Detected page type: {page_type}")
+        print(f"      Detected page type: {page_type}")
         
         # Extract based on page type
         if page_type == 'catalog_main':
@@ -1053,10 +1060,31 @@ class LocalHTMLDataExtractor:
         return 'unknown'
     
     def extract_from_catalog_main(self, soup, satellite_data):
-        """Extract data from main catalog page with thumbnail grid"""
-        print("     📋 Extracting from main catalog page...")
-        
-        # Look for catalog grid items
+        """Extract data from main catalog page with thumbnail grid - Enhanced for Earth Engine"""
+        print("      Extracting from main catalog page with Earth Engine intelligence...")
+
+        # First try Earth Engine specific extraction
+        ee_datasets = self.extract_earth_engine_catalog(soup)
+        if ee_datasets:
+            print(f"      Found {len(ee_datasets)} Earth Engine datasets using intelligent extraction")
+
+            # Classify the datasets intelligently
+            classifications = self.classify_earth_engine_datasets(ee_datasets)
+
+            satellite_data['datasets'] = ee_datasets
+            satellite_data['classifications'] = classifications
+            satellite_data['extraction_method'] = 'earth_engine_intelligent'
+            satellite_data['extraction_confidence'] = 'high'
+
+            # Log classification summary
+            for category, items in classifications.items():
+                if items:
+                    print(f"        {category.title()}: {len(items)} datasets")
+
+            return
+
+        # Fallback to generic extraction if Earth Engine patterns not found
+        print("      Earth Engine patterns not detected, using generic extraction...")
         catalog_items = soup.find_all(['div', 'article', 'section'], class_=re.compile(r'catalog|item|dataset|collection'))
         
         for item in catalog_items:
@@ -1095,7 +1123,7 @@ class LocalHTMLDataExtractor:
     
     def extract_from_dataset_detail(self, soup, satellite_data):
         """Extract data from detailed dataset page - Enhanced for Earth Engine structure"""
-        print("     📊 Extracting from dataset detail page...")
+        print("      Extracting from dataset detail page...")
         
         # Extract dataset name from main heading
         main_heading = soup.find(['h1', 'h2'], class_=re.compile(r'main|title|dataset'))
@@ -1142,7 +1170,7 @@ class LocalHTMLDataExtractor:
     
     def extract_earth_engine_metadata(self, soup, satellite_data):
         """Extract Earth Engine specific metadata structure - Enhanced based on actual HTML structure"""
-        print("     🌍 Extracting Earth Engine metadata...")
+        print("      Extracting Earth Engine metadata...")
         
         try:
             # Method 1: Look for specific text patterns in the entire page
@@ -1161,10 +1189,10 @@ class LocalHTMLDataExtractor:
                     if matches:
                         satellite_data['date_range']['start'] = matches[0][0]
                         satellite_data['date_range']['end'] = matches[0][1]
-                        print(f"       📅 Found date range: {matches[0][0]} to {matches[0][1]}")
+                        print(f"        Found date range: {matches[0][0]} to {matches[0][1]}")
                         break
                 except re.error as e:
-                    print(f"       ⚠️ Regex error in date pattern: {e}")
+                    print(f"        Regex error in date pattern: {e}")
                     continue
             
             # Extract dataset provider - Look for common providers
@@ -1186,7 +1214,7 @@ class LocalHTMLDataExtractor:
                             print(f"       🏢 Found provider: {provider}")
                             break
                 except re.error as e:
-                    print(f"       ⚠️ Regex error in provider pattern: {e}")
+                    print(f"        Regex error in provider pattern: {e}")
                     continue
             
             # Method 2: Look for specific HTML structures
@@ -1205,10 +1233,10 @@ class LocalHTMLDataExtractor:
                                 if matches and not satellite_data['date_range']['start']:
                                     satellite_data['date_range']['start'] = matches[0][0]
                                     satellite_data['date_range']['end'] = matches[0][1]
-                                    print(f"       📅 Found date range from structure: {matches[0][0]} to {matches[0][1]}")
+                                    print(f"        Found date range from structure: {matches[0][0]} to {matches[0][1]}")
                                     break
                             except re.error as e:
-                                print(f"       ⚠️ Regex error in date structure pattern: {e}")
+                                print(f"        Regex error in date structure pattern: {e}")
                                 continue
             
             # Look for dataset provider label
@@ -1229,7 +1257,7 @@ class LocalHTMLDataExtractor:
                                     print(f"       🏢 Found provider from structure: {provider}")
                                     break
                         except re.error as e:
-                            print(f"       ⚠️ Regex error in provider structure pattern: {e}")
+                            print(f"        Regex error in provider structure pattern: {e}")
                             continue
             
             # Look for Earth Engine snippet
@@ -1267,7 +1295,7 @@ class LocalHTMLDataExtractor:
                         tags = [tag.get_text().strip() for tag in tag_links if tag.get_text().strip()]
                         if tags:
                             satellite_data['category_tags'].extend(tags)
-                            print(f"       🏷️ Found tags: {', '.join(tags)}")
+                            print(f"        Found tags: {', '.join(tags)}")
                             break
             
             # Look for pixel size/resolution
@@ -1282,19 +1310,548 @@ class LocalHTMLDataExtractor:
                     matches = re.findall(pattern, page_text, re.IGNORECASE)
                     if matches:
                         satellite_data['pixel_size'] = matches[0].strip()
-                        print(f"       📏 Found pixel size: {matches[0].strip()}")
+                        print(f"        Found pixel size: {matches[0].strip()}")
                         break
                 except re.error as e:
-                    print(f"       ⚠️ Regex error in resolution pattern: {e}")
+                    print(f"        Regex error in resolution pattern: {e}")
                     continue
                     
         except Exception as e:
-            print(f"       ⚠️ Error in Earth Engine metadata extraction: {e}")
+            print(f"        Error in Earth Engine metadata extraction: {e}")
             # Continue with basic extraction
-    
+
+    def extract_earth_engine_catalog(self, soup):
+        """Intelligent extraction specifically designed for Earth Engine catalog structure"""
+        print("     Using Earth Engine intelligent extraction...")
+        datasets = []
+
+        # Target the specific Earth Engine dataset containers
+        ee_containers = soup.select('li.ee-sample-image.ee-cards.devsite-landing-row-item-description')
+
+        if not ee_containers:
+            # Try alternative selector patterns
+            ee_containers = soup.select('.ee-sample-image.ee-cards')
+            if not ee_containers:
+                ee_containers = soup.select('li.ee-sample-image')
+
+        if not ee_containers:
+            print("     No Earth Engine dataset containers found")
+            return None
+
+        print(f"     Found {len(ee_containers)} Earth Engine dataset containers")
+
+        for container in ee_containers:
+            dataset = self.extract_single_ee_dataset(container)
+            if dataset:
+                datasets.append(dataset)
+
+        return datasets if datasets else None
+
+    def extract_single_ee_dataset(self, container):
+        """Extract data from a single Earth Engine dataset container with enhanced data points"""
+        dataset = {
+            # Core Information
+            'dataset_id': '',
+            'title': '',
+            'description': '',
+            'url': '',
+            'thumbnail': '',
+            'thumbnail_local_path': '',
+
+            # Classification & Metadata
+            'tags': [],
+            'provider': '',
+            'keywords': [],
+            'collection_type': '',
+
+            # Temporal Information
+            'temporal_coverage': {
+                'start_date': '',
+                'end_date': '',
+                'update_frequency': '',
+                'revisit_time': ''
+            },
+
+            # Spatial Information
+            'spatial_info': {
+                'resolution': '',
+                'pixel_size': '',
+                'projection': '',
+                'geographic_extent': ''
+            },
+
+            # Spectral & Technical
+            'bands': [],
+            'spectral_info': '',
+            'processing_level': '',
+            'file_format': '',
+            'data_volume': '',
+
+            # Access & Legal
+            'license': '',
+            'doi': '',
+            'citations': [],
+            'terms_of_use': '',
+            'access_method': '',
+
+            # Quality Metrics
+            'confidence_score': 0,
+            'extraction_timestamp': datetime.now().isoformat(),
+            'data_completeness': 0
+        }
+
+        try:
+            # Extract title from h3[data-text] attribute (most reliable)
+            title_element = container.select_one('h3[data-text]')
+            if title_element:
+                dataset['title'] = title_element.get('data-text', '').strip()
+                dataset['confidence_score'] += 25
+
+                # Extract dataset ID from URL if available
+                link = container.select_one('a[href]')
+                if link:
+                    href = link.get('href', '')
+                    dataset['url'] = href
+                    dataset['confidence_score'] += 20
+
+                    # Extract dataset ID from URL pattern
+                    if '/catalog/' in href:
+                        dataset_id = href.split('/catalog/')[-1].split('?')[0].split('#')[0]
+                        dataset['dataset_id'] = dataset_id
+                        dataset['confidence_score'] += 20
+
+            # Extract description from specific class
+            desc_element = container.select_one('.ee-dataset-description-snippet')
+            if desc_element:
+                dataset['description'] = desc_element.get_text().strip()
+                dataset['confidence_score'] += 15
+
+            # Extract tags from ee-chip ee-tag elements
+            tag_elements = container.select('.ee-chip.ee-tag')
+            for tag_elem in tag_elements:
+                tag_text = tag_elem.get_text().strip()
+                if tag_text:
+                    dataset['tags'].append(tag_text)
+            if dataset['tags']:
+                dataset['confidence_score'] += 10
+
+            # Extract thumbnail image and download it locally
+            img_element = container.select_one('figure img')
+            if img_element:
+                thumbnail_url = img_element.get('src', '')
+                dataset['thumbnail'] = thumbnail_url
+
+                # Download thumbnail locally for real-time viewing
+                local_path = self.download_thumbnail(thumbnail_url, dataset.get('dataset_id', 'unknown'))
+                if local_path:
+                    dataset['thumbnail_local_path'] = local_path
+                    dataset['confidence_score'] += 10
+
+            # Extract enhanced metadata
+            self.extract_ee_enhanced_metadata(container, dataset)
+            self.extract_ee_metadata_from_comments(container, dataset)
+
+            # Calculate data completeness score
+            dataset['data_completeness'] = self.calculate_data_completeness(dataset)
+
+            # Only return dataset if we have minimum viable data
+            if dataset['title'] and dataset['confidence_score'] >= 30:
+                return dataset
+
+        except Exception as e:
+            print(f"     Error extracting single EE dataset: {e}")
+
+        return None
+
+    def extract_ee_metadata_from_comments(self, container, dataset):
+        """Extract metadata from HTML comments in Earth Engine dataset"""
+        try:
+            # Look for HTML comments containing metadata
+            html_str = str(container)
+
+            # Extract provider from comments
+            provider_match = re.search(r'<!--.*?provider[:\s]+([^-]+?)-->', html_str, re.IGNORECASE | re.DOTALL)
+            if provider_match:
+                dataset['provider'] = provider_match.group(1).strip()
+                dataset['confidence_score'] += 15
+
+            # Extract keywords from comments
+            keywords_match = re.search(r'<!--.*?keywords?[:\s]+([^-]+?)-->', html_str, re.IGNORECASE | re.DOTALL)
+            if keywords_match:
+                keywords_text = keywords_match.group(1).strip()
+                dataset['keywords'] = [kw.strip() for kw in keywords_text.split() if kw.strip()]
+                dataset['confidence_score'] += 10
+
+            # Extract collection type
+            collection_match = re.search(r'<!--.*?collection[_\s]type[:\s]+([^-]+?)-->', html_str, re.IGNORECASE | re.DOTALL)
+            if collection_match:
+                dataset['collection_type'] = collection_match.group(1).strip()
+                dataset['confidence_score'] += 10
+
+        except Exception as e:
+            print(f"     Error extracting metadata from comments: {e}")
+
+    def extract_ee_enhanced_metadata(self, container, dataset):
+        """Extract enhanced metadata from Earth Engine dataset container"""
+        try:
+            # Extract additional data from text content
+            text_content = container.get_text()
+
+            # Extract temporal information
+            self.extract_temporal_metadata(text_content, dataset)
+
+            # Extract spatial information
+            self.extract_spatial_metadata(text_content, dataset)
+
+            # Extract technical information
+            self.extract_technical_metadata(text_content, dataset)
+
+            # Extract access information
+            self.extract_access_metadata(text_content, dataset)
+
+        except Exception as e:
+            print(f"     Error extracting enhanced metadata: {e}")
+
+    def extract_temporal_metadata(self, text, dataset):
+        """Extract temporal coverage information"""
+        # Date range patterns
+        date_patterns = [
+            r'(\d{4}-\d{2}-\d{2}).*?to.*?(\d{4}-\d{2}-\d{2})',
+            r'(\d{4}).*?to.*?(\d{4})',
+            r'since\s+(\d{4})',
+            r'from\s+(\d{4})'
+        ]
+
+        for pattern in date_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                if len(matches[0]) == 2:
+                    dataset['temporal_coverage']['start_date'] = matches[0][0]
+                    dataset['temporal_coverage']['end_date'] = matches[0][1]
+                else:
+                    dataset['temporal_coverage']['start_date'] = matches[0]
+                break
+
+        # Update frequency patterns
+        frequency_patterns = [
+            r'(daily|weekly|monthly|yearly|annual)',
+            r'every\s+(\d+\s+days?)',
+            r'(\d+)\s*day\s*repeat',
+            r'revisit.*?(\d+).*?days?'
+        ]
+
+        for pattern in frequency_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                dataset['temporal_coverage']['update_frequency'] = matches[0]
+                break
+
+    def extract_spatial_metadata(self, text, dataset):
+        """Extract spatial resolution and coverage information"""
+        # Resolution patterns
+        resolution_patterns = [
+            r'(\d+(?:\.\d+)?)\s*(?:meter|m)\s*resolution',
+            r'(\d+)\s*m\s*pixel',
+            r'(\d+(?:\.\d+)?)\s*km\s*resolution',
+            r'resolution.*?(\d+(?:\.\d+)?)\s*(?:meter|m|km)'
+        ]
+
+        for pattern in resolution_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                dataset['spatial_info']['resolution'] = f"{matches[0]}m"
+                dataset['spatial_info']['pixel_size'] = matches[0]
+                break
+
+        # Geographic extent patterns
+        extent_patterns = [
+            r'global(?:\s+coverage)?',
+            r'worldwide',
+            r'continental',
+            r'regional',
+            r'([-+]?\d*\.?\d+)°?[NS],?\s*([-+]?\d*\.?\d+)°?[EW]'
+        ]
+
+        for pattern in extent_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                dataset['spatial_info']['geographic_extent'] = matches[0] if isinstance(matches[0], str) else str(matches[0])
+                break
+
+    def extract_technical_metadata(self, text, dataset):
+        """Extract technical specifications"""
+        # Band information patterns
+        band_patterns = [
+            r'(\d+)\s*(?:spectral\s+)?bands?',
+            r'bands?.*?(\d+)',
+            r'(red|green|blue|nir|swir|thermal|panchromatic)',
+            r'(\d+(?:\.\d+)?)\s*(?:μm|um|nm|µm)'
+        ]
+
+        bands_found = []
+        for pattern in band_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                bands_found.extend(matches)
+
+        if bands_found:
+            dataset['bands'] = list(set(bands_found))
+            dataset['spectral_info'] = ', '.join(bands_found)
+
+        # Processing level patterns
+        processing_patterns = [
+            r'level\s*(\d+[a-zA-Z]*)',
+            r'L(\d+[a-zA-Z]*)',
+            r'(raw|processed|calibrated|atmospherically\s+corrected)'
+        ]
+
+        for pattern in processing_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                dataset['processing_level'] = matches[0]
+                break
+
+        # File format patterns
+        format_patterns = [
+            r'(GeoTIFF|NetCDF|HDF|CSV|JSON)',
+            r'\.(tif|nc|hdf|csv|json)\s',
+            r'format.*?(GeoTIFF|NetCDF|HDF|CSV|JSON)'
+        ]
+
+        for pattern in format_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                dataset['file_format'] = matches[0]
+                break
+
+    def extract_access_metadata(self, text, dataset):
+        """Extract access and licensing information"""
+        # License patterns
+        license_patterns = [
+            r'(CC\s*BY[^,\s]*)',
+            r'(Creative\s+Commons[^,\s]*)',
+            r'(public\s+domain)',
+            r'(open\s+(?:access|data))',
+            r'license.*?(free|commercial|restricted)'
+        ]
+
+        for pattern in license_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                dataset['license'] = matches[0]
+                break
+
+        # DOI patterns
+        doi_patterns = [
+            r'doi:\s*(10\.\d+/[^\s]+)',
+            r'(10\.\d+/[^\s,]+)',
+            r'DOI[:\s]+(10\.\d+/[^\s]+)'
+        ]
+
+        for pattern in doi_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            if matches:
+                dataset['doi'] = matches[0]
+                break
+
+    def download_thumbnail(self, thumbnail_url, dataset_id):
+        """Download thumbnail image locally for real-time viewing"""
+        try:
+            if not thumbnail_url or not thumbnail_url.startswith(('http', './')):
+                return None
+
+            # Handle relative URLs
+            if thumbnail_url.startswith('./'):
+                # This is a local file reference
+                base_path = os.path.dirname(os.path.dirname(__file__))
+                local_path = os.path.join(base_path, thumbnail_url.replace('./', ''))
+                if os.path.exists(local_path):
+                    # Copy to thumbnails directory
+                    filename = f"{dataset_id}_{os.path.basename(local_path)}"
+                    dest_path = os.path.join(self.thumbnails_dir, filename)
+                    import shutil
+                    shutil.copy2(local_path, dest_path)
+                    return dest_path
+
+            # For HTTP URLs, download the image
+            if thumbnail_url.startswith('http'):
+                response = self.session.get(thumbnail_url, timeout=10)
+                if response.status_code == 200:
+                    # Determine file extension
+                    content_type = response.headers.get('content-type', '')
+                    if 'image/png' in content_type:
+                        ext = '.png'
+                    elif 'image/jpeg' in content_type or 'image/jpg' in content_type:
+                        ext = '.jpg'
+                    elif 'image/webp' in content_type:
+                        ext = '.webp'
+                    else:
+                        ext = '.png'  # default
+
+                    filename = f"{dataset_id}_thumbnail{ext}"
+                    local_path = os.path.join(self.thumbnails_dir, filename)
+
+                    with open(local_path, 'wb') as f:
+                        f.write(response.content)
+
+                    return local_path
+
+        except Exception as e:
+            print(f"     Error downloading thumbnail: {e}")
+
+        return None
+
+    def calculate_data_completeness(self, dataset):
+        """Calculate completeness score for the dataset"""
+        total_fields = 25  # Total number of fields we check
+        filled_fields = 0
+
+        # Check core fields
+        if dataset.get('title'): filled_fields += 1
+        if dataset.get('description'): filled_fields += 1
+        if dataset.get('dataset_id'): filled_fields += 1
+        if dataset.get('url'): filled_fields += 1
+        if dataset.get('thumbnail'): filled_fields += 1
+
+        # Check metadata fields
+        if dataset.get('provider'): filled_fields += 1
+        if dataset.get('tags'): filled_fields += 1
+        if dataset.get('keywords'): filled_fields += 1
+        if dataset.get('collection_type'): filled_fields += 1
+
+        # Check temporal fields
+        temporal = dataset.get('temporal_coverage', {})
+        if temporal.get('start_date'): filled_fields += 1
+        if temporal.get('end_date'): filled_fields += 1
+        if temporal.get('update_frequency'): filled_fields += 1
+
+        # Check spatial fields
+        spatial = dataset.get('spatial_info', {})
+        if spatial.get('resolution'): filled_fields += 1
+        if spatial.get('pixel_size'): filled_fields += 1
+        if spatial.get('geographic_extent'): filled_fields += 1
+
+        # Check technical fields
+        if dataset.get('bands'): filled_fields += 1
+        if dataset.get('processing_level'): filled_fields += 1
+        if dataset.get('file_format'): filled_fields += 1
+
+        # Check access fields
+        if dataset.get('license'): filled_fields += 1
+        if dataset.get('doi'): filled_fields += 1
+        if dataset.get('citations'): filled_fields += 1
+        if dataset.get('terms_of_use'): filled_fields += 1
+
+        # Check quality fields
+        if dataset.get('confidence_score', 0) > 0: filled_fields += 1
+        if dataset.get('thumbnail_local_path'): filled_fields += 1
+        if dataset.get('data_volume'): filled_fields += 1
+
+        return round((filled_fields / total_fields) * 100, 1)
+
+    def classify_earth_engine_datasets(self, datasets):
+        """Intelligent classification of Earth Engine datasets"""
+        print(f"      Classifying {len(datasets)} datasets using intelligent algorithms...")
+
+        classifications = {
+            'climate': [],
+            'landsat': [],
+            'modis': [],
+            'sentinel': [],
+            'atmospheric': [],
+            'ocean': [],
+            'terrain': [],
+            'weather': [],
+            'vegetation': [],
+            'urban': [],
+            'other': []
+        }
+
+        for dataset in datasets:
+            category = self.classify_single_dataset(dataset)
+            classifications[category].append(dataset)
+
+        return classifications
+
+    def classify_single_dataset(self, dataset):
+        """Classify a single dataset based on its metadata"""
+        title = dataset.get('title', '').lower()
+        description = dataset.get('description', '').lower()
+        tags = [tag.lower() for tag in dataset.get('tags', [])]
+        keywords = [kw.lower() for kw in dataset.get('keywords', [])]
+
+        # Combine all text for analysis
+        all_text = f"{title} {description} {' '.join(tags)} {' '.join(keywords)}"
+
+        # Classification patterns
+        if any(term in all_text for term in ['landsat', 'oli', 'tirs']):
+            return 'landsat'
+        elif any(term in all_text for term in ['modis', 'aqua', 'terra']):
+            return 'modis'
+        elif any(term in all_text for term in ['sentinel', 'esa', 'msi', 'olci']):
+            return 'sentinel'
+        elif any(term in all_text for term in ['temperature', 'precipitation', 'climate']):
+            return 'climate'
+        elif any(term in all_text for term in ['atmospheric', 'aerosol', 'ozone', 'air']):
+            return 'atmospheric'
+        elif any(term in all_text for term in ['ocean', 'sea', 'marine', 'sst']):
+            return 'ocean'
+        elif any(term in all_text for term in ['dem', 'elevation', 'topography', 'terrain']):
+            return 'terrain'
+        elif any(term in all_text for term in ['weather', 'goes', 'himawari', 'meteorological']):
+            return 'weather'
+        elif any(term in all_text for term in ['vegetation', 'ndvi', 'evi', 'lai', 'biomass']):
+            return 'vegetation'
+        elif any(term in all_text for term in ['urban', 'built', 'population', 'lights']):
+            return 'urban'
+        else:
+            return 'other'
+
+    def generate_intelligent_extraction_report(self, satellite_data):
+        """Generate a detailed report of the intelligent extraction results"""
+        if satellite_data.get('extraction_method') != 'earth_engine_intelligent':
+            return None
+
+        datasets = satellite_data.get('datasets', [])
+        classifications = satellite_data.get('classifications', {})
+
+        report = {
+            'total_datasets': len(datasets),
+            'extraction_method': 'Earth Engine Intelligent Extraction',
+            'confidence_scores': {
+                'very_high': len([d for d in datasets if d.get('confidence_score', 0) >= 70]),
+                'high': len([d for d in datasets if 50 <= d.get('confidence_score', 0) < 70]),
+                'medium': len([d for d in datasets if 30 <= d.get('confidence_score', 0) < 50]),
+                'low': len([d for d in datasets if d.get('confidence_score', 0) < 30])
+            },
+            'data_completeness': {
+                'with_titles': len([d for d in datasets if d.get('title')]),
+                'with_descriptions': len([d for d in datasets if d.get('description')]),
+                'with_tags': len([d for d in datasets if d.get('tags')]),
+                'with_thumbnails': len([d for d in datasets if d.get('thumbnail')]),
+                'with_providers': len([d for d in datasets if d.get('provider')]),
+                'with_urls': len([d for d in datasets if d.get('url')])
+            },
+            'classifications': {k: len(v) for k, v in classifications.items() if v},
+            'top_providers': self._get_top_providers(datasets),
+            'sample_datasets': datasets[:5] if datasets else []
+        }
+
+        return report
+
+    def _get_top_providers(self, datasets):
+        """Get the top data providers from the extracted datasets"""
+        provider_counts = {}
+        for dataset in datasets:
+            provider = dataset.get('provider', 'Unknown')
+            if provider and provider.strip():
+                provider_counts[provider] = provider_counts.get(provider, 0) + 1
+
+        return sorted(provider_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+
     def extract_from_satellite_info(self, soup, satellite_data):
         """Extract data from satellite information page"""
-        print("     🛰️ Extracting from satellite info page...")
+        print("      Extracting from satellite info page...")
         
         # Extract satellite name
         satellite_heading = soup.find(['h1', 'h2'], class_=re.compile(r'satellite|platform|instrument'))
@@ -1312,7 +1869,7 @@ class LocalHTMLDataExtractor:
     
     def extract_generic_data(self, soup, satellite_data):
         """Extract data using generic patterns when page type is unknown"""
-        print("     🔍 Using generic extraction patterns...")
+        print("     Using generic extraction patterns...")
         
         text_content = soup.get_text()
         
@@ -1470,7 +2027,7 @@ class LocalHTMLDataExtractor:
                     if matches:
                         bands = [b.strip() for b in matches[0].split(',')]
                         satellite_data['band_information'].extend(bands)
-                        print(f"       📊 Found bands from text: {', '.join(bands)}")
+                        print(f"        Found bands from text: {', '.join(bands)}")
                         break
                 
                 # Also look for band table in this section
@@ -1485,7 +2042,7 @@ class LocalHTMLDataExtractor:
                                 satellite_data['band_information'].append(band_name)
                     
                     if satellite_data['band_information']:
-                        print(f"       📊 Found {len(satellite_data['band_information'])} bands from table")
+                        print(f"        Found {len(satellite_data['band_information'])} bands from table")
                 break
     
     def extract_resolution_data(self, section, satellite_data):
@@ -1526,7 +2083,7 @@ class LocalHTMLDataExtractor:
                     satellite_data['doi'] = doi
                 else:
                     satellite_data['doi'] = f"10.{doi}"
-                print(f"       🔗 Found DOI: {satellite_data['doi']}")
+                print(f"        Found DOI: {satellite_data['doi']}")
                 break
         
         # Look for citations in structured elements
@@ -1553,7 +2110,7 @@ class LocalHTMLDataExtractor:
                             satellite_data['citations'].append(citation_content)
                             print(f"       📖 Found structured citation: {citation_content[:100]}...")
                 except re.error as e:
-                    print(f"       ⚠️ Regex error in citation pattern: {e}")
+                    print(f"        Regex error in citation pattern: {e}")
                 
                 # Also look for DOI in the citation section
                 try:
@@ -1564,9 +2121,9 @@ class LocalHTMLDataExtractor:
                             satellite_data['doi'] = doi
                         else:
                             satellite_data['doi'] = f"10.{doi}"
-                        print(f"       🔗 Found DOI in citations: {satellite_data['doi']}")
+                        print(f"        Found DOI in citations: {satellite_data['doi']}")
                 except re.error as e:
-                    print(f"       ⚠️ Regex error in DOI pattern: {e}")
+                    print(f"        Regex error in DOI pattern: {e}")
                 break
         
         # Look for terms of use
@@ -1582,9 +2139,9 @@ class LocalHTMLDataExtractor:
                         terms_content = terms_match.group(1).strip()
                         if terms_content and len(terms_content) > 10:
                             satellite_data['terms_of_use'] = terms_content
-                            print(f"       📋 Found terms of use: {terms_content[:100]}...")
+                            print(f"        Found terms of use: {terms_content[:100]}...")
                 except re.error as e:
-                    print(f"       ⚠️ Regex error in terms pattern: {e}")
+                    print(f"        Regex error in terms pattern: {e}")
                 break
         
         # Look for description
@@ -1600,9 +2157,9 @@ class LocalHTMLDataExtractor:
                         desc_content = desc_match.group(1).strip()
                         if desc_content and len(desc_content) > 10:
                             satellite_data['description'] = desc_content
-                            print(f"       📝 Found description: {desc_content[:100]}...")
+                            print(f"        Found description: {desc_content[:100]}...")
                 except re.error as e:
-                    print(f"       ⚠️ Regex error in description pattern: {e}")
+                    print(f"        Regex error in description pattern: {e}")
                 break
         
         # Method 4: Look for any text that looks like a citation
@@ -1625,7 +2182,7 @@ class LocalHTMLDataExtractor:
                             satellite_data['citations'].append(citation)
                             print(f"       📖 Found citation pattern: {citation[:100]}...")
             except re.error as e:
-                print(f"       ⚠️ Regex error in citation pattern: {e}")
+                print(f"        Regex error in citation pattern: {e}")
                 continue
     
     def extract_with_regex_patterns(self, text_content, satellite_data):
@@ -1673,7 +2230,22 @@ class LocalHTMLDataExtractor:
                 break
     
     def calculate_extraction_confidence(self, satellite_data):
-        """Calculate confidence level of extracted data"""
+        """Calculate confidence level of extracted data - Enhanced for Earth Engine"""
+        # Check if we used intelligent Earth Engine extraction
+        if satellite_data.get('extraction_method') == 'earth_engine_intelligent':
+            datasets = satellite_data.get('datasets', [])
+            if datasets:
+                avg_confidence = sum(d.get('confidence_score', 0) for d in datasets) / len(datasets)
+                if avg_confidence >= 70:
+                    return 'very_high'
+                elif avg_confidence >= 50:
+                    return 'high'
+                elif avg_confidence >= 30:
+                    return 'medium'
+                else:
+                    return 'low'
+
+        # Fallback to original confidence calculation
         confidence_score = 0
         max_score = 100
         
@@ -1717,32 +2289,32 @@ class LocalHTMLDataExtractor:
 
     def process_catalog_extraction(self, soup, file_path):
         """Process catalog extraction with detailed progress tracking"""
-        print(f"🔍 Processing catalog extraction for: {os.path.basename(file_path)}")
+        print(f"Processing catalog extraction for: {os.path.basename(file_path)}")
         
         # Step 1: Analyze page structure
-        print("   📋 Step 1: Analyzing page structure...")
+        print("    Step 1: Analyzing page structure...")
         page_type = self.detect_page_type(soup)
-        print(f"      ✅ Detected page type: {page_type}")
+        print(f"       Detected page type: {page_type}")
         
         # Step 2: Extract catalog links
-        print("   🔗 Step 2: Extracting catalog links...")
+        print("    Step 2: Extracting catalog links...")
         catalog_links = self.extract_catalog_links_smart(soup)
-        print(f"      ✅ Found {len(catalog_links)} catalog links")
+        print(f"       Found {len(catalog_links)} catalog links")
         
         # Step 3: Classify and prioritize links
-        print("   🏷️ Step 3: Classifying and prioritizing links...")
+        print("    Step 3: Classifying and prioritizing links...")
         classified_links = self.classify_and_prioritize_links(catalog_links)
-        print(f"      ✅ Classified into {len(classified_links)} categories")
+        print(f"       Classified into {len(classified_links)} categories")
         
         # Step 4: Extract satellite data
-        print("   🛰️ Step 4: Extracting satellite catalog data...")
+        print("    Step 4: Extracting satellite catalog data...")
         satellite_data = self.extract_satellite_data_enhanced(soup, catalog_links)
-        print(f"      ✅ Extracted satellite data with {satellite_data.get('extraction_confidence', 'unknown')} confidence")
+        print(f"       Extracted satellite data with {satellite_data.get('extraction_confidence', 'unknown')} confidence")
         
         # Step 5: Validate and enhance data
-        print("   ✅ Step 5: Validating and enhancing data...")
+        print("    Step 5: Validating and enhancing data...")
         enhanced_data = self.enhance_satellite_data(satellite_data, soup)
-        print(f"      ✅ Data enhancement completed")
+        print(f"       Data enhancement completed")
         
         return {
             'page_type': page_type,
@@ -1759,20 +2331,20 @@ class LocalHTMLDataExtractor:
         # Method 1: Look for structured catalog containers
         containers = self.find_catalog_containers(soup)
         if containers:
-            print(f"      🎯 Found {len(containers)} catalog containers")
+            print(f"       Found {len(containers)} catalog containers")
             for container in containers:
                 links = self.extract_from_container(container)
                 catalog_links.extend(links)
         
         # Method 2: Look for specific link patterns
         if not catalog_links:
-            print("      🔍 No containers found, using link pattern analysis")
+            print("       No containers found, using link pattern analysis")
             pattern_links = self.extract_by_link_patterns(soup)
             catalog_links.extend(pattern_links)
         
         # Method 3: Look for thumbnail-based links
         if not catalog_links:
-            print("      🖼️ No pattern links found, using thumbnail analysis")
+            print("       No pattern links found, using thumbnail analysis")
             thumbnail_links = self.extract_by_thumbnails(soup)
             catalog_links.extend(thumbnail_links)
         
@@ -2362,7 +2934,7 @@ class LocalHTMLDataExtractor:
                     resp.raise_for_status()
                     details_soup = BeautifulSoup(resp.content, 'html.parser')
                 except Exception as e:
-                    print(f"         ⚠️ Failed to fetch detail page: {e}")
+                    print(f"          Failed to fetch detail page: {e}")
             
             # Create a dataset entry and prefer real details when available
             dataset_data = {
@@ -2398,12 +2970,12 @@ class LocalHTMLDataExtractor:
                             dataset_data[k] = v
                             
                 except Exception as e:
-                    print(f"         ⚠️ Detail parse error: {e}")
+                    print(f"          Detail parse error: {e}")
             
             # If we still have many unknowns and this is a developers.google.com page, try headless browser
             if (details_soup is None or 
                 sum(1 for v in dataset_data.values() if v and v != 'Unknown') < 5) and 'developers.google.com' in href:
-                print(f"         🔄 Trying headless browser fallback for better extraction...")
+                print(f"          Trying headless browser fallback for better extraction...")
                 headless_soup = self.extract_with_headless_browser(href)
                 if headless_soup:
                     try:
@@ -2419,9 +2991,9 @@ class LocalHTMLDataExtractor:
                             if k in dataset_data and v:
                                 dataset_data[k] = v
                                 
-                        print(f"         ✅ Headless browser extracted additional data")
+                        print(f"          Headless browser extracted additional data")
                     except Exception as e:
-                        print(f"         ⚠️ Headless extraction error: {e}")
+                        print(f"          Headless extraction error: {e}")
             
             # Extract provider from link text or URL
             if 'copernicus' in text.lower() or 'copernicus' in href.lower():
@@ -2495,16 +3067,16 @@ class LocalHTMLDataExtractor:
             return dataset_data
             
         except Exception as e:
-            print(f"         ❌ Error extracting from dataset link: {e}")
+            print(f"          Error extracting from dataset link: {e}")
             return None
 
     def extract_links_by_thumbnails(self, soup, catalog_links):
         """Extract links by finding ALL thumbnail images and their associated links"""
-        print("     🖼️ Extracting ALL thumbnail-based links...")
+        print("      Extracting ALL thumbnail-based links...")
         
         # Find ALL images that could be thumbnails
         all_images = soup.find_all('img', src=True)
-        print(f"       📊 Found {len(all_images)} total images")
+        print(f"        Found {len(all_images)} total images")
         
         thumbnail_count = 0
         for img in all_images:
@@ -2538,9 +3110,9 @@ class LocalHTMLDataExtractor:
                         thumbnail_count += 1
                         
                         if thumbnail_count <= 10:  # Show first 10 for debugging
-                            print(f"         🖼️ Found thumbnail {thumbnail_count}: {text[:40]}...")
+                            print(f"          Found thumbnail {thumbnail_count}: {text[:40]}...")
         
-        print(f"       ✅ Extracted {thumbnail_count} thumbnail-based links")
+        print(f"        Extracted {thumbnail_count} thumbnail-based links")
         return thumbnail_count
 
     def extract_json_ld_metadata(self, soup):
@@ -2601,7 +3173,7 @@ class LocalHTMLDataExtractor:
                     metadata['category_tags'] = [kw.strip() for kw in content.split(',') if kw.strip()]
             
         except Exception as e:
-            print(f"         ⚠️ JSON-LD extraction error: {e}")
+            print(f"          JSON-LD extraction error: {e}")
         
         return metadata
 
@@ -2612,7 +3184,7 @@ class LocalHTMLDataExtractor:
             try:
                 from playwright.sync_api import sync_playwright
             except ImportError:
-                print("         ⚠️ Playwright not installed. Install with: pip install playwright")
+                print("          Playwright not installed. Install with: pip install playwright")
                 return None
             
             with sync_playwright() as p:
@@ -2639,7 +3211,7 @@ class LocalHTMLDataExtractor:
                 return soup
                 
         except Exception as e:
-            print(f"         ⚠️ Headless browser fallback failed: {e}")
+            print(f"          Headless browser fallback failed: {e}")
             return None
 
 class LocalHTMLDataExtractorUI(QWidget):
@@ -2656,8 +3228,17 @@ class LocalHTMLDataExtractorUI(QWidget):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Satellite Catalog Extractor - Earth Engine Pages")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setWindowTitle(" Flutter Earth - Satellite Catalog Extractor")
+        self.setGeometry(100, 100, 1400, 900)
+        self.setMinimumSize(1200, 800)
+
+        # Set window icon if available
+        try:
+            icon_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logo.ico")
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+        except Exception:
+            pass
         
         # Initialize components
         self.extractor = LocalHTMLDataExtractor()
@@ -2732,30 +3313,39 @@ class LocalHTMLDataExtractorUI(QWidget):
             'noop_mode': False,
             'names_only_mode': True
         }
-        self.log_message("✅ Configuration loaded - Local processing only")
+        self.log_message(" Configuration loaded - Local processing only")
     
     def setup_ui(self):
         """Setup the user interface"""
         layout = QVBoxLayout()
         
-        # File selection group
-        file_group = QGroupBox("HTML Files to Process")
+        # File selection group with enhanced styling
+        file_group = QGroupBox(" HTML Files to Process")
         file_layout = QVBoxLayout()
-        
-        # File list
+
+        # File list with improved height and drag/drop
         self.file_list = QListWidget()
-        self.file_list.setMaximumHeight(150)
+        self.file_list.setMaximumHeight(180)
+        self.file_list.setDragDropMode(QListWidget.DragDropMode.InternalMove)
+        self.file_list.setAcceptDrops(True)
         
-        # File controls
+        # File controls with modern icons
         file_controls = QHBoxLayout()
-        add_files_btn = QPushButton("Add HTML Files")
+        add_files_btn = QPushButton(" Add HTML Files")
         add_files_btn.clicked.connect(self.add_html_files)
-        add_folder_btn = QPushButton("Add Folder")
+        add_files_btn.setToolTip("Select individual HTML files to process")
+
+        add_folder_btn = QPushButton(" Add Folder")
         add_folder_btn.clicked.connect(self.add_html_folder)
-        add_gee_cat_btn = QPushButton("Add GEE Cat Folder")
+        add_folder_btn.setToolTip("Add all HTML files from a folder")
+
+        add_gee_cat_btn = QPushButton(" Add GEE Cat Folder")
         add_gee_cat_btn.clicked.connect(self.add_gee_cat_folder)
-        clear_files_btn = QPushButton("Clear List")
+        add_gee_cat_btn.setToolTip("Add Google Earth Engine catalog folder")
+
+        clear_files_btn = QPushButton(" Clear List")
         clear_files_btn.clicked.connect(self.clear_file_list)
+        clear_files_btn.setToolTip("Remove all files from the list")
         
         file_controls.addWidget(add_files_btn)
         file_controls.addWidget(add_folder_btn)
@@ -2767,35 +3357,46 @@ class LocalHTMLDataExtractorUI(QWidget):
         file_layout.addWidget(self.file_list)
         file_group.setLayout(file_layout)
         
-        # Control buttons
+        # Control buttons with enhanced styling
         control_layout = QHBoxLayout()
-        self.start_btn = QPushButton("Start Extraction")
+        self.start_btn = QPushButton(" Start Extraction")
         self.start_btn.clicked.connect(self.start_extraction)
-        self.stop_btn = QPushButton("Stop")
+        self.start_btn.setToolTip("Begin extracting data from HTML files")
+
+        self.stop_btn = QPushButton(" Stop")
         self.stop_btn.clicked.connect(self.stop_extraction)
         self.stop_btn.setEnabled(False)
+        self.stop_btn.setToolTip("Stop the current extraction process")
         
         # Overwrite checkbox
         self.overwrite_checkbox = QCheckBox("Overwrite existing data")
         self.overwrite_checkbox.setChecked(True)
         
-        # Safe mode and link following controls
-        self.safe_mode_checkbox = QCheckBox("Safe Mode (limit workload)")
+        # Safe mode and link following controls with tooltips
+        self.safe_mode_checkbox = QCheckBox(" Safe Mode (limit workload)")
         self.safe_mode_checkbox.setChecked(True)
-        self.follow_links_checkbox = QCheckBox("Follow external links")
+        self.safe_mode_checkbox.setToolTip("Limits processing to prevent overloading")
+
+        self.follow_links_checkbox = QCheckBox(" Follow external links")
         self.follow_links_checkbox.setChecked(False)
-        self.minimal_mode_checkbox = QCheckBox("Minimal mode (title only)")
+        self.follow_links_checkbox.setToolTip("Follow links to external pages for additional data")
+
+        self.minimal_mode_checkbox = QCheckBox(" Minimal mode (title only)")
         self.minimal_mode_checkbox.setChecked(True)
-        self.noop_mode_checkbox = QCheckBox("No-op mode (extract nothing)")
+        self.minimal_mode_checkbox.setToolTip("Extract only essential data for faster processing")
+
+        self.noop_mode_checkbox = QCheckBox(" No-op mode (extract nothing)")
         self.noop_mode_checkbox.setChecked(True)
-        
-        # Clear data button
-        self.clear_data_btn = QPushButton("Clear Extracted Data")
+        self.noop_mode_checkbox.setToolTip("Test mode - no actual data extraction")
+
+        # Enhanced action buttons
+        self.clear_data_btn = QPushButton(" Clear Extracted Data")
         self.clear_data_btn.clicked.connect(self.clear_extracted_data)
-        
-        # Open output folder button
-        self.open_folder_btn = QPushButton("Open Output Folder")
+        self.clear_data_btn.setToolTip("Remove all extracted data from memory")
+
+        self.open_folder_btn = QPushButton(" Open Output Folder")
         self.open_folder_btn.clicked.connect(self.open_output_folder)
+        self.open_folder_btn.setToolTip("Open the folder containing extracted data")
         
         control_layout.addWidget(self.start_btn)
         control_layout.addWidget(self.stop_btn)
@@ -2815,18 +3416,23 @@ class LocalHTMLDataExtractorUI(QWidget):
         self.status_label = QLabel("Ready - Add HTML files to begin")
         self.status_label.setStyleSheet("font-weight: bold; color: #007acc;")
         
-        # Real-time Data Viewer
-        data_viewer_group = QGroupBox("Real-Time Data Viewer")
+        # Enhanced Real-time Data Viewer
+        data_viewer_group = QGroupBox(" Real-Time Data Viewer & Analytics")
         data_viewer_layout = QVBoxLayout()
-        
-        # Viewer controls
+
+        # Enhanced viewer controls
         viewer_controls = QHBoxLayout()
-        self.refresh_viewer_btn = QPushButton("🔄 Refresh")
+        self.refresh_viewer_btn = QPushButton(" Refresh")
         self.refresh_viewer_btn.clicked.connect(self.refresh_data_viewer)
-        self.export_viewer_btn = QPushButton("📊 Export Data")
+        self.refresh_viewer_btn.setToolTip("Refresh all data views")
+
+        self.export_viewer_btn = QPushButton(" Export Data")
         self.export_viewer_btn.clicked.connect(self.export_viewer_data)
-        self.filter_btn = QPushButton("🔍 Filter")
+        self.export_viewer_btn.setToolTip("Export data to various formats")
+
+        self.filter_btn = QPushButton(" Filter")
         self.filter_btn.clicked.connect(self.show_filter_dialog)
+        self.filter_btn.setToolTip("Apply filters to the data view")
         
         viewer_controls.addWidget(self.refresh_viewer_btn)
         viewer_controls.addWidget(self.export_viewer_btn)
@@ -2839,35 +3445,53 @@ class LocalHTMLDataExtractorUI(QWidget):
         # Tab 1: Summary Dashboard
         self.summary_tab = QWidget()
         self.setup_summary_tab()
-        self.data_viewer_tabs.addTab(self.summary_tab, "📊 Summary Dashboard")
+        self.data_viewer_tabs.addTab(self.summary_tab, " Summary Dashboard")
         
         # Tab 2: Satellite Catalog Table
         self.catalog_tab = QWidget()
         self.setup_catalog_tab()
-        self.data_viewer_tabs.addTab(self.catalog_tab, "🛰️ Satellite Catalog")
+        self.data_viewer_tabs.addTab(self.catalog_tab, " Satellite Catalog")
         
-        # Tab 3: Real-time Extraction Log
+        # Tab 3: Real-time Extraction Log with Live Data
         self.extraction_tab = QWidget()
         self.setup_extraction_tab()
-        self.data_viewer_tabs.addTab(self.extraction_tab, "🔍 Live Extraction")
+        self.data_viewer_tabs.addTab(self.extraction_tab, " Live Extraction")
+
+        # Tab 4: Real-time Dataset Gallery
+        self.gallery_tab = QWidget()
+        self.setup_gallery_tab()
+        self.data_viewer_tabs.addTab(self.gallery_tab, " Dataset Gallery")
         
-        # Tab 4: Data Analysis
+        # Tab 5: Data Analysis
         self.analysis_tab = QWidget()
         self.setup_analysis_tab()
-        self.data_viewer_tabs.addTab(self.analysis_tab, "📈 Data Analysis")
+        self.data_viewer_tabs.addTab(self.analysis_tab, " Data Analysis")
         
         data_viewer_layout.addLayout(viewer_controls)
         data_viewer_layout.addWidget(self.data_viewer_tabs)
         data_viewer_group.setLayout(data_viewer_layout)
         
-        # Console for logging
-        console_group = QGroupBox("Logs")
+        # Enhanced console for logging
+        console_group = QGroupBox(" System Logs & Activity")
         console_layout = QVBoxLayout()
         self.console = QTextEdit()
-        self.console.setMaximumHeight(120)
+        self.console.setMaximumHeight(140)
+        self.console.setFont(QFont("Consolas", 10))
         console_layout.addWidget(self.console)
         console_group.setLayout(console_layout)
         
+        # Create status bar
+        self.status_bar = QLabel("Ready to process files")
+        self.status_bar.setStyleSheet("""
+            QLabel {
+                background-color: #2d2d30;
+                border-top: 1px solid #3f3f46;
+                padding: 8px;
+                color: #cccccc;
+                font-size: 11px;
+            }
+        """)
+
         # Add all components to main layout
         layout.addWidget(file_group)
         layout.addLayout(control_layout)
@@ -2875,7 +3499,8 @@ class LocalHTMLDataExtractorUI(QWidget):
         layout.addWidget(self.status_label)
         layout.addWidget(data_viewer_group)
         layout.addWidget(console_group)
-        
+        layout.addWidget(self.status_bar)
+
         self.setLayout(layout)
         
         # Hide non-essential controls to simplify UI
@@ -2904,24 +3529,24 @@ class LocalHTMLDataExtractorUI(QWidget):
         
         # Create stat widgets
         self.total_satellites_label = QLabel("0")
-        self.total_satellites_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #007acc;")
+        self.total_satellites_label.setStyleSheet("font-size: 28px; font-weight: bold; color: #0078d4; text-align: center;")
         self.total_satellites_desc = QLabel("Total Satellites")
-        self.total_satellites_desc.setStyleSheet("color: #666;")
+        self.total_satellites_desc.setStyleSheet("color: #cccccc; font-weight: 500;")
         
         self.total_datasets_label = QLabel("0")
-        self.total_datasets_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #28a745;")
+        self.total_datasets_label.setStyleSheet("font-size: 28px; font-weight: bold; color: #16a085; text-align: center;")
         self.total_datasets_desc = QLabel("Total Datasets")
-        self.total_datasets_desc.setStyleSheet("color: #666;")
+        self.total_datasets_desc.setStyleSheet("color: #cccccc; font-weight: 500;")
         
         self.total_providers_label = QLabel("0")
-        self.total_providers_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #ffc107;")
+        self.total_providers_label.setStyleSheet("font-size: 28px; font-weight: bold; color: #f39c12; text-align: center;")
         self.total_providers_desc = QLabel("Data Providers")
-        self.total_providers_desc.setStyleSheet("color: #666;")
+        self.total_providers_desc.setStyleSheet("color: #cccccc; font-weight: 500;")
         
         self.extraction_status_label = QLabel("Idle")
-        self.extraction_status_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #6c757d;")
+        self.extraction_status_label.setStyleSheet("font-size: 28px; font-weight: bold; color: #8e8e93; text-align: center;")
         self.extraction_status_desc = QLabel("Extraction Status")
-        self.extraction_status_desc.setStyleSheet("color: #666;")
+        self.extraction_status_desc.setStyleSheet("color: #cccccc; font-weight: 500;")
         
         # Add to grid
         stats_grid.addWidget(self.total_satellites_label, 0, 0)
@@ -3045,9 +3670,9 @@ class LocalHTMLDataExtractorUI(QWidget):
         
         # Analysis controls
         controls_layout = QHBoxLayout()
-        self.analyze_btn = QPushButton("🔍 Analyze Data")
+        self.analyze_btn = QPushButton(" Analyze Data")
         self.analyze_btn.clicked.connect(self.analyze_extracted_data)
-        self.generate_report_btn = QPushButton("📋 Generate Report")
+        self.generate_report_btn = QPushButton(" Generate Report")
         self.generate_report_btn.clicked.connect(self.generate_analysis_report)
         
         controls_layout.addWidget(self.analyze_btn)
@@ -3062,7 +3687,282 @@ class LocalHTMLDataExtractorUI(QWidget):
         layout.addLayout(controls_layout)
         layout.addWidget(self.analysis_text)
         self.analysis_tab.setLayout(layout)
-    
+
+    def setup_gallery_tab(self):
+        """Setup the real-time dataset gallery tab with thumbnails"""
+        layout = QVBoxLayout()
+
+        # Gallery controls
+        controls_layout = QHBoxLayout()
+
+        self.gallery_refresh_btn = QPushButton(" Refresh Gallery")
+        self.gallery_refresh_btn.clicked.connect(self.refresh_gallery)
+
+        self.gallery_clear_btn = QPushButton(" Clear Gallery")
+        self.gallery_clear_btn.clicked.connect(self.clear_gallery)
+
+        self.gallery_filter_combo = QComboBox()
+        self.gallery_filter_combo.addItems(['All', 'Landsat', 'MODIS', 'Sentinel', 'Climate', 'Ocean', 'Terrain'])
+        self.gallery_filter_combo.currentTextChanged.connect(self.filter_gallery)
+
+        controls_layout.addWidget(self.gallery_refresh_btn)
+        controls_layout.addWidget(self.gallery_clear_btn)
+        controls_layout.addWidget(QLabel("Filter:"))
+        controls_layout.addWidget(self.gallery_filter_combo)
+        controls_layout.addStretch()
+
+        # Gallery scroll area with thumbnail grid
+        self.gallery_scroll_area = QScrollArea()
+        self.gallery_widget = QWidget()
+        self.gallery_layout = QGridLayout(self.gallery_widget)
+        self.gallery_layout.setSpacing(10)
+
+        self.gallery_scroll_area.setWidget(self.gallery_widget)
+        self.gallery_scroll_area.setWidgetResizable(True)
+        self.gallery_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.gallery_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+        # Gallery info panel
+        self.gallery_info = QTextEdit()
+        self.gallery_info.setMaximumHeight(120)
+        self.gallery_info.setPlaceholderText("Select a dataset thumbnail to view details...")
+
+        layout.addLayout(controls_layout)
+        layout.addWidget(self.gallery_scroll_area, 3)  # Give more space to gallery
+        layout.addWidget(QLabel("Dataset Details:"))
+        layout.addWidget(self.gallery_info, 1)
+
+        self.gallery_tab.setLayout(layout)
+
+    def refresh_gallery(self):
+        """Refresh the gallery with current datasets"""
+        try:
+            self.clear_gallery()
+            self.populate_gallery()
+        except Exception as e:
+            self.log_error(f"Failed to refresh gallery: {e}")
+
+    def clear_gallery(self):
+        """Clear all thumbnails from the gallery"""
+        try:
+            # Remove all widgets from gallery layout
+            while self.gallery_layout.count():
+                child = self.gallery_layout.takeAt(0)
+                if child.widget():
+                    child.widget().deleteLater()
+        except Exception as e:
+            self.log_error(f"Failed to clear gallery: {e}")
+
+    def filter_gallery(self, filter_text):
+        """Filter gallery by dataset category"""
+        try:
+            # Re-populate gallery with filtered results
+            self.clear_gallery()
+            self.populate_gallery(filter_category=filter_text.lower() if filter_text != 'All' else None)
+        except Exception as e:
+            self.log_error(f"Failed to filter gallery: {e}")
+
+    def populate_gallery(self, filter_category=None):
+        """Populate gallery with dataset thumbnails"""
+        try:
+            row = 0
+            col = 0
+            max_cols = 4
+
+            for data in self.extracted_data:
+                datasets = data.get('satellite_catalog', {}).get('datasets', [])
+                if not datasets:
+                    continue
+
+                for dataset in datasets:
+                    # Apply filter if specified
+                    if filter_category:
+                        dataset_category = self.extractor.classify_single_dataset(dataset)
+                        if dataset_category != filter_category:
+                            continue
+
+                    # Create thumbnail widget
+                    thumbnail_widget = self.create_thumbnail_widget(dataset)
+                    if thumbnail_widget:
+                        self.gallery_layout.addWidget(thumbnail_widget, row, col)
+
+                        col += 1
+                        if col >= max_cols:
+                            col = 0
+                            row += 1
+
+        except Exception as e:
+            self.log_error(f"Failed to populate gallery: {e}")
+
+    def create_thumbnail_widget(self, dataset):
+        """Create a thumbnail widget for a dataset"""
+        try:
+            # Main widget container
+            widget = QWidget()
+            widget.setFixedSize(200, 280)
+            widget.setStyleSheet("""
+                QWidget {
+                    border: 2px solid #3f3f46;
+                    border-radius: 8px;
+                    background-color: #2d2d30;
+                    margin: 4px;
+                }
+                QWidget:hover {
+                    border-color: #0078d4;
+                    background-color: #373738;
+                }
+            """)
+
+            layout = QVBoxLayout(widget)
+
+            # Thumbnail image
+            thumbnail_label = QLabel()
+            thumbnail_label.setFixedSize(180, 140)
+            thumbnail_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            thumbnail_label.setStyleSheet("border: 1px solid #555; background-color: #1e1e1e;")
+
+            # Load thumbnail image
+            thumbnail_path = dataset.get('thumbnail_local_path', '')
+            if thumbnail_path and os.path.exists(thumbnail_path):
+                pixmap = QPixmap(thumbnail_path)
+                if not pixmap.isNull():
+                    scaled_pixmap = pixmap.scaled(
+                        thumbnail_label.size(),
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation
+                    )
+                    thumbnail_label.setPixmap(scaled_pixmap)
+                else:
+                    thumbnail_label.setText("\nNo Image")
+            else:
+                thumbnail_label.setText("\nNo Image")
+
+            # Dataset title
+            title_label = QLabel(dataset.get('title', 'Unknown Dataset')[:40] + "...")
+            title_label.setWordWrap(True)
+            title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            title_label.setStyleSheet("font-weight: bold; color: #ffffff; border: none;")
+
+            # Category badge
+            category = self.extractor.classify_single_dataset(dataset)
+            category_label = QLabel(category.title())
+            category_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            category_label.setStyleSheet(f"""
+                QLabel {{
+                    background-color: {self.get_category_color(category)};
+                    color: white;
+                    padding: 2px 8px;
+                    border-radius: 12px;
+                    border: none;
+                    font-size: 10px;
+                    font-weight: bold;
+                }}
+            """)
+
+            # Confidence score
+            confidence = dataset.get('confidence_score', 0)
+            completeness = dataset.get('data_completeness', 0)
+            stats_label = QLabel(f"Quality: {confidence}% | Complete: {completeness}%")
+            stats_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            stats_label.setStyleSheet("font-size: 9px; color: #cccccc; border: none;")
+
+            layout.addWidget(thumbnail_label)
+            layout.addWidget(title_label)
+            layout.addWidget(category_label)
+            layout.addWidget(stats_label)
+
+            # Make widget clickable
+            widget.mousePressEvent = lambda event, ds=dataset: self.show_dataset_details(ds)
+
+            return widget
+
+        except Exception as e:
+            self.log_error(f"Failed to create thumbnail widget: {e}")
+            return None
+
+    def get_category_color(self, category):
+        """Get color for dataset category"""
+        colors = {
+            'landsat': '#16a085',
+            'modis': '#e67e22',
+            'sentinel': '#9b59b6',
+            'climate': '#3498db',
+            'ocean': '#2980b9',
+            'terrain': '#8e44ad',
+            'weather': '#f39c12',
+            'vegetation': '#27ae60',
+            'atmospheric': '#34495e',
+            'urban': '#e74c3c',
+            'other': '#7f8c8d'
+        }
+        return colors.get(category, '#7f8c8d')
+
+    def show_dataset_details(self, dataset):
+        """Show detailed information about a selected dataset"""
+        try:
+            details = f"""
+ Dataset: {dataset.get('title', 'Unknown')}
+ ID: {dataset.get('dataset_id', 'N/A')}
+ Provider: {dataset.get('provider', 'N/A')}
+ Temporal: {dataset.get('temporal_coverage', {}).get('start_date', 'N/A')} to {dataset.get('temporal_coverage', {}).get('end_date', 'N/A')}
+ Resolution: {dataset.get('spatial_info', {}).get('resolution', 'N/A')}
+ Tags: {', '.join(dataset.get('tags', []))}
+ Description: {dataset.get('description', 'N/A')[:200]}...
+ URL: {dataset.get('url', 'N/A')}
+ Confidence: {dataset.get('confidence_score', 0)}%
+ Completeness: {dataset.get('data_completeness', 0)}%
+"""
+            self.gallery_info.setText(details.strip())
+        except Exception as e:
+            self.log_error(f"Failed to show dataset details: {e}")
+
+    def update_gallery_realtime(self, collection_info):
+        """Update gallery in real-time as new datasets are extracted"""
+        try:
+            # Check if collection has datasets
+            datasets = collection_info.get('satellite_catalog', {}).get('datasets', [])
+            if not datasets:
+                return
+
+            # Get current filter
+            current_filter = self.gallery_filter_combo.currentText().lower()
+            filter_category = current_filter if current_filter != 'all' else None
+
+            # Add new thumbnails for each dataset
+            current_row = self.gallery_layout.rowCount()
+            current_col = 0
+            max_cols = 4
+
+            for dataset in datasets:
+                # Apply filter if specified
+                if filter_category:
+                    dataset_category = self.extractor.classify_single_dataset(dataset)
+                    if dataset_category != filter_category:
+                        continue
+
+                # Create and add thumbnail widget
+                thumbnail_widget = self.create_thumbnail_widget(dataset)
+                if thumbnail_widget:
+                    # Find next available position
+                    while self.gallery_layout.itemAtPosition(current_row, current_col):
+                        current_col += 1
+                        if current_col >= max_cols:
+                            current_col = 0
+                            current_row += 1
+
+                    self.gallery_layout.addWidget(thumbnail_widget, current_row, current_col)
+
+                    current_col += 1
+                    if current_col >= max_cols:
+                        current_col = 0
+                        current_row += 1
+
+            # Update gallery widget
+            self.gallery_widget.update()
+
+        except Exception as e:
+            self.log_error(f"Failed to update gallery in real-time: {e}")
+
     def add_html_files(self):
         """Add individual HTML files"""
         file_paths, _ = QFileDialog.getOpenFileNames(
@@ -3071,7 +3971,7 @@ class LocalHTMLDataExtractorUI(QWidget):
         for file_path in file_paths:
             if file_path not in [self.file_list.item(i).text() for i in range(self.file_list.count())]:
                 self.file_list.addItem(file_path)
-        self.log_message(f"📁 Added {len(file_paths)} HTML files")
+        self.log_message(f" Added {len(file_paths)} HTML files")
         try:
             _log_json('ui_add_files', count=len(file_paths))
         except Exception:
@@ -3094,7 +3994,7 @@ class LocalHTMLDataExtractorUI(QWidget):
             for file_path in new_files:
                 self.file_list.addItem(file_path)
             
-            self.log_message(f"📁 Added {len(new_files)} HTML files from folder")
+            self.log_message(f" Added {len(new_files)} HTML files from folder")
             try:
                 _log_json('ui_add_folder', folder=folder_path, added=len(new_files))
             except Exception:
@@ -3119,20 +4019,20 @@ class LocalHTMLDataExtractorUI(QWidget):
                 for file_path in new_files:
                     self.file_list.addItem(file_path)
                 
-                self.log_message(f"🌍 Added {len(new_files)} HTML files from GEE Cat folder")
-                self.log_message(f"📁 GEE Cat path: {gee_cat_path}")
+                self.log_message(f" Added {len(new_files)} HTML files from GEE Cat folder")
+                self.log_message(f" GEE Cat path: {gee_cat_path}")
                 try:
                     _log_json('ui_add_gee_cat', path=gee_cat_path, added=len(new_files))
                 except Exception:
                     pass
             else:
-                self.log_message("⚠️ No HTML files found in GEE Cat folder")
+                self.log_message(" No HTML files found in GEE Cat folder")
                 try:
                     _log_json('ui_add_gee_cat_empty', path=gee_cat_path)
                 except Exception:
                     pass
         else:
-            self.log_message("❌ GEE Cat folder not found")
+            self.log_message(" GEE Cat folder not found")
             QMessageBox.warning(self, "Warning", "GEE Cat folder not found in the expected location.")
             try:
                 _log_json('ui_add_gee_cat_missing', path=gee_cat_path)
@@ -3142,7 +4042,7 @@ class LocalHTMLDataExtractorUI(QWidget):
     def clear_file_list(self):
         """Clear the file list"""
         self.file_list.clear()
-        self.log_message("🗑️ File list cleared")
+        self.log_message(" File list cleared")
         try:
             _log_json('ui_clear_files')
         except Exception:
@@ -3216,8 +4116,8 @@ class LocalHTMLDataExtractorUI(QWidget):
             self.progress_bar.setVisible(True)
             self.status_updated.emit("Starting extraction...")
             
-            self.log_message(f"🚀 Starting local HTML data extraction...")
-            self.log_message(f"📁 Processing {total_files} HTML files")
+            self.log_message(f" Starting local HTML data extraction...")
+            self.log_message(f" Processing {total_files} HTML files")
             _log_json('worker_begin_processing', total=total_files)
             
             # Process files in batches
@@ -3228,12 +4128,12 @@ class LocalHTMLDataExtractorUI(QWidget):
                     break
                 _log_json('worker_process_file', index=i+1, total=total_files, file=file_path)
                 
-                self.log_message(f"🔍 Processing {i+1}/{total_files}: {os.path.basename(file_path)}")
+                self.log_message(f" Processing {i+1}/{total_files}: {os.path.basename(file_path)}")
                 success = self.process_html_file(file_path, i+1, total_files)
                 
                 if success:
                     # Now follow links found in this file to extract data from each linked page
-                    self.log_message(f"🔗 Following links from {os.path.basename(file_path)} to extract data from each page...")
+                    self.log_message(f" Following links from {os.path.basename(file_path)} to extract data from each page...")
                     self.follow_links_from_file(file_path, i+1, total_files)
                     _log_json('worker_file_done', file=file_path)
                     
@@ -3245,12 +4145,12 @@ class LocalHTMLDataExtractorUI(QWidget):
                 if (i + 1) % batch_size == 0:
                     self.cleanup_memory()
         
-            self.log_message("✅ Local extraction completed!")
+            self.log_message(" Local extraction completed!")
             self.show_summary()
             _log_json('worker_complete')
             
         except Exception as e:
-            self.log_error(f"❌ Extraction failed: {e}")
+            self.log_error(f" Extraction failed: {e}")
             _log_json('worker_error', error=str(e))
         finally:
             self.extraction_finished()
@@ -3277,7 +4177,7 @@ class LocalHTMLDataExtractorUI(QWidget):
                         img_links.append({'href': href, 'text': text})
             
             self.total_links = len(img_links)
-            self.log_message(f"🖼️ Image links discovered: {self.total_links}")
+            self.log_message(f" Image links discovered: {self.total_links}")
             _log_json('image_links_discovered', file=file_path, count=self.total_links)
             if self.total_links == 0:
                 return
@@ -3293,7 +4193,7 @@ class LocalHTMLDataExtractorUI(QWidget):
                     resp = self.session.get(url, timeout=self.extractor.config.get('performance', {}).get('timeout', 15))
                     status = resp.status_code
                     if status != 200:
-                        self.log_message(f"   ⚠️ HTTP {status} for {url}")
+                        self.log_message(f"    HTTP {status} for {url}")
                         _log_json('fetch_non_200', url=url, status=status)
                         continue
                     page_html = resp.text
@@ -3304,7 +4204,7 @@ class LocalHTMLDataExtractorUI(QWidget):
                         page_soup = BeautifulSoup(page_html, 'html.parser')
                     names = self.extract_names_from_soup(page_soup)
                     title = (page_soup.title.get_text().strip() if page_soup.title else '')
-                    self.log_message(f"   ✅ Names: {len(names)} | Title: {title[:60]}")
+                    self.log_message(f"    Names: {len(names)} | Title: {title[:60]}")
                     _log_json('link_names_extracted', url=url, count=len(names), sample=names[:5])
                     data = {
                         'source_file': file_path,
@@ -3316,18 +4216,18 @@ class LocalHTMLDataExtractorUI(QWidget):
                     }
                     json_file = self.extractor.save_data_to_json(data, file_path)
                     if json_file:
-                        self.log_message(f"   💾 Saved: {os.path.basename(json_file)}")
+                        self.log_message(f"    Saved: {os.path.basename(json_file)}")
                         _log_json('link_saved', url=url, json=json_file)
                 except Exception as e:
-                    self.log_message(f"   ❌ Link processing failed: {e}")
+                    self.log_message(f"    Link processing failed: {e}")
                     _log_json('link_error', url=url, error=str(e))
                 finally:
                     # Small delay to keep UI responsive
                     time.sleep(0.1)
             
-            self.log_message(f"✅ Completed processing {self.total_links} image links")
+            self.log_message(f" Completed processing {self.total_links} image links")
         except Exception as e:
-            self.log_error(f"❌ Failed to process image links from {os.path.basename(file_path)}: {e}")
+            self.log_error(f" Failed to process image links from {os.path.basename(file_path)}: {e}")
     
     def cleanup_memory(self):
         """Clean up memory to prevent infinite growth"""
@@ -3338,10 +4238,10 @@ class LocalHTMLDataExtractorUI(QWidget):
             # Log memory usage
             process = psutil.Process()
             memory_mb = process.memory_info().rss / 1024 / 1024
-            self.log_message(f"💾 Memory usage: {memory_mb:.1f} MB")
+            self.log_message(f" Memory usage: {memory_mb:.1f} MB")
             
         except Exception as e:
-            self.log_message(f"⚠️ Memory cleanup failed: {e}")
+            self.log_message(f" Memory cleanup failed: {e}")
     
     def process_html_file(self, file_path, current, total):
         """Hard-disabled file processing"""
@@ -3355,7 +4255,7 @@ class LocalHTMLDataExtractorUI(QWidget):
             
         except Exception as e:
             self.failed_extractions += 1
-            self.error_updated.emit(f"❌ Failed in hard-disable path for {file_path}: {e}")
+            self.error_updated.emit(f" Failed in hard-disable path for {file_path}: {e}")
             _logger.exception("file_processing_error_hard")
             _log_json('file_processing_error_hard', file=file_path, error=str(e))
             return False
@@ -3370,13 +4270,13 @@ class LocalHTMLDataExtractorUI(QWidget):
                 if '/datasets/catalog/' in url and not url.endswith('/catalog'):
                     links.append(url)
         
-        self.log_message(f"🔗 Found {len(links)} catalog links to process")
+        self.log_message(f" Found {len(links)} catalog links to process")
         
         # Process ALL links found
-        self.log_message(f"📊 Processing ALL {len(links)} links to extract data from each page")
+        self.log_message(f" Processing ALL {len(links)} links to extract data from each page")
         
         if not links:
-            self.log_message("⚠️ No valid links found")
+            self.log_message(" No valid links found")
             return
         
         # Process links
@@ -3384,7 +4284,7 @@ class LocalHTMLDataExtractorUI(QWidget):
             if self.stop_requested:
                 break
             
-            self.log_message(f"🔍 Processing {i+1}/{len(links)}: {url}")
+            self.log_message(f" Processing {i+1}/{len(links)}: {url}")
             success = self.process_link(url, i+1, len(links))
             
             if success:
@@ -3396,7 +4296,7 @@ class LocalHTMLDataExtractorUI(QWidget):
             if (i + 1) % 10 == 0:
                 self.cleanup_memory()
         
-        self.log_message("✅ Collection completed!")
+        self.log_message(" Collection completed!")
         self.show_summary()
     
     def process_link(self, url, current, total):
@@ -3441,7 +4341,7 @@ class LocalHTMLDataExtractorUI(QWidget):
                     # Check if response is HTML
                     content_type = response.headers.get('content-type', '').lower()
                     if not content_type.startswith('text/html'):
-                        self.log_error(f"❌ URL does not return HTML: {content_type} - {url}")
+                        self.log_error(f" URL does not return HTML: {content_type} - {url}")
                         return False
                     
                     break  # Success, exit retry loop
@@ -3471,7 +4371,7 @@ class LocalHTMLDataExtractorUI(QWidget):
                         return False
                         
                 except Exception as e:
-                    self.log_error(f"❌ Request failed (attempt {attempt + 1}/{max_retries}): {e} - {url}")
+                    self.log_error(f" Request failed (attempt {attempt + 1}/{max_retries}): {e} - {url}")
                     if attempt < max_retries - 1:
                         time.sleep(retry_delay)
                         retry_delay *= 2
@@ -3482,7 +4382,7 @@ class LocalHTMLDataExtractorUI(QWidget):
             try:
                 soup = BeautifulSoup(response.content, 'html.parser')
             except Exception as e:
-                self.log_error(f"❌ Failed to parse response: {e}")
+                self.log_error(f" Failed to parse response: {e}")
                 return False
             
             # Collect ALL data from the linked page using the extractor
@@ -3532,34 +4432,37 @@ class LocalHTMLDataExtractorUI(QWidget):
                 self.successful_extractions += 1
                 self.processed_urls.add(url)
                 self.data_updated.emit()
+
+                # Update gallery in real-time
+                self.update_gallery_realtime(collection_info)
                 
                 self.log_updated.emit(
-                    f"✅ {data.get('title', 'Unknown')[:50]}... "
+                    f" {data.get('title', 'Unknown')[:50]}... "
                     f"(Saved to: {os.path.basename(json_file)})"
                 )
                 
-                self.log_message(f"🎯 Data extracted from linked page: {url}")
+                self.log_message(f" Data extracted from linked page: {url}")
                 if data.get('satellite_catalog'):
                     catalog = data['satellite_catalog']
-                    self.log_message(f"   🛰️ Layer: {catalog.get('layer_name', 'Unknown')}")
+                    self.log_message(f"    Layer: {catalog.get('layer_name', 'Unknown')}")
                     self.log_message(f"   🏢 Provider: {catalog.get('dataset_provider', 'Unknown')}")
-                    self.log_message(f"   🌍 Location: {catalog.get('location', 'Unknown')}")
-                    self.log_message(f"   📅 Date Range: {catalog.get('date_range', {}).get('start', '')} to {catalog.get('date_range', {}).get('end', '')}")
-                    self.log_message(f"   📊 Bands: {len(catalog.get('band_information', []))}")
-                    self.log_message(f"   🖼️ Thumbnails: {len(catalog.get('thumbnails', []))}")
+                    self.log_message(f"    Location: {catalog.get('location', 'Unknown')}")
+                    self.log_message(f"    Date Range: {catalog.get('date_range', {}).get('start', '')} to {catalog.get('date_range', {}).get('end', '')}")
+                    self.log_message(f"    Bands: {len(catalog.get('band_information', []))}")
+                    self.log_message(f"    Thumbnails: {len(catalog.get('thumbnails', []))}")
                 else:
-                    self.log_message(f"   📊 General data extracted (no satellite catalog data found)")
-                    self.log_message(f"   📁 File processed: {os.path.basename(file_path)}")
+                    self.log_message(f"    General data extracted (no satellite catalog data found)")
+                    self.log_message(f"    File processed: {os.path.basename(file_path)}")
             
             else:
                 self.failed_extractions += 1
-                self.log_updated.emit(f"⚠️ Failed to save data for: {url}")
+                self.log_updated.emit(f" Failed to save data for: {url}")
             
             return True
             
         except Exception as e:
             self.failed_extractions += 1
-            self.error_updated.emit(f"❌ Failed to process {url}: {e}")
+            self.error_updated.emit(f" Failed to process {url}: {e}")
             return False
     
     def update_progress(self, current, total):
@@ -3601,13 +4504,13 @@ class LocalHTMLDataExtractorUI(QWidget):
             # Color code based on level
             if level == "error":
                 color = "#dc3545"
-                icon = "❌"
+                icon = ""
             elif level == "warning":
                 color = "#ffc107"
-                icon = "⚠️"
+                icon = ""
             elif level == "success":
                 color = "#28a745"
-                icon = "✅"
+                icon = ""
             else:
                 color = "#007acc"
                 icon = "ℹ️"
@@ -3810,12 +4713,12 @@ class LocalHTMLDataExtractorUI(QWidget):
             if export_csv:
                 csv_file = os.path.join(export_dir, f"satellite_catalog_{timestamp}.csv")
                 self.export_to_csv(csv_file)
-                self.log_message(f"📊 Exported CSV: {os.path.basename(csv_file)}")
+                self.log_message(f" Exported CSV: {os.path.basename(csv_file)}")
             
             if export_json:
                 json_file = os.path.join(export_dir, f"satellite_catalog_{timestamp}.json")
                 self.export_to_json(json_file)
-                self.log_message(f"📄 Exported JSON: {os.path.basename(json_file)}")
+                self.log_message(f" Exported JSON: {os.path.basename(json_file)}")
             
             if export_summary:
                 html_file = os.path.join(export_dir, f"satellite_summary_{timestamp}.html")
@@ -3920,7 +4823,7 @@ class LocalHTMLDataExtractorUI(QWidget):
             </head>
             <body>
                 <div class="header">
-                    <h1>🛰️ Satellite Catalog Summary Report</h1>
+                    <h1> Satellite Catalog Summary Report</h1>
                     <p>Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
                 </div>
                 
@@ -3943,7 +4846,7 @@ class LocalHTMLDataExtractorUI(QWidget):
                     </div>
                 </div>
                 
-                <h2>📊 Satellite Catalog Data</h2>
+                <h2> Satellite Catalog Data</h2>
                 <table>
                     <tr>
                         <th>Layer Name</th>
@@ -4045,7 +4948,7 @@ class LocalHTMLDataExtractorUI(QWidget):
             self.update_catalog_table_with_filters()
             
             dialog.accept()
-            self.log_message(f"🔍 Applied filters: Provider='{provider}', Location='{location}', GEE={has_gee}, DOI={has_doi}")
+            self.log_message(f" Applied filters: Provider='{provider}', Location='{location}', GEE={has_gee}, DOI={has_doi}")
             
         except Exception as e:
             self.log_error(f"Failed to apply filters: {e}")
@@ -4088,7 +4991,7 @@ class LocalHTMLDataExtractorUI(QWidget):
     def analyze_extracted_data(self):
         """Analyze the extracted satellite catalog data"""
         try:
-            analysis_text = "🔍 Satellite Catalog Data Analysis\n"
+            analysis_text = " Satellite Catalog Data Analysis\n"
             analysis_text += "=" * 50 + "\n\n"
             
             if not self.extracted_data:
@@ -4101,7 +5004,7 @@ class LocalHTMLDataExtractorUI(QWidget):
             complete_datasets = len([d for d in self.extracted_data if d.get('satellite_catalog', {}).get('layer_name')])
             incomplete_datasets = total_datasets - complete_datasets
             
-            analysis_text += f"📊 Basic Statistics:\n"
+            analysis_text += f" Basic Statistics:\n"
             analysis_text += f"   • Total datasets processed: {total_datasets}\n"
             analysis_text += f"   • Complete datasets: {complete_datasets}\n"
             analysis_text += f"   • Incomplete datasets: {incomplete_datasets}\n"
@@ -4137,7 +5040,7 @@ class LocalHTMLDataExtractorUI(QWidget):
                     date_ranges.append(data['satellite_catalog']['date_range']['start'])
             
             if date_ranges:
-                analysis_text += f"📅 Temporal Analysis:\n"
+                analysis_text += f" Temporal Analysis:\n"
                 analysis_text += f"   • Earliest date: {min(date_ranges)}\n"
                 analysis_text += f"   • Latest date: {max(date_ranges)}\n"
                 analysis_text += f"   • Date ranges found: {len(date_ranges)}\n\n"
@@ -4170,7 +5073,7 @@ class LocalHTMLDataExtractorUI(QWidget):
             # Generate comprehensive HTML report
             self.generate_comprehensive_report(report_file)
             
-            self.log_message(f"📋 Generated analysis report: {os.path.basename(report_file)}")
+            self.log_message(f" Generated analysis report: {os.path.basename(report_file)}")
             QMessageBox.information(self, "Report Generated", f"Analysis report saved to:\n{report_file}")
             
         except Exception as e:
@@ -4268,18 +5171,18 @@ class LocalHTMLDataExtractorUI(QWidget):
         """Update real-time data viewer with current extraction progress"""
         try:
             # Update current file being processed
-            self.current_file_label.setText(f"📁 {os.path.basename(file_path)}")
+            self.current_file_label.setText(f" {os.path.basename(file_path)}")
             
             # Update extraction status
             if data.get('satellite_catalog'):
                 catalog = data['satellite_catalog']
                 layer_name = catalog.get('layer_name', 'Unknown')
-                self.current_status_label.setText(f"🛰️ Extracting: {layer_name}")
+                self.current_status_label.setText(f" Extracting: {layer_name}")
                 
                 # Add to live extraction log
                 self.add_extraction_log_entry(f"Processing satellite: {layer_name}", "info")
             else:
-                self.current_status_label.setText("📊 Extracting general data...")
+                self.current_status_label.setText(" Extracting general data...")
                 self.add_extraction_log_entry(f"Processing file: {os.path.basename(file_path)}", "info")
             
             # Update progress bars
@@ -4419,7 +5322,7 @@ class LocalHTMLDataExtractorUI(QWidget):
                 if catalog.get('dataset_provider'): completeness += 1
                 if catalog.get('gee_code_snippet'): completeness += 1
                 if catalog.get('doi'): completeness += 1
-                status = '✅ Complete' if completeness >= 4 else ('➕ Partial' if completeness >= 2 else '⚠️ Incomplete')
+                status = ' Complete' if completeness >= 4 else ('➕ Partial' if completeness >= 2 else ' Incomplete')
                 self.catalog_table.setItem(row, 14, QTableWidgetItem(status))
                 
         except Exception as e:
@@ -4461,7 +5364,7 @@ class LocalHTMLDataExtractorUI(QWidget):
         self.current_status_label.setText("Extraction completed")
         
         # Add completion entry to extraction log
-        self.add_extraction_log_entry("✅ Extraction completed successfully", "success")
+        self.add_extraction_log_entry(" Extraction completed successfully", "success")
         
         # End comprehensive logging
         self.end_extraction_logging()
@@ -4471,10 +5374,10 @@ class LocalHTMLDataExtractorUI(QWidget):
         self.start_time = datetime.now()
         session_id = self.start_time.strftime('%Y%m%d_%H%M%S')
         
-        self.log_message(f"🚀 Starting local extraction session: {session_id}")
-        self.log_message(f"📊 Initial statistics: Processed={self.total_processed}, Success={self.successful_extractions}, Failed={self.failed_extractions}")
+        self.log_message(f" Starting local extraction session: {session_id}")
+        self.log_message(f" Initial statistics: Processed={self.total_processed}, Success={self.successful_extractions}, Failed={self.failed_extractions}")
         self.log_message(f"⚙️ Configuration: Batch size={self.config['processing']['batch_size']}")
-        self.log_message(f"🔄 Overwrite mode: {'Enabled' if self.overwrite_checkbox.isChecked() else 'Disabled'}")
+        self.log_message(f" Overwrite mode: {'Enabled' if self.overwrite_checkbox.isChecked() else 'Disabled'}")
     
     def end_extraction_logging(self):
         """End extraction session with comprehensive statistics"""
@@ -4482,7 +5385,7 @@ class LocalHTMLDataExtractorUI(QWidget):
             duration = datetime.now() - self.start_time
             self.log_message(f"⏱️ Extraction session duration: {duration}")
         
-        self.log_message(f"📊 Final statistics:")
+        self.log_message(f" Final statistics:")
         self.log_message(f"   Total processed: {self.total_processed}")
         self.log_message(f"   Successful extractions: {self.successful_extractions}")
         self.log_message(f"   Failed extractions: {self.failed_extractions}")
@@ -4491,8 +5394,8 @@ class LocalHTMLDataExtractorUI(QWidget):
             success_rate = (self.successful_extractions / self.total_processed) * 100
             self.log_message(f"   Success rate: {success_rate:.1f}%")
         
-        self.log_message(f"💾 Data files created: {len(self.extracted_data)}")
-        self.log_message(f"📁 Output directory: {self.extractor.output_dir}")
+        self.log_message(f" Data files created: {len(self.extracted_data)}")
+        self.log_message(f" Output directory: {self.extractor.output_dir}")
     
     def log_message(self, message):
         """Log message to console (thread-safe)"""
@@ -4548,7 +5451,7 @@ class LocalHTMLDataExtractorUI(QWidget):
         self.update_summary_dashboard()
         self.update_catalog_table()
         self.update_extraction_progress()
-        self.log_message("🔄 Data viewer refreshed")
+        self.log_message(" Data viewer refreshed")
     
     def clear_extracted_data(self):
         """Clear extracted data from memory"""
@@ -4563,19 +5466,19 @@ class LocalHTMLDataExtractorUI(QWidget):
         self.update_catalog_table()
         self.update_extraction_progress()
         
-        self.log_message("🗑️ Extracted data cleared from memory")
+        self.log_message(" Extracted data cleared from memory")
     
     def open_output_folder(self):
         """Open the output folder in file explorer"""
         try:
             os.startfile(self.extractor.output_dir)
-            self.log_message(f"📁 Opened output folder: {self.extractor.output_dir}")
+            self.log_message(f" Opened output folder: {self.extractor.output_dir}")
             try:
                 _log_json('ui_open_output', path=self.extractor.output_dir)
             except Exception:
                 pass
         except Exception as e:
-            self.log_error(f"❌ Failed to open output folder: {e}")
+            self.log_error(f" Failed to open output folder: {e}")
     
     def show_statistics(self):
         """Show statistics about the extracted data"""
@@ -4591,7 +5494,7 @@ class LocalHTMLDataExtractorUI(QWidget):
         total_forms = sum(data.get('form_count', 0) for data in self.extracted_data)
         
         stats_text = f"""
-        📊 LOCAL EXTRACTION STATISTICS
+         LOCAL EXTRACTION STATISTICS
         
         Total Items: {total_items}
         Total File Size: {total_size:,} characters
@@ -4614,20 +5517,26 @@ class LocalHTMLDataExtractorUI(QWidget):
     
     def apply_dark_theme(self):
         """Apply dark theme styling"""
-        # Dark theme colors
-        dark_bg = "#2b2b2b"
-        dark_text = "#ffffff"
-        dark_alt_bg = "#3c3c3c"
-        dark_border = "#555555"
-        dark_highlight = "#007acc"
+        # Enhanced dark theme colors
+        dark_bg = "#1e1e1e"          # Darker main background
+        dark_text = "#ffffff"        # White text
+        dark_alt_bg = "#2d2d30"      # Slightly lighter alternate background
+        dark_border = "#3f3f46"      # Subtle borders
+        dark_highlight = "#0078d4"   # Modern blue accent
+        dark_hover = "#005a9e"       # Darker blue for hover
+        dark_success = "#16a085"     # Green for success states
+        dark_warning = "#f39c12"     # Orange for warnings
+        dark_danger = "#e74c3c"      # Red for errors
         
         # Main application styling
         self.setStyleSheet(f"""
             QWidget {{
                 background-color: {dark_bg};
                 color: {dark_text};
-                font-family: 'Segoe UI', Arial, sans-serif;
-                font-size: 12px;
+                font-family: 'Segoe UI', 'SF Pro Display', Arial, sans-serif;
+                font-size: 13px;
+                selection-background-color: {dark_highlight};
+                selection-color: white;
             }}
             
             QGroupBox {{
@@ -4667,7 +5576,9 @@ class LocalHTMLDataExtractorUI(QWidget):
             }}
             
             QPushButton:hover {{
-                background-color: #005a9e;
+                background-color: {dark_hover};
+                transform: translateY(-1px);
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
             }}
             
             QPushButton:disabled {{
@@ -4706,12 +5617,62 @@ class LocalHTMLDataExtractorUI(QWidget):
                 border: 1px solid {dark_alt_bg};
                 font-weight: bold;
             }}
+
+            QCheckBox {{
+                spacing: 8px;
+                font-weight: 500;
+            }}
+
+            QCheckBox::indicator {{
+                width: 18px;
+                height: 18px;
+                border-radius: 3px;
+                border: 2px solid {dark_border};
+                background-color: {dark_alt_bg};
+            }}
+
+            QCheckBox::indicator:checked {{
+                background-color: {dark_highlight};
+                border-color: {dark_highlight};
+                image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQiIGhlaWdodD0iMTAiIHZpZXdCb3g9IjAgMCAxNCAxMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEgNUw1IDlMMTMgMSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+);
+            }}
+
+            QCheckBox::indicator:hover {{
+                border-color: {dark_highlight};
+            }}
+
+            QTabWidget::pane {{
+                border: 2px solid {dark_border};
+                border-radius: 8px;
+                background-color: {dark_alt_bg};
+                margin-top: -2px;
+            }}
+
+            QTabBar::tab {{
+                background-color: {dark_border};
+                color: {dark_text};
+                padding: 8px 16px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                min-width: 80px;
+            }}
+
+            QTabBar::tab:selected {{
+                background-color: {dark_highlight};
+                color: white;
+            }}
+
+            QTabBar::tab:hover {{
+                background-color: {dark_hover};
+                color: white;
+            }}
         """)
     
     def show_summary(self):
         """Show extraction summary"""
         summary = f"""
-📊 Local Extraction Summary:
+ Local Extraction Summary:
    Total processed: {self.total_processed}
    Successful extractions: {self.successful_extractions}
    Failed exractions: {self.failed_extractions}

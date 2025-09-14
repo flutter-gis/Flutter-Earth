@@ -1,7 +1,7 @@
-# Flutter Earth - Dear PyGui PowerShell Startup Script
+# Flutter Earth - Enhanced Satellite Catalog Extractor
 
 Write-Host "========================================" -ForegroundColor Green
-Write-Host "   FLUTTER EARTH - DEAR PYGUI v2.0" -ForegroundColor Green
+Write-Host " 🛰️  FLUTTER EARTH - ENHANCED v3.0  🛰️" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 
@@ -26,33 +26,28 @@ if (!(Test-Path "logs")) {
 
 # Check if required packages are installed
 Write-Host "[INFO] Checking required packages..." -ForegroundColor Yellow
-try {
-    python -c "import dearpygui" 2>$null
-    Write-Host "[INFO] Dear PyGui found" -ForegroundColor Green
-} catch {
-    Write-Host "[WARNING] Dear PyGui not found, installing..." -ForegroundColor Yellow
-    pip install dearpygui
+
+$required_packages = @("PySide6", "BeautifulSoup4", "requests", "lxml")
+
+foreach ($package in $required_packages) {
+    try {
+        $package_name = $package.ToLower() -replace "beautifulsoup4", "bs4"
+        python -c "import $package_name" 2>$null
+        Write-Host "[INFO] $package found" -ForegroundColor Green
+    } catch {
+        Write-Host "[WARNING] $package not found, installing..." -ForegroundColor Yellow
+        pip install $package
+    }
 }
 
-try {
-    python -c "import matplotlib" 2>$null
-    Write-Host "[INFO] Matplotlib found" -ForegroundColor Green
-} catch {
-    Write-Host "[WARNING] Matplotlib not found, installing..." -ForegroundColor Yellow
-    pip install matplotlib
-}
-
-# Run startup coordinator
-Write-Host "[INFO] Running startup coordinator..." -ForegroundColor Yellow
-python startup_coordinator.py
-
-# Start Dear PyGui application
-Write-Host "[INFO] Starting Dear PyGui application..." -ForegroundColor Yellow
-Start-Process -FilePath "cmd" -ArgumentList "/k", "cd /d $PWD && python main.py" -WindowStyle Normal
+# Start Enhanced Satellite Catalog Extractor
+Write-Host "[INFO] Starting Enhanced Satellite Catalog Extractor..." -ForegroundColor Yellow
+Start-Process -FilePath "cmd" -ArgumentList "/k", "cd /d '$PWD\web_crawler' && python lightweight_crawler.py" -WindowStyle Normal
 
 Write-Host ""
-Write-Host "[SUCCESS] Flutter Earth is starting up!" -ForegroundColor Green
+Write-Host "[SUCCESS] Flutter Earth Enhanced UI is starting up!" -ForegroundColor Green
 Write-Host ""
-Write-Host "Application: Dear PyGui window will open automatically" -ForegroundColor Cyan
+Write-Host "Application: Enhanced Satellite Catalog Extractor window will open automatically" -ForegroundColor Cyan
+Write-Host "Features: Modern dark theme, enhanced UI, improved performance" -ForegroundColor Yellow
 Write-Host ""
 Read-Host "Press Enter to close this window" 
